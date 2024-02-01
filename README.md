@@ -101,18 +101,16 @@ analysisSettings <- defineClinicalCovariatesSettings(
   )
 )
 
-# Establish connection
-
-con <- DatabaseConnector::connect(connectionDetails)
-
-# Instantiate Scenario
+# Instantiate example
 instantiateExample(
   connectionDetails = connectionDetails,
   executionSettings = executionSettings,
   outputFolder
 )
 
+
 # run Clinical Characteristics
+con <- DatabaseConnector::connect(connectionDetails)
 runClinicalCharacteristics(
   con = con,
   executionSettings = executionSettings,
