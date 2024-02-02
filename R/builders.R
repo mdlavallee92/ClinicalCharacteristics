@@ -61,7 +61,11 @@ build_domain_covariates <- function(con,
   cli::cat_rule(consule_txt)
 
   # get cov_settings
-  covSettings <- domain_settings_fn(domain = domain, timeA = timeA, timeB = timeB)
+  covSettings <- domain_settings_fn(domain = domain,
+                                    timeA = timeA,
+                                    timeB = timeB,
+                                    include = includeConcepts,
+                                    exclude = excludeConcepts)
 
   #run FE
   cov <- silentCovariates(con = con,
