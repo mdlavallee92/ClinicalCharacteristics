@@ -26,8 +26,6 @@ runClinicalCharacteristics <- function(con,
   settings <- analysisSettings$clinicalCharacteristics$settings
 
   if (checkMode(settings, mode = "Demographics")) {
-    cli::cat_bullet("Run Demographics", bullet = "cross", bullet_col = "yellow")
-
     #unpack demographics
     demographics <- settings$Demographics$type
 
