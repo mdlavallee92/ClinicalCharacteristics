@@ -40,38 +40,75 @@ build_domain_covariates <- function(con,
                                                aggregated = TRUE)
 
   if (domain %in% c("Drugs", "Conditions", "Procedures", "Measurements", "Observations")) {
-    # collect categorical covariates
-    tbl <- cov$covariates |>
-      dplyr::left_join(cov$covariateRef, by = c("covariateId")) |>
-      dplyr::select(
-        cohortDefinitionId, analysisId, timeId,
-        covariateId, covariateName,
-        sumValue, averageValue) |>
-      dplyr::collect() |>
-      dplyr::mutate(
-        covariateName = gsub(".*: ", "", covariateName)
-      ) |>
-      dplyr::filter(
-        sumValue >= minValue # remove observations with too small of count
-      )
+    if (length(timeA) > 1) {
+      # collect categorical covariates
+      tbl <- cov$covariates |>
+        dplyr::left_join(cov$covariateRef, by = c("covariateId")) |>
+        dplyr::select(
+          cohortDefinitionId, analysisId, timeId,
+          covariateId, covariateName,
+          sumValue, averageValue) |>
+        dplyr::collect() |>
+        dplyr::mutate(
+          covariateName = gsub(".*: ", "", covariateName)
+        ) |>
+        dplyr::filter(
+          sumValue >= minValue # remove observations with too small of count
+        )
+    } else {
+      # collect categorical covariates
+      tbl <- cov$covariates |>
+        dplyr::left_join(cov$covariateRef, by = c("covariateId")) |>
+        dplyr::select(
+          cohortDefinitionId, analysisId, covariateId, covariateName,
+          sumValue, averageValue) |>
+        dplyr::collect() |>
+        dplyr::mutate(
+          covariateName = gsub(".*: ", "", covariateName)
+        ) |>
+        dplyr::filter(
+          sumValue >= minValue # remove observations with too small of count
+        )
+    }
+
   } else{
     # collect continuous covariates
-    tbl <- cov$covariatesContinuous |>
-      dplyr::left_join(cov$covariateRef, by = c("covariateId")) |>
-      dplyr::select(
-        cohortDefinitionId, analysisId,
-        covariateId, covariateName, conceptId,
-        countValue,
-        averageValue, standardDeviation,
-        minValue, p10Value, p25Value,
-        medianValue, p75Value, p90Value, maxValue) |>
-      dplyr::collect() |>
-      dplyr::mutate(
-        covariateName = gsub(".*: ", "", covariateName) # remove the junk in covariate name
-      ) |>
-      dplyr::filter(
-        countValue >= minValue # remove observations with too small of count
-      )
+    if (length(timeA) > 1) {
+      tbl <- cov$covariatesContinuous |>
+        dplyr::left_join(cov$covariateRef, by = c("covariateId")) |>
+        dplyr::select(
+          cohortDefinitionId, analysisId, timeId,
+          covariateId, covariateName, conceptId,
+          countValue,
+          averageValue, standardDeviation,
+          minValue, p10Value, p25Value,
+          medianValue, p75Value, p90Value, maxValue) |>
+        dplyr::collect() |>
+        dplyr::mutate(
+          covariateName = gsub(".*: ", "", covariateName) # remove the junk in covariate name
+        ) |>
+        dplyr::filter(
+          countValue >= minValue # remove observations with too small of count
+        )
+    } else{
+      tbl <- cov$covariatesContinuous |>
+        dplyr::left_join(cov$covariateRef, by = c("covariateId")) |>
+        dplyr::select(
+          cohortDefinitionId, analysisId,
+          covariateId, covariateName, conceptId,
+          countValue,
+          averageValue, standardDeviation,
+          minValue, p10Value, p25Value,
+          medianValue, p75Value, p90Value, maxValue) |>
+        dplyr::collect() |>
+        dplyr::mutate(
+          covariateName = gsub(".*: ", "", covariateName) # remove the junk in covariate name
+        ) |>
+        dplyr::filter(
+          countValue >= minValue # remove observations with too small of count
+        )
+    }
+
   }
 
   # save output
