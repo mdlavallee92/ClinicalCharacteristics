@@ -22,8 +22,8 @@ runClinicalCharacteristics <- function(con,
   cohortTable <- executionSettings$cohortTable
 
   #get global analysis settings
-  targetCohortIds <- analysisSettings$ClinicalCovariates$targetCohortIds
-  settings <- analysisSettings$ClinicalCovariates$settings
+  targetCohortIds <- analysisSettings$clinicalCharacteristics$targetCohortIds
+  settings <- analysisSettings$clinicalCharacteristics$settings
 
   if (checkMode(settings, mode = "Demographics")) {
     cli::cat_bullet("Run Demographics", bullet = "cross", bullet_col = "yellow")
@@ -62,7 +62,7 @@ runClinicalCharacteristics <- function(con,
       outputFolder = outputFolder)
   }
 
-  if (checkMode(settings, mode = "Cohort")) {
+  if (checkMode(settings, mode = "Cohorts")) {
     cli::cat_bullet("Run Cohort Characterization", bullet = "cross", bullet_col = "yellow")
 
     #unpack cohort settings
@@ -74,40 +74,34 @@ runClinicalCharacteristics <- function(con,
     timeB <- settings$Cohort$windows$timeB
 
     #run builder
-    purrr::walk2(
-      timeA,
-      timeB,
-      ~build_cohort_covariates(
-        con = con,
-        cohortDatabaseSchema = workDatabaseSchema,
-        cohortTable = cohortTable,
-        cdmDatabaseSchema = cdmDatabaseSchema,
-        targetCohortIds = targetCohortIds,
-        covariateCohorts = covariateCohort,
-        timeA = .x,
-        timeB = .y,
-        outputFolder = outputFolder)
-    )
+    build_cohort_covariates(
+      con = con,
+      cohortDatabaseSchema = workDatabaseSchema,
+      cohortTable = cohortTable,
+      cdmDatabaseSchema = cdmDatabaseSchema,
+      targetCohortIds = targetCohortIds,
+      covariateCohorts = covariateCohort,
+      timeA = timeA,
+      timeB = timeB,
+      outputFolder = outputFolder)
+
   }
   ###########################
   # Domains
   ############################
   # TODO can this be a bit more elegent
-  if (checkMode(settings, mode = "Drugs")) {
-    cli::cat_bullet("Run Drugs Characterization", bullet = "cross", bullet_col = "yellow")
+  if (checkMode(settings, mode = "Domains")) {
+    cli::cat_rule("Run Domain Characterization")
 
-    #unpack cohort settings
-    domain <- "Drugs"
-    includeConcepts <- settings$Drugs$include
-    excludeConcepts <- settings$Drugs$exclude
-    timeA <- settings$Drugs$windows$timeA
-    timeB <- settings$Drugs$windows$timeB
+    for (i in seq_along(settings$Domains)) {
 
-    #run builder
-    purrr::walk2(
-      timeA,
-      timeB,
-      ~build_domain_covariates(
+      domain <- names(settings$Domains)[i]
+      includeConcepts <- settings$Domains[[i]]$include
+      excludeConcepts <- settings$Domains[[i]]$exclude
+      timeA <- settings$Domains[[i]]$windows$timeA
+      timeB <- settings$Domains[[i]]$windows$timeB
+
+      build_domain_covariates(
         con = con,
         cohortDatabaseSchema = workDatabaseSchema,
         cohortTable = cohortTable,
@@ -116,128 +110,12 @@ runClinicalCharacteristics <- function(con,
         domain = domain,
         includeConcepts = includeConcepts,
         excludeConcepts = excludeConcepts,
-        timeA = .x,
-        timeB = .y,
+        timeA = timeA,
+        timeB = timeB,
         outputFolder = outputFolder)
-    )
+      cli::cat_line()
+    }
   }
-
-  if (checkMode(settings, mode = "Conditions")) {
-    cli::cat_bullet("Run Conditions Characterization", bullet = "cross", bullet_col = "yellow")
-
-    #unpack cohort settings
-    domain <- "Conditions"
-    includeConcepts <- settings$Conditions$include
-    excludeConcepts <- settings$Conditions$exclude
-    timeA <- settings$Conditions$windows$timeA
-    timeB <- settings$Conditions$windows$timeB
-
-    #run builder
-    purrr::walk2(
-      timeA,
-      timeB,
-      ~build_domain_covariates(
-        con = con,
-        cohortDatabaseSchema = workDatabaseSchema,
-        cohortTable = cohortTable,
-        cdmDatabaseSchema = cdmDatabaseSchema,
-        cohortIds = targetCohortIds,
-        domain = domain,
-        includeConcepts = includeConcepts,
-        excludeConcepts = excludeConcepts,
-        timeA = .x,
-        timeB = .y,
-        outputFolder = outputFolder)
-    )
-  }
-
-  if (checkMode(settings, mode = "Procedures")) {
-    cli::cat_bullet("Run Procedures Characterization", bullet = "cross", bullet_col = "yellow")
-
-    #unpack cohort settings
-    domain <- "Procedures"
-    includeConcepts <- settings$Procedures$include
-    excludeConcepts <- settings$Procedures$exclude
-    timeA <- settings$Procedures$windows$timeA
-    timeB <- settings$Procedures$windows$timeB
-
-    #run builder
-    purrr::walk2(
-      timeA,
-      timeB,
-      ~build_domain_covariates(
-        con = con,
-        cohortDatabaseSchema = workDatabaseSchema,
-        cohortTable = cohortTable,
-        cdmDatabaseSchema = cdmDatabaseSchema,
-        cohortIds = targetCohortIds,
-        domain = domain,
-        includeConcepts = includeConcepts,
-        excludeConcepts = excludeConcepts,
-        timeA = .x,
-        timeB = .y,
-        outputFolder = outputFolder)
-    )
-  }
-
-  if (checkMode(settings, mode = "Visits")) {
-    cli::cat_bullet("Run Visits Characterization", bullet = "cross", bullet_col = "yellow")
-
-    #unpack cohort settings
-    domain <- "Visits"
-    includeConcepts <- settings$Visits$include
-    excludeConcepts <- settings$Visits$exclude
-    timeA <- settings$Visits$windows$timeA
-    timeB <- settings$Visits$windows$timeB
-
-    #run builder
-    purrr::walk2(
-      timeA,
-      timeB,
-      ~build_domain_covariates(
-        con = con,
-        cohortDatabaseSchema = workDatabaseSchema,
-        cohortTable = cohortTable,
-        cdmDatabaseSchema = cdmDatabaseSchema,
-        cohortIds = targetCohortIds,
-        domain = domain,
-        includeConcepts = includeConcepts,
-        excludeConcepts = excludeConcepts,
-        timeA = .x,
-        timeB = .y,
-        outputFolder = outputFolder)
-    )
-  }
-
-  if (checkMode(settings, mode = "Measurements")) {
-    cli::cat_bullet("Run Measurements Characterization", bullet = "cross", bullet_col = "yellow")
-
-    #unpack cohort settings
-    domain <- "Measurements"
-    includeConcepts <- settings$Measurements$include
-    excludeConcepts <- settings$Measurements$exclude
-    timeA <- settings$Measurements$windows$timeA
-    timeB <- settings$Measurements$windows$timeB
-
-    #run builder
-    purrr::walk2(
-      timeA,
-      timeB,
-      ~build_domain_covariates(
-        con = con,
-        cohortDatabaseSchema = workDatabaseSchema,
-        cohortTable = cohortTable,
-        cdmDatabaseSchema = cdmDatabaseSchema,
-        cohortIds = targetCohortIds,
-        domain = domain,
-        includeConcepts = includeConcepts,
-        excludeConcepts = excludeConcepts,
-        timeA = .x,
-        timeB = .y,
-        outputFolder = outputFolder)
-    )
-  }
-
 
   invisible(targetCohortIds)
 }
