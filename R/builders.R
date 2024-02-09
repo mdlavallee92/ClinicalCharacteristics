@@ -17,7 +17,7 @@ build_domain_covariates <- function(con,
   ii <- seq_along(timeA)
   time_print <- glue::glue("t{ii}: {timeA}_{timeB}") |> paste(collapse = ", ")
   consule_txt <- glue::glue("Build {domain} Covariates")
-  cli::cat_rule(consule_txt)
+  cli::cat_bullet(consule_txt, bullet = "pointer", bullet_col = "yellow")
   cli::cat_bullet(
     glue::glue("At time points: {time_print}"),
     bullet = "info",
@@ -95,7 +95,7 @@ build_demographic_covariates <- function(con,
                                          outputFolder) {
 
   consule_txt <- glue::glue("Build {type} Demographics")
-  cli::cat_rule(consule_txt)
+  cli::cat_bullet(consule_txt, bullet = "pointer", bullet_col = "yellow")
 
   # get cov_settings
   covSettings <- demographic_settings_fn(type = type)
@@ -158,7 +158,7 @@ build_score_covariates <- function(con,
                                    outputFolder) {
 
   consule_txt <- glue::glue("Build Covariate Scores")
-  cli::cat_rule(consule_txt)
+  cli::cat_bullet(consule_txt, bullet = "pointer", bullet_col = "yellow")
 
   # get cov_settings
   covSettings <- score_settings_fn(scores = scores)
@@ -209,7 +209,7 @@ build_cohort_covariates <- function(con,
   ii <- seq_along(timeA)
   time_print <- glue::glue("t{ii}: {timeA}_{timeB}") |> paste(collapse = ", ")
   consule_txt <- glue::glue("Build Cohort Covariates")
-  cli::cat_rule(consule_txt)
+  cli::cat_bullet(consule_txt, bullet = "pointer", bullet_col = "yellow")
   cli::cat_bullet(
     glue::glue("At time points: {time_print}"),
     bullet = "info",
@@ -230,10 +230,11 @@ build_cohort_covariates <- function(con,
   )
 
   #run FE
-  cov <- FeatureExtraction::getDbCohortBasedCovariatesData(
+  cov <- FeatureExtraction::getDbCovariateData( # cant use FeatureExtraction::getDbCohortBasedCovariatesData
     connection = con,
     cdmDatabaseSchema = cdmDatabaseSchema,
     cohortTable = cohortTable,
+    cohortDatabaseSchema = cohortDatabaseSchema,
     cohortId = targetCohortIds,
     covariateSettings = covSettings,
     aggregated = TRUE
