@@ -1,42 +1,55 @@
 # Analysis Settings builders --------------
 
-#' Make demographics settings
+#' Define clinical characteristics settings
+#' @param targetCohortIds the target cohorts to characterize
+#' @param ... a set of settings to define
+#' @return a list object containing the analysis settings
+#' @export
+defineClinicalCharacteristics <- function(targetCohortIds) {
+
+  ll <- list(
+    'clinicalCharacteristics' = list(
+      'targetCohortIds' = targetCohortIds,
+      'settings' = list(
+        'Demographics' = list(),
+        'Scores' = list(),
+        'Domains' = list(),
+        'Cohorts' = list()
+      )
+    )
+  )
+  class(ll) <- "clinicalCharacteristicsSettings"
+  return(ll)
+
+}
+
+#' Add demographics settings
+#' @param settings the clinicalCharacteristicsSettings object to add to
 #' @param type the type of demographic covariates to produce, default Categorical and Continuous
 #' @return list of settings
 #' @export
-demographicSettings <- function(type = c("Categorical", "Continuous")) {
+addDemographicCovariates <- function(settings, type = c("Categorical", "Continuous")) {
 
-  list(
-    'Demographics' = list(
-      'type' = type
-    )
-  )
-
+  checkmate::check_class(settings, "clinicalCharacteristicsSettings")
+  settings$clinicalCharacteristics$settings$Demographics <- list('type' = type)
+  return(settings)
 }
 
 #' Make score settings
+#' @param settings the clinicalCharacteristicsSettings object to add to
 #' @param scores the score covariates to produce, default CharlsonIndex, DCsi, and Chads2Vasc
 #' @return list of settings
 #' @export
-scoreSettings <- function(scores = c("CharlsonIndex", "Dcsi", "Chads2Vasc")) {
-  list(
-    'Scores' = list(
-      'scores' = scores
-    )
-  )
+addScoreCovariates <- function(settings, scores = c("CharlsonIndex", "Dcsi", "Chads2Vasc")) {
+  checkmate::check_class(settings, "clinicalCharacteristicsSettings")
+  settings$clinicalCharacteristics$settings$Scores <- list('scores' = scores)
+  return(settings)
 }
 
-#' Make domain settings
-#' @param domain the concept domain to use. Can be Drugs, Conditions, Procedures, Measurements or Visits
-#' @param timeA a vector of time points. This should be the left point in the time interval
-#' @param timeB a vector of time points. This should be the right point in the time interval
-#' @param includeConcepts a vector of concept ids limiting the output of what to include
-#' @param excludeConcepts a vector of concept ids limiting the output of what to exclude
-#' @return list of settings
-#' @export
-domainSettings <- function(domain, timeA, timeB, includeConcepts = c(), excludeConcepts = c()) {
+addDomainCovariates <- function(settings, domain, timeA, timeB, includeConcepts = c(), excludeConcepts = c()) {
+  checkmate::check_class(settings, "clinicalCharacteristicsSettings")
 
-  rlang::list2(
+  domain_settings <- rlang::list2(
     !!domain := list(
       'windows' = list(
         'timeA' = timeA,
@@ -46,20 +59,253 @@ domainSettings <- function(domain, timeA, timeB, includeConcepts = c(), excludeC
       'exclude' = excludeConcepts
     )
   )
+  settings$clinicalCharacteristics$settings$Domains <- append(settings$clinicalCharacteristics$settings$Domains, domain_settings)
 
+  return(settings)
 }
 
+#' Make drug covariate settings
+#' @param settings the clinicalCharacteristicsSettings object to add to
+#' @param timeA a vector of time points. This should be the left point in the time interval
+#' @param timeB a vector of time points. This should be the right point in the time interval
+#' @param includeConcepts a vector of concept ids limiting the output of what to include
+#' @param excludeConcepts a vector of concept ids limiting the output of what to exclude
+#' @return list of settings adding in drugs
+#' @export
+addDrugCovariates <- function(settings, timeA, timeB, includeConcepts = c(), excludeConcepts = c()) {
+  addDomainCovariates(
+    settings = settings,
+    domain = "Drugs",
+    timeA = timeA,
+    timeB = timeB,
+    includeConcepts = includeConcepts,
+    excludeConcepts = excludeConcepts
+  )
+}
+
+#' Make condition covariate settings
+#' @param settings the clinicalCharacteristicsSettings object to add to
+#' @param timeA a vector of time points. This should be the left point in the time interval
+#' @param timeB a vector of time points. This should be the right point in the time interval
+#' @param includeConcepts a vector of concept ids limiting the output of what to include
+#' @param excludeConcepts a vector of concept ids limiting the output of what to exclude
+#' @return list of settings adding in conditions
+#' @export
+addConditionCovariates <- function(settings, timeA, timeB, includeConcepts = c(), excludeConcepts = c()) {
+  addDomainCovariates(
+    settings = settings,
+    domain = "Conditions",
+    timeA = timeA,
+    timeB = timeB,
+    includeConcepts = includeConcepts,
+    excludeConcepts = excludeConcepts
+  )
+}
+
+#' Make procedure covariate settings
+#' @param settings the clinicalCharacteristicsSettings object to add to
+#' @param timeA a vector of time points. This should be the left point in the time interval
+#' @param timeB a vector of time points. This should be the right point in the time interval
+#' @param includeConcepts a vector of concept ids limiting the output of what to include
+#' @param excludeConcepts a vector of concept ids limiting the output of what to exclude
+#' @return list of settings adding in procedures
+#' @export
+addProcedureCovariates <- function(settings, timeA, timeB, includeConcepts = c(), excludeConcepts = c()) {
+  addDomainCovariates(
+    settings = settings,
+    domain = "Procedures",
+    timeA = timeA,
+    timeB = timeB,
+    includeConcepts = includeConcepts,
+    excludeConcepts = excludeConcepts
+  )
+}
+
+#' Make observation covariate settings
+#' @param settings the clinicalCharacteristicsSettings object to add to
+#' @param timeA a vector of time points. This should be the left point in the time interval
+#' @param timeB a vector of time points. This should be the right point in the time interval
+#' @param includeConcepts a vector of concept ids limiting the output of what to include
+#' @param excludeConcepts a vector of concept ids limiting the output of what to exclude
+#' @return list of settings adding in observations
+#' @export
+addObservationCovariates <- function(settings, timeA, timeB, includeConcepts = c(), excludeConcepts = c()) {
+  addDomainCovariates(
+    settings = settings,
+    domain = "Observations",
+    timeA = timeA,
+    timeB = timeB,
+    includeConcepts = includeConcepts,
+    excludeConcepts = excludeConcepts
+  )
+}
+
+#' Make measurement covariate settings
+#' @param settings the clinicalCharacteristicsSettings object to add to
+#' @param timeA a vector of time points. This should be the left point in the time interval
+#' @param timeB a vector of time points. This should be the right point in the time interval
+#' @param includeConcepts a vector of concept ids limiting the output of what to include
+#' @param excludeConcepts a vector of concept ids limiting the output of what to exclude
+#' @return list of settings adding in measurements
+#' @export
+addMeasurementCovariates <- function(settings, timeA, timeB, includeConcepts = c(), excludeConcepts = c()) {
+  addDomainCovariates(
+    settings = settings,
+    domain = "Measurements",
+    timeA = timeA,
+    timeB = timeB,
+    includeConcepts = includeConcepts,
+    excludeConcepts = excludeConcepts
+  )
+}
+
+#' Make lab value covariate settings
+#' @param settings the clinicalCharacteristicsSettings object to add to
+#' @param timeA a vector of time points. This should be the left point in the time interval
+#' @param timeB a vector of time points. This should be the right point in the time interval
+#' @param includeConcepts a vector of concept ids limiting the output of what to include
+#' @param excludeConcepts a vector of concept ids limiting the output of what to exclude
+#' @return list of settings adding in lab values
+#' @export
+addLabValueCovariates <- function(settings, timeA, timeB, includeConcepts = c(), excludeConcepts = c()) {
+  addDomainCovariates(
+    settings = settings,
+    domain = "Labs",
+    timeA = timeA,
+    timeB = timeB,
+    includeConcepts = includeConcepts,
+    excludeConcepts = excludeConcepts
+  )
+}
+
+#' Make visit covariate settings
+#' @param settings the clinicalCharacteristicsSettings object to add to
+#' @param timeA a vector of time points. This should be the left point in the time interval
+#' @param timeB a vector of time points. This should be the right point in the time interval
+#' @param includeConcepts a vector of concept ids limiting the output of what to include
+#' @param excludeConcepts a vector of concept ids limiting the output of what to exclude
+#' @return list of settings adding in visits
+#' @export
+addVisitCovariates <- function(settings, timeA, timeB, includeConcepts = c(), excludeConcepts = c()) {
+  addDomainCovariates(
+    settings = settings,
+    domain = "Visits",
+    timeA = timeA,
+    timeB = timeB,
+    includeConcepts = includeConcepts,
+    excludeConcepts = excludeConcepts
+  )
+}
+
+
+#' Make drug count covariate settings
+#' @param settings the clinicalCharacteristicsSettings object to add to
+#' @param timeA a vector of time points. This should be the left point in the time interval
+#' @param timeB a vector of time points. This should be the right point in the time interval
+#' @param includeConcepts a vector of concept ids limiting the output of what to include
+#' @param excludeConcepts a vector of concept ids limiting the output of what to exclude
+#' @return list of settings adding in drug count
+#' @export
+addDrugCountCovariates <- function(settings, timeA, timeB, includeConcepts = c(), excludeConcepts = c()) {
+  addDomainCovariates(
+    settings = settings,
+    domain = "DrugCount",
+    timeA = timeA,
+    timeB = timeB,
+    includeConcepts = includeConcepts,
+    excludeConcepts = excludeConcepts
+  )
+}
+
+#' Make condition count covariate settings
+#' @param settings the clinicalCharacteristicsSettings object to add to
+#' @param timeA a vector of time points. This should be the left point in the time interval
+#' @param timeB a vector of time points. This should be the right point in the time interval
+#' @param includeConcepts a vector of concept ids limiting the output of what to include
+#' @param excludeConcepts a vector of concept ids limiting the output of what to exclude
+#' @return list of settings adding in condition count
+#' @export
+addConditionCountCovariates <- function(settings, timeA, timeB, includeConcepts = c(), excludeConcepts = c()) {
+  addDomainCovariates(
+    settings = settings,
+    domain = "ConditionCount",
+    timeA = timeA,
+    timeB = timeB,
+    includeConcepts = includeConcepts,
+    excludeConcepts = excludeConcepts
+  )
+}
+
+#' Make procedure count covariate settings
+#' @param settings the clinicalCharacteristicsSettings object to add to
+#' @param timeA a vector of time points. This should be the left point in the time interval
+#' @param timeB a vector of time points. This should be the right point in the time interval
+#' @param includeConcepts a vector of concept ids limiting the output of what to include
+#' @param excludeConcepts a vector of concept ids limiting the output of what to exclude
+#' @return list of settings adding in procedure count
+#' @export
+addProcedureCountCovariates <- function(settings, timeA, timeB, includeConcepts = c(), excludeConcepts = c()) {
+  addDomainCovariates(
+    settings = settings,
+    domain = "ProcedureCount",
+    timeA = timeA,
+    timeB = timeB,
+    includeConcepts = includeConcepts,
+    excludeConcepts = excludeConcepts
+  )
+}
+
+#' Make observation count covariate settings
+#' @param settings the clinicalCharacteristicsSettings object to add to
+#' @param timeA a vector of time points. This should be the left point in the time interval
+#' @param timeB a vector of time points. This should be the right point in the time interval
+#' @param includeConcepts a vector of concept ids limiting the output of what to include
+#' @param excludeConcepts a vector of concept ids limiting the output of what to exclude
+#' @return list of settings adding in observation count
+#' @export
+addObservationCountCovariates <- function(settings, timeA, timeB, includeConcepts = c(), excludeConcepts = c()) {
+  addDomainCovariates(
+    settings = settings,
+    domain = "ObservationCount",
+    timeA = timeA,
+    timeB = timeB,
+    includeConcepts = includeConcepts,
+    excludeConcepts = excludeConcepts
+  )
+}
+
+#' Make measurement count covariate settings
+#' @param settings the clinicalCharacteristicsSettings object to add to
+#' @param timeA a vector of time points. This should be the left point in the time interval
+#' @param timeB a vector of time points. This should be the right point in the time interval
+#' @param includeConcepts a vector of concept ids limiting the output of what to include
+#' @param excludeConcepts a vector of concept ids limiting the output of what to exclude
+#' @return list of settings adding in measurement count
+#' @export
+addMeasurementCountCovariates <- function(settings, timeA, timeB, includeConcepts = c(), excludeConcepts = c()) {
+  addDomainCovariates(
+    settings = settings,
+    domain = "MeasurementCount",
+    timeA = timeA,
+    timeB = timeB,
+    includeConcepts = includeConcepts,
+    excludeConcepts = excludeConcepts
+  )
+}
+
+
 #' Make cohort settings
+#' @param settings the clinicalCharacteristicsSettings object to add to
 #' @param cohortId the ids of the cohorts in the initialized cohort table to use as covariates
 #' @param cohortName the names of the cohorts corresponding to their id
 #' @param timeA a vector of time points. This should be the left point in the time interval
 #' @param timeB a vector of time points. This should be the right point in the time interval
-#' @return list of settings
+#' @return list of settings with cohort covariates
 #' @export
-cohortSettings <- function(cohortId, cohortName, timeA, timeB) {
+addCohortCovariates <- function(settings, cohortId, cohortName, timeA, timeB) {
 
-  list(
-    'Cohort' = list(
+    checkmate::check_class(settings, "clinicalCharacteristicsSettings")
+  settings$clinicalCharacteristics$settings$Cohorts <- list(
       'covariates' = list(
         'cohortId' = cohortId,
         'cohortName' = cohortName
@@ -69,27 +315,10 @@ cohortSettings <- function(cohortId, cohortName, timeA, timeB) {
         'timeB' = timeB
       )
     )
-
-  )
+  return(settings)
 }
 
-#' Define clinical characteristics settings
-#' @param targetCohortIds the target cohorts to characterize
-#' @param ... a set of settings to define
-#' @return a list object containing the analysis settings
-#' @export
-defineClinicalCharacteristics <- function(targetCohortIds, ...) {
 
-  ll <- list(
-    'ClinicalCovariates' = list(
-      'targetCohortIds' = targetCohortIds,
-      'settings' = purrr::flatten(list(...))
-    )
-  )
-
-  return(ll)
-
-}
 
 
 
