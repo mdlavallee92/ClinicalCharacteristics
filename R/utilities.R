@@ -2,8 +2,8 @@
 
 # check if slot is in analysis settings
 checkMode <- function(settings, mode) {
-  nm <- names(settings)
-  mode %in% nm
+  obj <- settings[[mode]]
+  length(obj) > 0
 }
 
 # silent version of getDbCovariateData
