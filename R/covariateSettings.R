@@ -68,6 +68,38 @@ clinical_domains <- function(domain = c("Drugs",
 
   domain <- match.arg(domain)
   dm <- switch(domain,
+               Drugs = "DrugGroupEra",
+               Conditions = "ConditionGroupEra",
+               Procedures = "ProcedureOccurrence",
+               Measurements = "Measurement",
+               Observations = "Observation",
+               Labs = "MeasurementValue",
+               Visits = "VisitConceptCount",
+               DrugCount = "DistinctIngredientCount",
+               ConditionCount = "DistinctConditionCount",
+               ProcedureCount = "DistinctProcedureCount",
+               ObservationCount = "DistinctObservationCount",
+               MeasurementCount = "DistinctMeasurementCount"
+  )
+  fe <- glue::glue("use{dm}LongTerm")
+  return(fe)
+}
+
+temporal_domains <- function(domain = c("Drugs",
+                                        "Conditions",
+                                        "Procedures",
+                                        "Measurements",
+                                        "Observations",
+                                        "Visits",
+                                        "Labs",
+                                        "DrugCount",
+                                        "ConditionCount",
+                                        "ProcedureCount",
+                                        "ObservationCount",
+                                        "MeasurementCount")) {
+
+  domain <- match.arg(domain)
+  dm <- switch(domain,
                Drugs = "DrugEraGroupStart",
                Conditions = "ConditionOccurrence",
                Procedures = "ProcedureOccurrence",
@@ -83,8 +115,8 @@ clinical_domains <- function(domain = c("Drugs",
   )
   fe <- glue::glue("use{dm}")
   return(fe)
-
 }
+
 
 # build concept domain settings
 domain_settings_fn <- function(domain,
@@ -93,22 +125,40 @@ domain_settings_fn <- function(domain,
                                exclude = c(),
                                include = c()) {
 
-  dm <- clinical_domains(domain)
-  opts <- rlang::list2(
-    !!dm := TRUE,
-    temporalStartDays = timeA,
-    temporalEndDays = timeB,
-    excludedCovariateConceptIds = exclude,
-    includedCovariateConceptIds = include
-  )
+  if (length(timeA) > 1) {
+    dm <- temporal_domains(domain)
+    opts <- rlang::list2(
+      !!dm := TRUE,
+      temporalStartDays = timeA,
+      temporalEndDays = timeB,
+      excludedCovariateConceptIds = exclude,
+      includedCovariateConceptIds = include
+    )
 
-  #build cov settings call
-  cmd <- rlang::call2(
-    .fn = "createTemporalCovariateSettings",
-    !!!opts,
-    .ns = "FeatureExtraction"
-  )
+    #build cov settings call
+    cmd <- rlang::call2(
+      .fn = "createTemporalCovariateSettings",
+      !!!opts,
+      .ns = "FeatureExtraction"
+    )
+  } else{
+    dm <- clinical_domains(domain)
+    opts <- rlang::list2(
+      !!dm := TRUE,
+      longTermStartDays = timeA,
+      endDays = timeB,
+      excludedCovariateConceptIds = exclude,
+      includedCovariateConceptIds = include
+    )
 
+    #build cov settings call
+    cmd <- rlang::call2(
+      .fn = "createCovariateSettings",
+      !!!opts,
+      .ns = "FeatureExtraction"
+    )
+  }
+  # evaluate to get cov settings
   cov_settings <- eval(cmd)
 
   return(cov_settings)
