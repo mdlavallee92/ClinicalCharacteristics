@@ -4,7 +4,7 @@
 \alias{defineClinicalCharacteristics}
 \title{Define clinical characteristics settings}
 \usage{
-defineClinicalCharacteristics(targetCohortIds, ...)
+defineClinicalCharacteristics(targetCohortIds)
 }
 \arguments{
 \item{targetCohortIds}{the target cohorts to characterize}
