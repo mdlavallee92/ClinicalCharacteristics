@@ -77,7 +77,7 @@ build_domain_covariates <- function(con,
   # save output
   verboseSave(
     object = tbl,
-    saveName = glue::glue("{domain}"),
+    saveName = tolower(glue::glue("{domain}_covariates")),
     saveLocation = outputFolder
   )
 
@@ -140,7 +140,7 @@ build_demographic_covariates <- function(con,
   # save output
   verboseSave(
     object = tbl,
-    saveName = glue::glue("{type}_demographics"),
+    saveName = tolower(glue::glue("{type}_demographics_covariates")),
     saveLocation = outputFolder
   )
 
@@ -186,7 +186,7 @@ build_score_covariates <- function(con,
   # save output
   verboseSave(
     object = tbl,
-    saveName = glue::glue("covariate_scores"),
+    saveName = glue::glue("score_covariates"),
     saveLocation = outputFolder
   )
 
