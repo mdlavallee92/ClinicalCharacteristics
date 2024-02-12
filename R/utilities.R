@@ -6,15 +6,24 @@ checkMode <- function(settings, mode) {
   length(obj) > 0
 }
 
-# silent version of getDbCovariateData
-# Deprecated
-silentCovariates <- function(con, cdmDatabaseSchema, cohortTable, cohortDatabaseSchema, cohortId, covSettings) {
-  cli::cat_bullet("Getting Covariates from database...",
-                  bullet = "info", bullet_col = "blue")
-  tik <- Sys.time()
-  #get covariate data
-  quietCov <- purrr::quietly(FeatureExtraction::getDbCovariateData)
-  cov <- quietCov(
+# pull covariates and prep for save
+getCovariatesAndFormat <- function(con,
+                              cdmDatabaseSchema,
+                              cohortTable,
+                              cohortDatabaseSchema,
+                              domain,
+                              cohortId,
+                              covSettings) {
+
+
+  timeA <- covSettings$longTermStartDays
+  timeB <- covSettings$endDays
+  tb <-  glue::glue("{timeA}d:{timeB}d")
+  txt <- glue::glue("Building {crayon::green(domain)} Charateristics at time: {crayon::cyan(tb)}")
+
+  cli::cat_bullet(txt, bullet = "pointer", bullet_col = "yellow")
+
+  cov <- FeatureExtraction::getDbCovariateData(
     connection = con,
     cdmDatabaseSchema = cdmDatabaseSchema,
     cohortTable = cohortTable,
@@ -22,16 +31,43 @@ silentCovariates <- function(con, cdmDatabaseSchema, cohortTable, cohortDatabase
     cohortId = cohortId,
     covariateSettings = covSettings,
     aggregated = TRUE
-  )$result
-  tok <- Sys.time()
-  cli::cat_bullet("Covariates built at: ", crayon::red(tok),
-                  bullet = "info", bullet_col = "blue")
-  tdif <- tok - tik
-  tok_format <- paste(scales::label_number(0.01)(as.numeric(tdif)), attr(tdif, "units"))
-  cli::cat_bullet("Covariate build took: ", crayon::red(tok_format),
-                  bullet = "info", bullet_col = "blue")
-  return(cov)
+  )
+
+
+  if (domain %in% c("Drugs", "Conditions", "Procedures", "Measurements", "Observations")) { # categorical format
+    tbl <- cov$covariates |>
+      dplyr::left_join(cov$covariateRef, by = c("covariateId")) |>
+      dplyr::select(
+        cohortDefinitionId, analysisId,
+        covariateId, covariateName, conceptId,
+        sumValue, averageValue) |>
+      dplyr::collect() |>
+      dplyr::mutate(
+        covariateName = gsub(".*: ", "", covariateName),
+        timeId = tb
+      )
+  } else{ # continuous format
+    tbl <- cov$covariatesContinuous |>
+      dplyr::left_join(cov$covariateRef, by = c("covariateId")) |>
+      dplyr::collect() |>
+      dplyr::mutate(
+        covariateName = gsub(".*: ", "", covariateName), # remove the junk in covariate name
+        timeId = tb
+      ) |>
+      dplyr::select(
+        cohortDefinitionId, analysisId, timeId,
+        covariateId, covariateName, conceptId,
+        countValue,
+        averageValue, standardDeviation,
+        minValue, p10Value, p25Value,
+        medianValue, p75Value, p90Value, maxValue
+      )
+  }
+  return(tbl)
 }
+
+
+
 
 
 #prints save activity to console
