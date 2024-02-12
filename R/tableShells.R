@@ -37,10 +37,10 @@ clean_cat_demo <- function(dt) {
 }
 
 
-pluck_demographics <- function(folder, type = c("Categorical", "Continuous"), ids = NULL) {
+pluck_demographics <- function(folder, type = c("categorical", "continuous"), ids = NULL) {
 
   type <- match.arg(type)
-  file <- glue::glue("{type}_demographics.csv")
+  file <- glue::glue("{type}_demographics_covariates.csv")
 
   # set path
   filePath <- fs::path(folder, file)

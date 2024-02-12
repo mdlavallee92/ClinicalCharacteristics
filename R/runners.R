@@ -87,7 +87,6 @@ runClinicalCharacteristics <- function(con,
   ###########################
   # Domains
   ############################
-  # TODO can this be a bit more elegent
   if (checkMode(settings, mode = "Domains")) {
     cli::cat_rule("Run Domain Characterization")
 

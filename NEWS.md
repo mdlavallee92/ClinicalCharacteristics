@@ -1,6 +1,6 @@
 # ClinicalCharacteristics 0.0.1
 
-* Change domains to temporalCovariateSettings
+* Fix dealing with temporal covariates
 * Add domain count 
 * Add Visit characteristics
 * Add measurement characteristics
