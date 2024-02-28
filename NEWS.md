@@ -1,3 +1,8 @@
+# ClinicalCharacteristics 0.0.2
+
+* add tempEmulationSchema for snowflake
+* update settings function ui
+
 # ClinicalCharacteristics 0.0.1
 
 * Fix dealing with temporal covariates
