@@ -4,6 +4,7 @@
 
 # function to build clinical covariates based on domains
 build_domain_covariates <- function(con,
+                                    tempEmulationSchema,
                                     cohortDatabaseSchema,
                                     cohortTable,
                                     cdmDatabaseSchema,
@@ -39,6 +40,7 @@ build_domain_covariates <- function(con,
     covSettings,
     ~getCovariatesAndFormat(
       con = con,
+      tempEmulationSchema = tempEmulationSchema,
       cdmDatabaseSchema = cdmDatabaseSchema,
       cohortTable = cohortTable,
       cohortDatabaseSchema = cohortDatabaseSchema,
@@ -61,6 +63,7 @@ build_domain_covariates <- function(con,
 
 # function to build clinical covariates based on demographics
 build_demographic_covariates <- function(con,
+                                         tempEmulationSchema,
                                          cohortDatabaseSchema,
                                          cohortTable,
                                          cdmDatabaseSchema,
@@ -76,6 +79,7 @@ build_demographic_covariates <- function(con,
 
   #run FE
   cov <- FeatureExtraction::getDbCovariateData(connection = con,
+                                               oracleTempSchema = tempEmulationSchema,
                                                cdmDatabaseSchema = cdmDatabaseSchema,
                                                cohortTable = cohortTable,
                                                cohortDatabaseSchema = cohortDatabaseSchema,
@@ -124,6 +128,7 @@ build_demographic_covariates <- function(con,
 
 # function to build clinical covariates based on scores
 build_score_covariates <- function(con,
+                                   tempEmulationSchema,
                                    cohortDatabaseSchema,
                                    cohortTable,
                                    cdmDatabaseSchema,
@@ -139,6 +144,7 @@ build_score_covariates <- function(con,
 
   #run FE
   cov <- FeatureExtraction::getDbCovariateData(connection = con,
+                                               oracleTempSchema = tempEmulationSchema,
                                                cdmDatabaseSchema = cdmDatabaseSchema,
                                                cohortTable = cohortTable,
                                                cohortDatabaseSchema = cohortDatabaseSchema,
@@ -170,6 +176,7 @@ build_score_covariates <- function(con,
 
 # function to build clinical covariates based on cohorts
 build_cohort_covariates <- function(con,
+                                    tempEmulationSchema,
                                    cohortDatabaseSchema,
                                    cohortTable,
                                    cdmDatabaseSchema,
@@ -206,6 +213,7 @@ build_cohort_covariates <- function(con,
   #run FE
   cov <- FeatureExtraction::getDbCovariateData( # cant use FeatureExtraction::getDbCohortBasedCovariatesData
     connection = con,
+    oracleTempSchema = tempEmulationSchema,
     cdmDatabaseSchema = cdmDatabaseSchema,
     cohortTable = cohortTable,
     cohortDatabaseSchema = cohortDatabaseSchema,

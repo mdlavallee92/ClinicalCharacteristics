@@ -20,6 +20,7 @@ runClinicalCharacteristics <- function(con,
   cdmDatabaseSchema <- executionSettings$cdmDatabaseSchema
   workDatabaseSchema <- executionSettings$workDatabaseSchema
   cohortTable <- executionSettings$cohortTable
+  tempEmulationSchema <- executionSettings$temptempEmulationSchema
 
   #get global analysis settings
   targetCohortIds <- analysisSettings$clinicalCharacteristics$targetCohortIds
@@ -34,6 +35,7 @@ runClinicalCharacteristics <- function(con,
       demographics,
       ~build_demographic_covariates(
         con = con,
+        tempEmulationSchema = tempEmulationSchema,
         cohortDatabaseSchema = workDatabaseSchema,
         cohortTable = cohortTable,
         cdmDatabaseSchema = cdmDatabaseSchema,
@@ -52,6 +54,7 @@ runClinicalCharacteristics <- function(con,
     #run builder
     build_score_covariates(
       con = con,
+      tempEmulationSchema = tempEmulationSchema,
       cohortDatabaseSchema = workDatabaseSchema,
       cohortTable = cohortTable,
       cdmDatabaseSchema = cdmDatabaseSchema,
@@ -65,15 +68,16 @@ runClinicalCharacteristics <- function(con,
 
     #unpack cohort settings
     covariateCohort <- tibble::tibble(
-      cohortId = settings$Cohort$covariates$cohortId,
-      cohortName = settings$Cohort$covariates$cohortName
+      cohortId = settings$Cohorts$covariates$cohortId,
+      cohortName = settings$Cohorts$covariates$cohortName
     )
-    timeA <- settings$Cohort$windows$timeA
-    timeB <- settings$Cohort$windows$timeB
+    timeA <- settings$Cohorts$windows$timeA
+    timeB <- settings$Cohorts$windows$timeB
 
     #run builder
     build_cohort_covariates(
       con = con,
+      tempEmulationSchema = tempEmulationSchema,
       cohortDatabaseSchema = workDatabaseSchema,
       cohortTable = cohortTable,
       cdmDatabaseSchema = cdmDatabaseSchema,
@@ -100,6 +104,7 @@ runClinicalCharacteristics <- function(con,
 
       build_domain_covariates(
         con = con,
+        tempEmulationSchema = tempEmulationSchema,
         cohortDatabaseSchema = workDatabaseSchema,
         cohortTable = cohortTable,
         cdmDatabaseSchema = cdmDatabaseSchema,

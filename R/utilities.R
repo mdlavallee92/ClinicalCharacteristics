@@ -8,6 +8,7 @@ checkMode <- function(settings, mode) {
 
 # pull covariates and prep for save
 getCovariatesAndFormat <- function(con,
+                                   tempEmulationSchema,
                               cdmDatabaseSchema,
                               cohortTable,
                               cohortDatabaseSchema,
@@ -25,6 +26,7 @@ getCovariatesAndFormat <- function(con,
 
   cov <- FeatureExtraction::getDbCovariateData(
     connection = con,
+    oracleTempSchema = tempEmulationSchema,
     cdmDatabaseSchema = cdmDatabaseSchema,
     cohortTable = cohortTable,
     cohortDatabaseSchema = cohortDatabaseSchema,
