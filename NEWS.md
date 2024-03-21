@@ -1,3 +1,12 @@
+# ClinicalCharacteristics 0.1.0
+
+* overhaul software to remove FeatureExtraction dependency
+* make clinChar object => specify data extraction
+* add extract objects => specify types of extraction by demographics or domains
+* summarize the clinChar object
+* Build out the circe sql to pull concept sets
+* Sql to extract different strategies
+
 # ClinicalCharacteristics 0.0.2
 
 * add tempEmulationSchema for snowflake

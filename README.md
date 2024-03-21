@@ -4,7 +4,8 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of `ClinicalCharacteristics` is to provide a module to improve the interface with the Feature Extraction package from OHDSI. This R package allows you to specify the clinical characteristics you choose to build at specified time intervals and generates them as csv files in an output folder. More features to come....
+The goal of `ClinicalCharacteristics` is to characterize a patient population using OMOP data. This approach uses
+a table shell approach where characteristic extraction are limited to what is specified in the build object.
 
 ## Installation
 
@@ -18,12 +19,11 @@ To install `ClinicalCharacteristics`, follow these steps:
 
 ## Example
 
-To run this package you need to instantiate cohorts in a dbms. A function is provided to facilitate this. 
-You will need connection information and information about your schemas specifying save points for tables.
-
+To run this example you need to install `Capr`
 
 ``` r
 library(ClinicalCharacteristics)
+library(Capr)
 
 # make connection details
 connectionDetails <- DatabaseConnector::createConnectionDetails(
@@ -33,90 +33,52 @@ connectionDetails <- DatabaseConnector::createConnectionDetails(
   connectionString = "<jdbcString>"
 )
 
-# make execution Settings
-executionSettings <- list(
-  cdmDatabaseSchema = '<cdm>',
-  workDatabaseSchema = '<scratch_user>',
-  cohortTable = 'test_cc'
+connection <- DatabaseConnector::connect(connectionDetails)
+
+
+# make concept sets
+conceptSet <- list(cs(descendants(201826), name = "T2D"),
+                   cs(descendants(313217,314665), name = "af")
 )
 
-# make an output folder
-outputFolder <- here::here() |>
-  fs::path("output") |>
-  fs::dir_create()
-
-# use these analysis settings
-targetCohortIds <- 1:3
-covariateCohort <- tibble::tibble(
-  cohortId = 4:14,
-  cohortName = c("ace", "afib", "arb",
-                 "dialysis", "hf", "hyperglycemia",
-                 "hypertension", "nash",
-                 "pad", "sglt2", "stroke")
+cs2 <- list(
+  cs(descendants(1503297), name = "metformin"),
+  cs(descendants(1310149), name = "warfarin")
 )
 
+# build clinChar object
+clinChar <- makeClinChar(
+    targetCohortIds = 1,
+    targetCohortNames = "Obesity",
+    dbms = "redshift",
+    cdmDatabaseSchema = "cdm_data",
+    workDatabaseSchema = "my_scratch",
+    cohortTable = "cohort_table"
+  ) |>
+  addAgeChar(categorize = age10yrGrp()) |>
+  addRaceChar() |>
+  addGenderChar() |>
+  addLocationChar() |>
+  addConditionPresence(
+    conceptSets = conceptSet, 
+    timeWindows = makeTimeTable(time_a = -365, time_b = -1), 
+    limit = "first") |>
+  addLabChar(
+    labIds = c(3036277), 
+    unitIds = c(8582), 
+    timeWindows = makeTimeTable(time_a = -365, time_b = -1), 
+    limit = "last") |>
+  addDrugCount(timeWindows = makeTimeTable(time_a = -365, time_b = -1)) |>
+  addDrugCost(timeWindows = makeTimeTable(time_a = -365, time_b = -1)) |>
+  addTimeToDrug(conceptSets = cs2, timeWindows = makeTimeTable(time_a = c(0, 0), time_b = c(180, 365)))
 
-analysisSettings <- defineClinicalCovariatesSettings(
-  targetCohortIds = c(1:3),
-  demographics = demographicSettings(),
-  scores = scoreSettings(),
-  drugs = domainSettings(
-    domain = 'Drugs',
-    timeA = c(-365, 0, 1, 1, 1),
-    timeB = c(-1, 0, 183, 365, 730),
-    excludeConcepts = c(21600001, 21600959, 21601237, # Remove ATC 1st class
-                21601907, 21602359, 21602681,
-                21602795, 21601386, 21603931,
-                21604180, 21604847, 21605007,
-                21603550, 21605212)
-    ),
-  conditions = domainSettings(
-    domain = 'Conditions',
-    timeA = c(-365),
-    timeB = c(-1)
-  ),
-  measurements = domainSettings(
-    domain = "Measurements",
-    timeA = c(-365, 0, 1, 1, 1),
-    timeB = c(-1, 0, 183, 365, 730),
-    includeConcepts = c(
-      4146380, 3006923, # ALT
-      4263457, 3013721, # AST
-      4004235, # CDT
-      4182052, 4156660, #fasting glucose
-      4197971, # HbA1c
-      3038553, # BMI
-      4154790, 3012888, # DBP
-      4152194, 3004249, #SBP
-      4012479, #LDL
-      4101713, #HDL
-      4008265 #total cholesterol
-    )
-  ),
-  cohorts = cohortSettings(
-    cohortId = covariateCohort$cohortId,
-    cohortName = covariateCohort$cohortName,
-    timeA = c(-365, 0, 1, 1, 1),
-    timeB = c(-1, 0, 183, 365, 730)
-  )
-)
-
-# Instantiate example
-instantiateExample(
-  connectionDetails = connectionDetails,
-  executionSettings = executionSettings,
-  outputFolder
-)
+runClinicalCharacteristics(connection = connection, clinChar = clinChar)
 
 
-# run Clinical Characteristics
-con <- DatabaseConnector::connect(connectionDetails)
-runClinicalCharacteristics(
-  con = con,
-  executionSettings = executionSettings,
-  analysisSettings = analysisSettings,
-  outputFolder = outputFolder
-)
+tb <- tabulateClinicalCharacteristics(clinChar = clinChar)
+
+previewClincalCharacteristics(tb, type = "categorical")
+previewClincalCharacteristics(tb, type = "continuous")
 
 DatabaseConnector::disconnect(con)
 

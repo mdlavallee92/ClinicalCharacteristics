@@ -1,9 +1,9 @@
 Package: ClinicalCharacteristics
 Title: Runs Clinical Characteristics for OHDSI Studies
-Version: 0.0.2
+Version: 0.1.0
 Authors@R: 
     person("Martin", "Lavallee", , "martin.lavallee@boehringer-ingelheim.com", role = c("aut", "cre"))
-Description: A wrapper for FeatureExtraction. Used to design and implement characterization analytics for OMOP.
+Description: A tool to characterize cohorts using a table shell approach.
 License: Apache License (>= 2)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -14,10 +14,9 @@ Imports:
     fs,
     purrr,
     rlang,
-    FeatureExtraction,
-    CirceR,
     Capr,
-    CohortGenerator,
+    SqlRender,
+    snakecase,
     DatabaseConnector,
     dplyr,
     glue,
