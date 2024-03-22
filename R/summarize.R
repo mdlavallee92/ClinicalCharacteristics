@@ -90,19 +90,35 @@ summarize_categorical <- function(tbl, clinChar) {
 
 # Labels ------------------------
 
-label_table <- function(tbl, clinChar) {
+set_time_labels <- function(clinChar) {
 
-  timeKey <- time_key(clinChar) |>
-    dplyr::mutate(
-      time_name = glue::glue("{time_a}d:{time_b}d")
-    ) |>
-    dplyr::select(
-      -c(time_a, time_b)
-    ) |>
-    tibble::add_row(
+  timeKey <- time_key(clinChar)
+
+  if (nrow(timeKey) == 0) {
+    timeKey <- tibble::tibble(
       time_id = -999,
       time_name = "Static from Index"
     )
+  } else {
+    timeKey <- timeKey |>
+      dplyr::mutate(
+        time_name = glue::glue("{time_a}d:{time_b}d")
+      ) |>
+      dplyr::select(
+        -c(time_a, time_b)
+      ) |>
+      tibble::add_row(
+        time_id = -999,
+        time_name = "Static from Index"
+      )
+  }
+  return(timeKey)
+}
+
+
+label_table <- function(tbl, clinChar) {
+
+  timeKey <- set_time_labels(clinChar)
 
   lbl_tbl <- tbl |>
     dplyr::left_join(
@@ -245,7 +261,7 @@ setMethod("sum_char", "presenceChar", function(x, clinChar){
   )
 
   codesetKey <- tibble::tibble(
-    value_id = seq_along(x@conceptSets),
+    value_id = x@tempTables$codeset,
     value_name = purrr::map_chr(x@conceptSets, ~.x@Name)
   )
 
@@ -310,11 +326,56 @@ setMethod("sum_char", "countChar", function(x, clinChar){
     'categorical' = NULL
   )
 
+  if (!is.null(x@conceptSets)) {
+    codesetKey <- tibble::tibble(
+      value_id = x@tempTables$codeset,
+      value_name = purrr::map_chr(x@conceptSets, ~.x@Name)
+    )
+  } else {
+    codesetKey <- tibble::tibble(
+      value_id = -999,
+      value_name = count_label(domain)
+    )
+  }
+
   tb$continuous <- retrieveTable(clinChar = clinChar, category_id = orderId) |>
     summarize_continuous() |>
     label_table(clinChar) |>
-    dplyr::mutate(
-      value_name = count_label(domain)
+    dplyr::left_join(
+      codesetKey, by = "value_id"
+    ) |>
+    dplyr::relocate(
+      value_name, .after = value_id
+    )
+
+  if (!is.null(x@categorize)) {
+    tb$categorical <- retrieveTable(clinChar = clinChar, category_id = 1) |>
+      categorize_value(breaksKey = x@categorize@breaks) |>
+      summarize_categorical(clinChar) |>
+      label_table(clinChar)
+
+  }
+
+  return(tb)
+
+})
+
+setMethod("sum_char", "timeInChar", function(x, clinChar){
+
+  orderId <- x@orderId
+  domain <- x@domain
+
+
+  tb <- list(
+    'continuous' = NULL,
+    'categorical' = NULL
+  )
+
+  tb$continuous <- retrieveTable(clinChar = clinChar, category_id = orderId) |>
+    summarize_continuous() |>
+    label_table(clinChar) |>
+    dplyr::left_join(
+      time_in_label(), by = "value_id"
     ) |>
     dplyr::relocate(
       value_name, .after = value_id
@@ -339,7 +400,7 @@ setMethod("sum_char", "timeToChar", function(x, clinChar){
   domain <- x@domain
 
   codesetKey <- tibble::tibble(
-    value_id = seq_along(x@conceptSets),
+    value_id = x@tempTables$codeset,
     value_name = purrr::map_chr(x@conceptSets, ~.x@Name)
   )
 
