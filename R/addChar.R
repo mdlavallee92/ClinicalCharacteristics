@@ -122,6 +122,51 @@ addLabChar <- function(clinChar, labIds, unitIds, timeWindows, limit = c("last",
   return(clinChar)
 }
 
+#' Add a visit occurrence presence characteristic
+#' @description
+#' This function adds a presence characteristic to the clinChar object for a visit occurence.
+#' A presence characteristic summarizes whether a person had the event of
+#' interest as described by a set of codes during a window of time.
+#' We use an CIRCE concept set to specify the set of codes to use to determine the presence of an event
+#' in a domain table.
+#' @param clinChar a clinChar object maintaining the components of the characterization
+#' @param conceptSets a list of concept sets that specify the codes to search within the domain
+#' @param timeWindows a timeWindow object that specifies the boundaries relative to the target start date
+#' on when to search for the presence of a value. use `makeTimeTable` function
+#' @param limit specify which values to use in the characteristic. The last variable will pull the last value in the
+#' time window, the first variable will pull the first value in the time window and the
+#' all vairable will pull all values in the time window
+#' @return adds a presenceChar object of visit_occurrence into the clinChar extractSettings slot
+#' @export
+addVisitPresence <- function(clinChar, conceptSets, timeWindows, limit = c("first", "last", "all")) {
+
+  limit <- match.arg(limit)
+
+  # check if clinChar is snwoflake and use temp schema
+  if (check_dbms(clinChar) == "snowflake") {
+    tempSchema <-clinChar@executionSettings@workDatabaseSchema
+    #tbl_codeset <- glue::glue("{tempSchema}.condition_codeset_tmp")
+    tbl_domain <- glue::glue("{tempSchema}.condition_domain_tmp")
+  } else {
+    #tbl_codeset <- "#visit_codeset"
+    tbl_domain <- "#visit_domain"
+  }
+
+  visitChar <- new("presenceChar", domain = "visit_occurrence", orderId = set_order_id(clinChar))
+  visitChar@conceptSets <- conceptSets
+  visitChar@time <- timeWindows
+  visitChar@limit <- limit
+  visitChar@tempTables <- list(
+    'domain' = tbl_domain,
+    'codeset' = c()
+  )
+
+  clinChar@extractSettings <- append(clinChar@extractSettings, visitChar)
+  clinChar <- infuse_codset_id(clinChar)
+  return(clinChar)
+}
+
+
 #' Add a condition occurrence presence characteristic
 #' @description
 #' This function adds a presence characteristic to the clinChar object for a condition occurence.
@@ -145,10 +190,10 @@ addConditionPresence <- function(clinChar, conceptSets, timeWindows, limit = c("
   # check if clinChar is snwoflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    tbl_codeset <- glue::glue("{tempSchema}.condition_codeset_tmp")
+    #tbl_codeset <- glue::glue("{tempSchema}.condition_codeset_tmp")
     tbl_domain <- glue::glue("{tempSchema}.condition_domain_tmp")
   } else {
-    tbl_codeset <- "#condition_codeset"
+    #tbl_codeset <- "#condition_codeset"
     tbl_domain <- "#condition_domain"
   }
 
@@ -158,10 +203,11 @@ addConditionPresence <- function(clinChar, conceptSets, timeWindows, limit = c("
   conditionChar@limit <- limit
   conditionChar@tempTables <- list(
     'domain' = tbl_domain,
-    'codeset' = tbl_codeset
+    'codeset' = c()
   )
 
   clinChar@extractSettings <- append(clinChar@extractSettings, conditionChar)
+  clinChar <- infuse_codset_id(clinChar)
   return(clinChar)
 }
 
@@ -188,10 +234,9 @@ addDrugPresence <- function(clinChar, conceptSets, timeWindows, limit = c("first
   # check if clinChar is snwoflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    tbl_codeset <- glue::glue("{tempSchema}.drug_codeset_tmp")
+    #tbl_codeset <- glue::glue("{tempSchema}.drug_codeset_tmp")
     tbl_domain <- glue::glue("{tempSchema}.drug_domain_tmp")
   } else {
-    tbl_codeset <- "#drug_codeset"
     tbl_domain <- "#drug_domain"
   }
 
@@ -201,9 +246,10 @@ addDrugPresence <- function(clinChar, conceptSets, timeWindows, limit = c("first
   drugChar@time <- timeWindows
   drugChar@tempTables <- list(
     'domain' = tbl_domain,
-    'codeset' = tbl_codeset
+    'codeset' =  c()
   )
   clinChar@extractSettings <- append(clinChar@extractSettings, drugChar)
+  clinChar <- infuse_codset_id(clinChar)
   return(clinChar)
 }
 
@@ -214,25 +260,31 @@ addDrugPresence <- function(clinChar, conceptSets, timeWindows, limit = c("first
 #' @param clinChar a clinChar object maintaining the components of the characterization
 #' @param timeWindows a timeWindow object that specifies the boundaries relative to the target start date
 #' on when to search for the presence of a value. use `makeTimeTable` function
+#' @param conceptSets a list of concept sets that specify the codes to search within the domain
 #' @param categorize describes how the continuous value should be categorized.
 #' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
 #' If the parameter is NULL then no categoization summary is done
 #' @return adds a countChar object of drug exposure into the clinChar extractSettings slot
 #' @export
-addDrugCount <- function(clinChar, timeWindows, categorize = NULL) {
+addDrugCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = c(32810, 32869)) {
 
   # check if clinChar is snwoflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
     tbl_count <- glue::glue("{tempSchema}.drug_count_tmp")
+    #tbl_codeset <- glue::glue("{tempSchema}.drug_codeset_tmp")
   } else {
+    #tbl_codeset <- "#drug_codeset"
     tbl_count <- "#drug_count"
   }
 
   drugChar <- new("countChar", domain = "drug_exposure", orderId = set_order_id(clinChar))
   drugChar@time <- timeWindows
+  drugChar@conceptSets <- conceptSets
+  drugChar@conceptType <- as.integer(conceptType)
   drugChar@tempTables <- list(
-    'count' = tbl_count
+    'count' = tbl_count,
+    'codeset' = c()
   )
 
   if (!is.null(categorize)) {
@@ -243,6 +295,54 @@ addDrugCount <- function(clinChar, timeWindows, categorize = NULL) {
   }
 
   clinChar@extractSettings <- append(clinChar@extractSettings, drugChar)
+  clinChar <- infuse_codset_id(clinChar)
+  return(clinChar)
+}
+
+
+#' Add a visit count characteristic
+#' @description
+#' This function adds a count characteristic to the clinChar object for a visit.
+#' A count characteristics enumerates the number of events observed during a window of time.
+#' @param clinChar a clinChar object maintaining the components of the characterization
+#' @param timeWindows a timeWindow object that specifies the boundaries relative to the target start date
+#' on when to search for the presence of a value. use `makeTimeTable` function
+#' @param conceptSets a list of concept sets that specify the codes to search within the domain
+#' @param categorize describes how the continuous value should be categorized.
+#' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
+#' If the parameter is NULL then no categorization summary is done
+#' @return adds a countChar object of visit into the clinChar extractSettings slot
+#' @export
+addVisitCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = c(32810, 32869)) {
+
+  # check if clinChar is snwoflake and use temp schema
+  if (check_dbms(clinChar) == "snowflake") {
+    tempSchema <-clinChar@executionSettings@workDatabaseSchema
+    tbl_count <- glue::glue("{tempSchema}.visit_count_tmp")
+    #tbl_codeset <- glue::glue("{tempSchema}.visit_codeset_tmp")
+  } else {
+    #tbl_codeset <- "#visit_codeset"
+    tbl_count <- "#visit_count"
+  }
+
+  visitChar <- new("countChar", domain = "visit_occurrence", orderId = set_order_id(clinChar))
+  visitChar@conceptSets <- conceptSets
+  visitChar@conceptType <- as.integer(conceptType)
+  visitChar@time <- timeWindows
+  visitChar@tempTables <- list(
+    'count' = tbl_count,
+    'codeset' = c()
+  )
+
+  if (!is.null(categorize)) {
+    if (class(categorize) != "breaksStrategy") {
+      stop("categorize needs to be a breaksStrategy object")
+    }
+    char@categorize <- categorize
+  }
+
+  clinChar@extractSettings <- append(clinChar@extractSettings, visitChar)
+  clinChar <- infuse_codset_id(clinChar)
   return(clinChar)
 }
 
@@ -259,7 +359,9 @@ addDrugCount <- function(clinChar, timeWindows, categorize = NULL) {
 #' If the parameter is NULL then no categoization summary is done
 #' @return adds a costChar object of drug exposure into the clinChar extractSettings slot
 #' @export
-addDrugCost <- function(clinChar, timeWindows, costType = "amount_allowed", categorize = NULL) {
+addDrugCost <- function(clinChar, timeWindows, conceptSets = NULL,
+                        costType = "amount_allowed", categorize = NULL,
+                        conceptType = c(32810, 32869)) {
 
   # check if clinChar is snwoflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
@@ -271,9 +373,12 @@ addDrugCost <- function(clinChar, timeWindows, costType = "amount_allowed", cate
 
   drugChar <- new("costChar", domain = "drug_exposure", orderId = set_order_id(clinChar))
   drugChar@costType <- costType
+  drugChar@conceptSets <- conceptSets
+  drugChar@conceptType <- as.integer(conceptType)
   drugChar@time <- timeWindows
   drugChar@tempTables <- list(
-    'cost' = tbl_cost
+    'cost' = tbl_cost,
+    'codeset' = c()
   )
   if (!is.null(categorize)) {
     if (class(categorize) != "breaksStrategy") {
@@ -283,6 +388,74 @@ addDrugCost <- function(clinChar, timeWindows, costType = "amount_allowed", cate
   }
 
   clinChar@extractSettings <- append(clinChar@extractSettings, drugChar)
+  clinChar <- infuse_codset_id(clinChar)
+  return(clinChar)
+}
+
+
+addVisitCost <- function(clinChar, timeWindows,
+                         conceptSets = NULL,
+                         costType = "amount_allowed", categorize = NULL,
+                         conceptType = c(32810, 32869)) {
+
+  # check if clinChar is snwoflake and use temp schema
+  if (check_dbms(clinChar) == "snowflake") {
+    tempSchema <-clinChar@executionSettings@workDatabaseSchema
+    tbl_count <- glue::glue("{tempSchema}.visit_count_tmp")
+  } else {
+    tbl_cost <- "#visit_cost"
+  }
+
+  visitChar <- new("costChar", domain = "visit_occurrence", orderId = set_order_id(clinChar))
+  visitChar@costType <- costType
+  visitChar@conceptSets <- conceptSets
+  visitChar@conceptType <- as.integer(conceptType)
+  visitChar@time <- timeWindows
+  visitChar@tempTables <- list(
+    'cost' = tbl_cost,
+    'codeset' = c()
+  )
+  if (!is.null(categorize)) {
+    if (class(categorize) != "breaksStrategy") {
+      stop("categorize needs to be a breaksStrategy object")
+    }
+    char@categorize <- categorize
+  }
+
+  clinChar@extractSettings <- append(clinChar@extractSettings, visitChar)
+  clinChar <- infuse_codset_id(clinChar)
+  return(clinChar)
+}
+
+
+addTimeInCohort <- function(clinChar, categorize = NULL) {
+
+  cohortChar <- new("timeInChar", domain = "cohort", orderId = set_order_id(clinChar))
+
+  if (!is.null(categorize)) {
+    if (class(categorize) != "breaksStrategy") {
+      stop("categorize needs to be a breaksStrategy object")
+    }
+    char@categorize <- categorize
+  }
+
+  clinChar@extractSettings <- append(clinChar@extractSettings, cohortChar)
+  return(clinChar)
+}
+
+
+addTimeInInpatient <- function(clinChar, categorize = NULL) {
+
+  cohortChar <- new("timeInChar", domain = "inpatient", orderId = set_order_id(clinChar))
+
+  if (!is.null(categorize)) {
+    if (class(categorize) != "breaksStrategy") {
+      stop("categorize needs to be a breaksStrategy object")
+    }
+    char@categorize <- categorize
+  }
+
+  clinChar@extractSettings <- append(clinChar@extractSettings, cohortChar)
   return(clinChar)
 }
 
@@ -313,10 +486,10 @@ addTimeToDrug <- function(clinChar, conceptSets, timeWindows, limit = c("first",
   # check if clinChar is snwoflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    tbl_codeset <- glue::glue("{tempSchema}.drug_codeset_tmp")
+    #tbl_codeset <- glue::glue("{tempSchema}.drug_codeset_tmp")
     tbl_duration <- glue::glue("{tempSchema}.drug_duration_tmp")
   } else {
-    tbl_codeset <- "#drug_codeset"
+    #tbl_codeset <- "#drug_codeset"
     tbl_duration <- "#drug_duration"
   }
 
@@ -326,7 +499,7 @@ addTimeToDrug <- function(clinChar, conceptSets, timeWindows, limit = c("first",
   drugChar@limit <- limit
   drugChar@tempTables <- list(
     'duration' = tbl_duration,
-    'codeset' = tbl_codeset
+    'codeset' = c()
   )
 
   if (!is.null(categorize)) {
@@ -337,5 +510,62 @@ addTimeToDrug <- function(clinChar, conceptSets, timeWindows, limit = c("first",
   }
 
   clinChar@extractSettings <- append(clinChar@extractSettings, drugChar)
+  clinChar <- infuse_codset_id(clinChar)
+  return(clinChar)
+}
+
+
+#' Add a visit timeTo characteristic
+#' @description
+#' This function adds a timeTo characteristic to the clinChar object for a visit.
+#' A timeTo characteristic summarizes the time to an event of
+#' interest as described by a set of codes during a window of time.
+#' We use an CIRCE concept set to specify the set of codes to use to determine the presence of an event
+#' in a domain table.
+#' @param clinChar a clinChar object maintaining the components of the characterization
+#' @param conceptSets a list of concept sets that specify the codes to search within the domain
+#' @param timeWindows a timeWindow object that specifies the boundaries relative to the target start date
+#' on when to search for the presence of a value. use `makeTimeTable` function
+#' @param limit specify which values to use in the characteristic. The last variable will pull the last value in the
+#' time window, the first variable will pull the first value in the time window and the
+#' all vairable will pull all values in the time window
+#' @param categorize describes how the continuous value should be categorized.
+#' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
+#' If the parameter is NULL then no categorization summary is done
+#' @return adds a timeToChar object of visit into the clinChar extractSettings slot
+#' @export
+addTimeToVisit <- function(clinChar, conceptSets, timeWindows, limit = c("first", "last", "all"),
+                          categorize = NULL) {
+
+  limit <- match.arg(limit)
+
+  # check if clinChar is snwoflake and use temp schema
+  if (check_dbms(clinChar) == "snowflake") {
+    tempSchema <-clinChar@executionSettings@workDatabaseSchema
+    #tbl_codeset <- glue::glue("{tempSchema}.visit_codeset_tmp")
+    tbl_duration <- glue::glue("{tempSchema}.visit_duration_tmp")
+  } else {
+    #tbl_codeset <- "#visit_codeset"
+    tbl_duration <- "#visit_duration"
+  }
+
+  visitChar <- new("timeToChar", domain = "visit_occurrence", orderId = set_order_id(clinChar))
+  visitChar@conceptSets <- conceptSets
+  visitChar@time <- timeWindows
+  visitChar@limit <- limit
+  visitChar@tempTables <- list(
+    'duration' = tbl_duration,
+    'codeset' = c()
+  )
+
+  if (!is.null(categorize)) {
+    if (class(categorize) != "breaksStrategy") {
+      stop("categorize needs to be a breaksStrategy object")
+    }
+    char@categorize <- categorize
+  }
+
+  clinChar@extractSettings <- append(clinChar@extractSettings, visitChar)
+  clinChar <- infuse_codset_id(clinChar)
   return(clinChar)
 }
