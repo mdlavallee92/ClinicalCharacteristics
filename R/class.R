@@ -37,7 +37,8 @@ setClass("executionSettings",
            vocabularyDatabaseSchema = "character",
            workDatabaseSchema = "character",
            cohortTable = "character",
-           timeWindowTable = "character"
+           timeWindowTable = "character",
+           codesetTable = "character"
          ),
          prototype = list(
            dbms = NA_character_,
@@ -45,7 +46,8 @@ setClass("executionSettings",
            vocabularyDatabaseSchema = NA_character_,
            workDatabaseSchema = NA_character_,
            cohortTable = NA_character_,
-           timeWindowTable = "#tw"
+           timeWindowTable = "#tw",
+           codesetTable = "#Codesets"
          )
 )
 
@@ -150,6 +152,21 @@ setClass("presenceChar",
          )
 )
 
+## timeIn Char -------------------
+
+setClass("timeInChar",
+         slots = c(
+           domain = "character",
+           orderId = "integer",
+           categorize = "ANY"
+         ),
+         prototype = list(
+           domain = NA_character_,
+           orderId = NA_integer_,
+           categorize = NULL
+         )
+)
+
 ## timeTo Char -------------------
 
 setClass("timeToChar",
@@ -178,6 +195,7 @@ setClass("countChar",
          slots = c(
            domain = "character",
            orderId = "integer",
+           conceptSets = "ANY",
            conceptType = "integer",
            time = "data.frame",
            tempTables = "list",
@@ -187,6 +205,7 @@ setClass("countChar",
            domain = NA_character_,
            orderId = NA_integer_,
            conceptType = 32869L,
+           conceptSets = NULL,
            time = data.frame('time_id' = 1, 'time_a' = -365, 'time_b' = -1),
            tempTables = list(),
            categorize = NULL
@@ -198,6 +217,8 @@ setClass("costChar",
          slots = c(
            domain = "character",
            orderId = "integer",
+           conceptSets = "ANY",
+           conceptType = "integer",
            costType = "character",
            time = "data.frame",
            tempTables = "list",
@@ -207,6 +228,7 @@ setClass("costChar",
            domain = NA_character_,
            orderId = NA_integer_,
            costType = "amount_allowed",
+           conceptType = 32869L,
            time = data.frame('time_id' = 1, 'time_a' = -365, 'time_b' = -1),
            tempTables = list(),
            categorize = NULL
@@ -481,13 +503,18 @@ setMethod("as_sql", "presenceChar", function(x){
   domain_trans <- domain_translate(domain)
   time_a <- paste(x@time$time_a, collapse = ", ")
   time_b <- paste(x@time$time_b, collapse = ", ")
+  codesetIds <- paste(x@tempTables$codeset, collapse = ", ")
 
-  codesetSql <- bind_codeset_queries(x@conceptSets, codesetTable = x@tempTables$codeset)
+  #codesetSql <- bind_codeset_queries(x@conceptSets, codesetTable = x@tempTables$codeset)
   querySql <- glue::glue(
     "
-    WITH t1 AS (
+    WITH T1 AS (
       SELECT * FROM {{timeWindowTable}} tw
       WHERE time_a IN ({time_a}) AND time_b IN ({time_b})
+    ),
+    T2 AS (
+      SELECT * FROM {{codesetTable}} cs
+      WHERE codeset_id IN ({codesetIds})
     )
     -- Find matching {domain} covariates
     SELECT
@@ -498,8 +525,8 @@ setMethod("as_sql", "presenceChar", function(x){
      INTO {x@tempTables$domain}
      FROM {{targetTable}} t
      JOIN {{cdmDatabaseSchema}}.{domain} d ON t.subject_id = d.person_id
-     JOIN {x@tempTables$codeset} cs on (d.{domain_trans$concept_id} = cs.concept_id)
-     INNER JOIN t1 tw
+     JOIN T2 cs on (d.{domain_trans$concept_id} = cs.concept_id)
+     INNER JOIN T1 tw
           ON DATEADD(day, tw.time_a, t.cohort_start_date) <= d.{domain_trans$event_date}
           AND DATEADD(day, tw.time_b, t.cohort_start_date) >= d.{domain_trans$event_date}
      ;")
@@ -518,7 +545,7 @@ setMethod("as_sql", "presenceChar", function(x){
     ;
     ")
 
-  sql <- paste(codesetSql, querySql, insertSql, sep = "\n\n")
+  sql <- paste(querySql, insertSql, sep = "\n\n")
   return(sql)
 
 })
@@ -531,9 +558,56 @@ setMethod("as_sql", "countChar", function(x){
   domain_trans <- domain_translate(domain)
   time_a <- paste(x@time$time_a, collapse = ", ")
   time_b <- paste(x@time$time_b, collapse = ", ")
+  conceptType <- paste(x@conceptType, collapse = ", ")
 
-  sql <- glue::glue(
-    "WITH T0 AS (
+  if (!is.null(x@conceptSets)) {
+    codesetIds <- paste(x@tempTables$codeset, collapse = ", ")
+    querySql <- glue::glue(
+      "
+    WITH T0 AS (
+      SELECT * FROM {{timeWindowTable}} tw
+      WHERE time_a IN ({time_a}) AND time_b IN ({time_b})
+    ),
+    T1 AS (
+      SELECT * FROM {{codesetTable}} cs
+      WHERE codeset_id IN ({codesetIds})
+    ),
+    T2 AS (
+    -- Find matching {domain} covariates
+    SELECT a.*,
+    tw.time_id,
+    cs.codeset_id AS value_id,
+    d.{domain_trans$record_id}, d.{domain_trans$concept_id}, d.{domain_trans$event_date}
+    FROM {{targetTable}} a
+    JOIN {{cdmDatabaseSchema}}.{domain} d ON a.subject_id = d.person_id
+    JOIN T1 cs on (d.{domain_trans$concept_id} = cs.concept_id)
+    INNER JOIN T0 tw
+          ON DATEADD(day, tw.time_a, a.cohort_start_date) <= d.{domain_trans$event_date}
+          AND DATEADD(day, tw.time_b, a.cohort_start_date) >= d.{domain_trans$event_date}
+    WHERE d.{domain_trans$concept_id} <> 0
+    AND {domain_trans$concept_type_id} IN ({conceptType})
+    )
+    SELECT d.cohort_definition_id, d.subject_id, d.time_id, d.value_id, COUNT(d.{domain_trans$record_id}) AS value
+    INTO {x@tempTables$count}
+    FROM T2 d
+    GROUP BY d.cohort_definition_id, d.subject_id, d.time_id, d.value_id
+    ;
+
+    -- Make {domain} query
+    INSERT INTO {{dataTable}} (cohort_id, subject_id, category_id, time_id, value_id, value)
+    SELECT cohort_definition_id AS cohort_id, subject_id,
+    {x@orderId} AS category_id,
+    time_id,
+    value_id,
+    value
+    FROM {x@tempTables$count}
+    ;")
+
+  } else{
+
+    querySql <- glue::glue(
+      "
+    WITH T0 AS (
       SELECT * FROM {{timeWindowTable}} tw
       WHERE time_a IN ({time_a}) AND time_b IN ({time_b})
     ),
@@ -548,20 +622,11 @@ setMethod("as_sql", "countChar", function(x){
           ON DATEADD(day, tw.time_a, a.cohort_start_date) <= d.{domain_trans$event_date}
           AND DATEADD(day, tw.time_b, a.cohort_start_date) >= d.{domain_trans$event_date}
     WHERE d.{domain_trans$concept_id} <> 0
-    AND {domain_trans$concept_type_id} IN ({x@conceptType})
-    ),
-    T2 AS (
-      SELECT tt.cohort_definition_id, tt.subject_id, tt.time_id, tt.{domain_trans$record_id}, tt.{domain_trans$concept_id}
-      FROM (
-        SELECT d.*,
-        ROW_NUMBER() OVER (PARTITION BY d.subject_id, d.time_id, d.{domain_trans$concept_id} order by d.{domain_trans$event_date}) as ordinal
-        FROM T1 d
-      ) tt
-      WHERE ordinal = 1
+    AND {domain_trans$concept_type_id} IN ({conceptType})
     )
     SELECT d.cohort_definition_id, d.subject_id, d.time_id, COUNT(d.{domain_trans$record_id}) AS value
     INTO {x@tempTables$count}
-    FROM T2 d
+    FROM T1 d
     GROUP BY d.cohort_definition_id, d.subject_id, d.time_id
     ;
 
@@ -574,8 +639,9 @@ setMethod("as_sql", "countChar", function(x){
     value
     FROM {x@tempTables$count}
     ;")
-
-  return(sql)
+  }
+  #sql <- paste(codesetSql, querySql, sep = "\n\n")
+  return(querySql)
 
 })
 
@@ -587,9 +653,56 @@ setMethod("as_sql", "costChar", function(x){
   domain_trans <- domain_translate(domain)
   time_a <- paste(x@time$time_a, collapse = ", ")
   time_b <- paste(x@time$time_b, collapse = ", ")
+  conceptType <- paste(x@conceptType, collapse = ", ")
 
-  sql <- glue::glue(
-    "WITH T0 AS (
+  if (!is.null(x@conceptSets)) {
+    codesetIds <- paste(x@tempTables$codeset, collapse = ", ")
+    querySql <- glue::glue(
+      "
+    WITH T0 AS (
+      SELECT * FROM {{timeWindowTable}} tw
+      WHERE time_a IN ({time_a}) AND time_b IN ({time_b})
+    ),
+    T1 AS (
+      SELECT * FROM {{codesetTable}} cs
+      WHERE codeset_id IN ({codesetIds})
+    ),
+    T2 AS (
+    -- Find matching {domain} covariates
+    SELECT a.*,
+    tw.time_id,
+    cs.codeset_id AS value_id,
+    d.{domain_trans$record_id}, d.{domain_trans$concept_id}, d.{domain_trans$event_date}
+    FROM {{targetTable}} a
+    JOIN {{cdmDatabaseSchema}}.{domain} d ON a.subject_id = d.person_id
+    JOIN T1 cs on (d.{domain_trans$concept_id} = cs.concept_id)
+    INNER JOIN T0 tw
+          ON DATEADD(day, tw.time_a, a.cohort_start_date) <= d.{domain_trans$event_date}
+          AND DATEADD(day, tw.time_b, a.cohort_start_date) >= d.{domain_trans$event_date}
+    WHERE d.{domain_trans$concept_id} <> 0
+    AND {domain_trans$concept_type_id} IN ({conceptType})
+    )
+    SELECT d.cohort_definition_id, d.subject_id, d.time_id, d.value_id, FLOOR(SUM(d.{x@costType})) AS value
+    INTO {x@tempTables$count}
+    FROM T2 d
+    GROUP BY d.cohort_definition_id, d.subject_id, d.time_id, d.value_id
+    ;
+
+    -- Make {domain} query
+    INSERT INTO {{dataTable}} (cohort_id, subject_id, category_id, time_id, value_id, value)
+    SELECT cohort_definition_id AS cohort_id, subject_id,
+    {x@orderId} AS category_id,
+    time_id,
+    value_id,
+    value
+    FROM {x@tempTables$count}
+    ;")
+
+  } else{
+
+    querySql <- glue::glue(
+      "
+    WITH T0 AS (
       SELECT * FROM {{timeWindowTable}} tw
       WHERE time_a IN ({time_a}) AND time_b IN ({time_b})
     ),
@@ -597,8 +710,7 @@ setMethod("as_sql", "costChar", function(x){
     -- Find matching {domain} covariates
     SELECT a.*,
     tw.time_id,
-    d.{domain_trans$record_id}, d.{domain_trans$concept_id}, d.{domain_trans$event_date},
-    cc.{x@costType}, cc.currency_concept_id
+    d.{domain_trans$record_id}, d.{domain_trans$concept_id}, d.{domain_trans$event_date}
     FROM {{targetTable}} a
     JOIN {{cdmDatabaseSchema}}.{domain} d ON a.subject_id = d.person_id
     JOIN {{cdmDatabaseSchema}}.cost cc ON d.{domain_trans$record_id} = cc.cost_event_id
@@ -606,7 +718,7 @@ setMethod("as_sql", "costChar", function(x){
           ON DATEADD(day, tw.time_a, a.cohort_start_date) <= d.{domain_trans$event_date}
           AND DATEADD(day, tw.time_b, a.cohort_start_date) >= d.{domain_trans$event_date}
     WHERE d.{domain_trans$concept_id} <> 0
-    AND {domain_trans$concept_type_id}  = 32869
+    AND {domain_trans$concept_type_id} IN ({conceptType})
     )
     SELECT d.cohort_definition_id, d.subject_id, d.time_id, d.currency_concept_id, FLOOR(SUM(d.{x@costType})) AS value
     INTO {x@tempTables$cost}
@@ -623,11 +735,56 @@ setMethod("as_sql", "costChar", function(x){
     value
     FROM {x@tempTables$cost}
     ;")
-
-  return(sql)
+  }
+  #sql <- paste(codesetSql, querySql, sep = "\n\n")
+  return(querySql)
 
 })
 
+
+## timeIn --------------------------
+setMethod("as_sql", "timeInChar", function(x){
+
+  domain <- x@domain
+
+  if (domain == "cohort") {
+    querySql <- glue::glue(
+      "-- Make time in {domain} query
+     INSERT INTO {{dataTable}} (cohort_id, subject_id, category_id, time_id, value_id, value)
+     SELECT t.cohort_definition_id AS cohort_id, t.subject_id,
+     {x@orderId} AS category_id,
+     -999 AS time_id,
+     1001 AS value_id,
+     DATEDIFF(day, t.cohort_start_date, t.cohort_end_date) AS value
+     FROM {{targetTable}} t;
+    "
+    )
+  }
+
+  if (domain == "inpatient") {
+    querySql <- glue::glue(
+      "-- Make time in {domain} query
+      INSERT INTO {{dataTable}} (cohort_id, subject_id, category_id, time_id, value_id, value)
+     SELECT d.cohort_definition_id AS cohort_id, d.subject_id,
+     {x@orderId} AS category_id,
+     -999 AS time_id,
+     9201000262 AS value_id,
+     d.value
+     FROM (
+      SELECT t.*,
+        DATEDIFF(day, vo.visit_start_date, vo.visit_end_date) AS value
+        FROM {{targetTable}} t
+        JOIN {{cdmDatabaseSchema}}.visit_occurrence vo
+          ON t.subject_id = vo.person_id
+            AND t.cohort_start_date <= vo.visit_start_date
+            AND vo.visit_start_date <= t.cohort_end_date
+        WHERE visit_concept_id IN (262, 9201)
+     ) d;
+    ")
+  }
+
+  return(querySql)
+})
 
 ## timeTo --------------------------
 setMethod("as_sql", "timeToChar", function(x){
@@ -636,13 +793,18 @@ setMethod("as_sql", "timeToChar", function(x){
   domain_trans <- domain_translate(domain)
   time_a <- paste(x@time$time_a, collapse = ", ")
   time_b <- paste(x@time$time_b, collapse = ", ")
+  codesetIds <- paste(x@tempTables$codeset, collapse = ", ")
 
-  codesetSql <- bind_codeset_queries(x@conceptSets, codesetTable = x@tempTables$codeset)
   querySql <- glue::glue(
-    "WITH t1 AS (
+    "
+    WITH T1 AS (
       SELECT *
       FROM {{timeWindowTable}} tw
       WHERE time_a IN ({time_a}) AND time_b IN ({time_b})
+    ),
+    T2 AS (
+      SELECT * FROM {{codesetTable}} cs
+      WHERE codeset_id IN ({codesetIds})
     )
     -- Find time to {domain}
     SELECT
@@ -654,8 +816,8 @@ setMethod("as_sql", "timeToChar", function(x){
      INTO {x@tempTables$duration}
      FROM {{targetTable}} t
      JOIN {{cdmDatabaseSchema}}.{domain} d ON t.subject_id = d.person_id
-     JOIN {x@tempTables$codeset} cs on (d.{domain_trans$concept_id} = cs.concept_id)
-     INNER JOIN t1 tw
+     JOIN T2 cs on (d.{domain_trans$concept_id} = cs.concept_id)
+     INNER JOIN T1 tw
           ON DATEADD(day, tw.time_a, t.cohort_start_date) <= d.{domain_trans$event_date}
           AND DATEADD(day, tw.time_b, t.cohort_start_date) >= d.{domain_trans$event_date}
      ;")
@@ -674,7 +836,7 @@ setMethod("as_sql", "timeToChar", function(x){
     ;
     ")
 
-  sql <- paste(codesetSql, querySql, insertSql, sep = "\n\n")
+  sql <- paste(querySql, insertSql, sep = "\n\n")
   return(sql)
 
 })
@@ -697,9 +859,7 @@ drop_domain_temp <- function(clinChar) {
 
 setMethod("drop_temp_tables", "presenceChar", function(x){
 
-  sn <- names(x@tempTables)
-  sql <- purrr::map_chr(sn, ~x@tempTables[[.x]] |> trunc_drop()) |>
-    paste(collapse = "\n\n")
+  sql <- trunc_drop(x@tempTables$domain)
   return(sql)
 
 })
@@ -707,33 +867,32 @@ setMethod("drop_temp_tables", "presenceChar", function(x){
 
 setMethod("drop_temp_tables", "targetCohort", function(x){
 
-  sql <- trunc_drop(x@tempTable)
+  sql <- trunc_drop(clinChar@targetCohort@tempTable)
   return(sql)
 
 })
 
 setMethod("drop_temp_tables", "executionSettings", function(x){
 
-  sql <- trunc_drop(x@timeWindowTable)
+  sql <- paste(
+    trunc_drop(x@timeWindowTable),
+    trunc_drop(x@codesetTable),
+    sep = "\n\n"
+  )
   return(sql)
 
 })
 
 
 setMethod("drop_temp_tables", "costChar", function(x){
-
-  sn <- names(x@tempTables)
-  sql <- purrr::map_chr(sn, ~x@tempTables[[.x]] |> trunc_drop()) |>
-    paste(collapse = "\n\n")
+  sql <- trunc_drop(x@tempTables$cost)
   return(sql)
 
 })
 
 setMethod("drop_temp_tables", "labChar", function(x){
 
-  sn <- names(x@tempTables)
-  sql <- purrr::map_chr(sn, ~x@tempTables[[.x]] |> trunc_drop()) |>
-    paste(collapse = "\n\n")
+  sql <- trunc_drop(x@tempTables$lab)
   return(sql)
 
 })
@@ -741,19 +900,16 @@ setMethod("drop_temp_tables", "labChar", function(x){
 
 setMethod("drop_temp_tables", "timeToChar", function(x){
 
-  sn <- names(x@tempTables)
-  sql <- purrr::map_chr(sn, ~x@tempTables[[.x]] |> trunc_drop()) |>
-    paste(collapse = "\n\n")
+  sql <- trunc_drop(x@tempTables$duration)
   return(sql)
 
 })
 
 setMethod("drop_temp_tables", "countChar", function(x){
 
-  sn <- names(x@tempTables)
-  sql <- purrr::map_chr(sn, ~x@tempTables[[.x]] |> trunc_drop()) |>
-    paste(collapse = "\n\n")
+  sql <- trunc_drop(x@tempTables$count)
   return(sql)
 
 })
+
 
