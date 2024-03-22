@@ -56,6 +56,12 @@ domain_translate <- function(domain) {
                  'concept_type_id' = "measurement_type_concept_id",
                  'event_date' = "measurement_date"
                ),
+               "visit_occurrence" = list(
+                 'record_id' = "visit_occurrence_id",
+                 'concept_id' = "visit_concept_id",
+                 'concept_type_id' = "visit_type_concept_id",
+                 'event_date' = "visit_start_date"
+               ),
                "gender" = list('concept_id' ="gender_concept_id"),
                "race" = list('concept_id' = "race_concept_id"),
                "ethnicity" = list('concept_id' = "ethnicity_concept_id")
@@ -141,12 +147,20 @@ cost_categories <- function() {
   )
 }
 
+time_in_label <- function() {
+  tibble::tribble(
+    ~value_id, ~value_name,
+    1001, "Time In Cohort",
+    9201000262, "Length of Inpatient Stay"
+  )
+}
 
 count_label <- function(domain) {
   lb <- switch(domain,
                'drug_exposure' = "medication count",
                'procedure_occurrence' = "procedure count",
                'measurement' = "measurement count",
-               'condition_occurrence' = "condition count")
+               'condition_occurrence' = "condition count",
+               'visit_occurrence' = "visit count")
   return(lb)
 }
