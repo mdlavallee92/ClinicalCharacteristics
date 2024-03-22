@@ -54,7 +54,7 @@ makeClinChar <- function(targetCohortIds,
     clinChar@targetCohort@tempTable <- glue::glue("{workDatabaseSchema}.target_tmp")
     clinChar@stowSettings@dataTable <- glue::glue("{workDatabaseSchema}.dat_tmp")
     clinChar@executionSettings@timeWindowTable <- glue::glue("{workDatabaseSchema}.tw_tmp")
-
+    clinChar@executionSettings@codesetTable <- glue::glue("{workDatabaseSchema}.codeset_tmp")
   }
 
   # add execution settings
@@ -93,20 +93,21 @@ setMethod("build_query", "ClinChar", function(x){
   dataTable <- x@stowSettings@dataTable
   targetTable <- x@targetCohort@tempTable
   timeWindowTable <- x@executionSettings@timeWindowTable
+  codesetTable <- x@executionSettings@codesetTable
+
+  cs_tbl <- codeset_key(x)
 
   # collect all sql for char run
   collect_sql <- glue::glue(
     make_dat_table(), # make the dat table
-    "\n\n",
     as_sql(x@targetCohort), # create target cohort
-    "\n\n",
+    bind_codeset_queries(cs_tbl, codesetTable = codesetTable),
     paste(purrr::map_chr(x@extractSettings, ~as_sql(.x)), collapse = "\n\n"), # run covars
-    "\n\n-- Drop Temp Tables\n",
+    "\n-- Drop Temp Tables\n",
     drop_temp_tables(x@targetCohort),
-    "\n\n",
     drop_temp_tables(x@executionSettings),
-    "\n\n",
-    drop_domain_temp(x)# drop tables
+    drop_domain_temp(x), # drop tables
+    .sep = "\n\n"
   ) |>
     SqlRender::translate(
       targetDialect = x@executionSettings@dbms
@@ -115,6 +116,24 @@ setMethod("build_query", "ClinChar", function(x){
   return(collect_sql)
 
 })
+
+clinCharJobDetails <- function(clinChar) {
+  charType <- purrr::map_chr(clinChar@extractSettings, ~class(.x))
+  domains <- purrr::map_chr(clinChar@extractSettings, ~.x@domain)
+  orderIds <- as.character(purrr::map_int(clinChar@extractSettings, ~.x@orderId))
+
+  cli::cat_bullet(
+    crayon::yellow("Job Details"),
+    bullet = "pointer",
+    bullet_col = "yellow"
+  )
+
+  cli::cat_line(
+    glue::glue("\t({crayon::yellow(orderIds)}) {charType}/{domains}")
+  )
+
+  invisible(charType)
+}
 
 
 #' Runs the characterization and extracts data into an arrow object
@@ -126,17 +145,40 @@ setMethod("build_query", "ClinChar", function(x){
 #' @export
 runClinicalCharacteristics <- function(connection, clinChar) {
 
+  cli::cat_boxx(
+    "Run Clinical Characteristics Job"
+  )
+  clinCharJobDetails(clinChar)
+  cli::cat_line()
   # build sql
   sql <- build_query(clinChar)
 
   insert_time_table(connection = connection, clinChar = clinChar)
 
+  cli::cat_bullet(
+    "Start ClinChar Queries....",
+    bullet = "pointer",
+    bullet_col = "yellow"
+  )
   # execute on db
   DatabaseConnector::executeSql(connection = connection, sql = sql)
 
   stowTable(connection = connection, clinChar = clinChar)
 
   stowCount(connection = connection, clinChar = clinChar)
+
+  #TODO drop #dat once it is stowed
+  cli::cat_bullet(
+    glue::glue("Drop {crayon::green(clinChar@stowSettings@dataTable)} from db"),
+    bullet = "pointer",
+    bullet_col = "yellow"
+  )
+  DatabaseConnector::executeSql(
+    connection = connection,
+    trunc_drop(clinChar@stowSettings@dataTable),
+    progressBar = FALSE,
+    reportOverallTime = FALSE
+  )
 
   invisible(sql)
 }
