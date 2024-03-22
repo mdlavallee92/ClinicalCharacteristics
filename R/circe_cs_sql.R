@@ -147,7 +147,7 @@ bind_codeset_queries <- function(conceptSet, codesetTable) {
   ll <- purrr::map2(conceptSet, ids, ~exp_to_table(.x) |> build_codeset_query(id = .y))
   set <- paste(ll, collapse = "\nUNION ALL\n")
   final_query <- glue::glue(
-    "-- Create Codesets 
+    "-- Create Codesets
     CREATE TABLE {codesetTable} (
         codeset_id int NOT NULL,
         concept_id bigint NOT NULL
@@ -157,8 +157,64 @@ bind_codeset_queries <- function(conceptSet, codesetTable) {
     INSERT INTO {codesetTable} (codeset_id, concept_id)
     {set}
     ;"
-    ) 
+    )
 
   return(final_query)
 }
+
+pluck_concept_sets <- function(clinChar) {
+  es <- clinChar@extractSettings
+  clin_class <- purrr::map_chr(es, ~class(.x))
+  idx <- which(clin_class %in% c("presenceChar", "countChar", "costChar", "timeToChar"))
+  dd <- es[idx]
+  return(dd)
+}
+
+codeset_key <- function(clinChar) {
+  dmChar <- pluck_concept_sets(clinChar)
+  cs_tbl <- purrr::map(dmChar, ~.x@conceptSets) |>
+    purrr::compact() |>
+    purrr::flatten()
+
+  cs_id <- !duplicated(purrr::map_chr(cs_tbl, ~.x@id))
+  cs_tbl2 <- cs_tbl[cs_id]
+
+
+  return(cs_tbl2)
+}
+
+
+
+get_hash_order <- function(clinChar) {
+
+  cs_tbl <- codeset_key(clinChar)
+  hash_order <- purrr::map_chr(cs_tbl, ~.x@id)
+  return(hash_order)
+}
+
+hash_to_id <- function(x, clinChar) {
+  # get hash
+  hash_order <- get_hash_order(clinChar)
+
+  current_hash_ids <- purrr::map_chr(x@conceptSets, ~.x@id)
+  query_ids <- which(hash_order %in% current_hash_ids)
+  x@tempTables$codeset <- query_ids
+  return(x)
+}
+
+infuse_codset_id <- function(clinChar) {
+
+  for (i in seq_along(clinChar@extractSettings)) {
+    classChar <- class(clinChar@extractSettings[[i]])
+    if (classChar %in% c("presenceChar", "timeToChar", "countChar")) {
+      clinChar@extractSettings[[i]] <-
+        hash_to_id(clinChar@extractSettings[[i]], clinChar)
+    } else{
+      next
+    }
+  }
+  return(clinChar)
+
+}
+
 
