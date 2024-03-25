@@ -672,10 +672,12 @@ setMethod("as_sql", "costChar", function(x){
     SELECT a.*,
     tw.time_id,
     cs.codeset_id AS value_id,
-    d.{domain_trans$record_id}, d.{domain_trans$concept_id}, d.{domain_trans$event_date}
+    d.{domain_trans$record_id}, d.{domain_trans$concept_id}, d.{domain_trans$event_date},
+    cc.{x@costType}
     FROM {{targetTable}} a
     JOIN {{cdmDatabaseSchema}}.{domain} d ON a.subject_id = d.person_id
     JOIN T1 cs on (d.{domain_trans$concept_id} = cs.concept_id)
+    JOIN {{cdmDatabaseSchema}}.cost cc ON d.{domain_trans$record_id} = cc.cost_event_id
     INNER JOIN T0 tw
           ON DATEADD(day, tw.time_a, a.cohort_start_date) <= d.{domain_trans$event_date}
           AND DATEADD(day, tw.time_b, a.cohort_start_date) >= d.{domain_trans$event_date}
@@ -683,7 +685,7 @@ setMethod("as_sql", "costChar", function(x){
     AND {domain_trans$concept_type_id} IN ({conceptType})
     )
     SELECT d.cohort_definition_id, d.subject_id, d.time_id, d.value_id, FLOOR(SUM(d.{x@costType})) AS value
-    INTO {x@tempTables$count}
+    INTO {x@tempTables$cost}
     FROM T2 d
     GROUP BY d.cohort_definition_id, d.subject_id, d.time_id, d.value_id
     ;
@@ -695,7 +697,7 @@ setMethod("as_sql", "costChar", function(x){
     time_id,
     value_id,
     value
-    FROM {x@tempTables$count}
+    FROM {x@tempTables$cost}
     ;")
 
   } else{
@@ -710,7 +712,8 @@ setMethod("as_sql", "costChar", function(x){
     -- Find matching {domain} covariates
     SELECT a.*,
     tw.time_id,
-    d.{domain_trans$record_id}, d.{domain_trans$concept_id}, d.{domain_trans$event_date}
+    d.{domain_trans$record_id}, d.{domain_trans$concept_id}, d.{domain_trans$event_date},
+    cc.{x@costType}, cc.currency_concept_id
     FROM {{targetTable}} a
     JOIN {{cdmDatabaseSchema}}.{domain} d ON a.subject_id = d.person_id
     JOIN {{cdmDatabaseSchema}}.cost cc ON d.{domain_trans$record_id} = cc.cost_event_id
