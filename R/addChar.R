@@ -609,7 +609,7 @@ addTimeToDrug <- function(clinChar, conceptSets, timeWindows, limit = c("first",
     if (class(categorize) != "breaksStrategy") {
       stop("categorize needs to be a breaksStrategy object")
     }
-    char@categorize <- categorize
+    drugChar@categorize <- categorize
   }
 
   clinChar@extractSettings <- append(clinChar@extractSettings, drugChar)
@@ -617,6 +617,61 @@ addTimeToDrug <- function(clinChar, conceptSets, timeWindows, limit = c("first",
   return(clinChar)
 }
 
+
+#' Add a condition timeTo characteristic
+#' @description
+#' This function adds a timeTo characteristic to the clinChar object for a condition.
+#' A timeTo characteristic summarizes the time to an event of
+#' interest as described by a set of codes during a window of time.
+#' We use an CIRCE concept set to specify the set of codes to use to determine the presence of an event
+#' in a domain table.
+#' @param clinChar a clinChar object maintaining the components of the characterization
+#' @param conceptSets a list of concept sets that specify the codes to search within the domain
+#' @param timeWindows a timeWindow object that specifies the boundaries relative to the target start date
+#' on when to search for the presence of a value. use `makeTimeTable` function
+#' @param limit specify which values to use in the characteristic. The last variable will pull the last value in the
+#' time window, the first variable will pull the first value in the time window and the
+#' all vairable will pull all values in the time window
+#' @param categorize describes how the continuous value should be categorized.
+#' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
+#' If the parameter is NULL then no categoization summary is done
+#' @return adds a timeToChar object of condition into the clinChar extractSettings slot
+#' @export
+addTimeToCondition <- function(clinChar, conceptSets, timeWindows, limit = c("first", "last", "all"),
+                          categorize = NULL) {
+
+  limit <- match.arg(limit)
+
+  # check if clinChar is snwoflake and use temp schema
+  if (check_dbms(clinChar) == "snowflake") {
+    tempSchema <-clinChar@executionSettings@workDatabaseSchema
+    #tbl_codeset <- glue::glue("{tempSchema}.drug_codeset_tmp")
+    tbl_duration <- glue::glue("{tempSchema}.cond_duration_tmp")
+  } else {
+    #tbl_codeset <- "#drug_codeset"
+    tbl_duration <- "#cond_duration"
+  }
+
+  condChar <- new("timeToChar", domain = "condition_occurrence", orderId = set_order_id(clinChar))
+  condChar@conceptSets <- conceptSets
+  condChar@time <- timeWindows
+  condChar@limit <- limit
+  condChar@tempTables <- list(
+    'duration' = tbl_duration,
+    'codeset' = c()
+  )
+
+  if (!is.null(categorize)) {
+    if (class(categorize) != "breaksStrategy") {
+      stop("categorize needs to be a breaksStrategy object")
+    }
+    condChar@categorize <- categorize
+  }
+
+  clinChar@extractSettings <- append(clinChar@extractSettings, condChar)
+  clinChar <- infuse_codset_id(clinChar)
+  return(clinChar)
+}
 
 #' Add a visit timeTo characteristic
 #' @description
