@@ -4,7 +4,7 @@
 \alias{addYearChar}
 \title{Add a year characteristic}
 \usage{
-addYearChar(clinChar)
+addYearChar(clinChar, categorize = NULL)
 }
 \arguments{
 \item{clinChar}{a clinChar object maintaining the components of the characterization}
