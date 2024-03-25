@@ -60,6 +60,24 @@ addEthnicityChar <- function(clinChar) {
   return(clinChar)
 }
 
+#' Add a year characteristic
+#' @description
+#' This function adds a year characteristic to the clinChar object.
+#' @param clinChar a clinChar object maintaining the components of the characterization
+#' @return adds a yearChar object into the clinChar extractSettings slot
+#' @export
+addYearChar <- function(clinChar, categorize = NULL) {
+  char <- new("yearChar", domain = "year", orderId = set_order_id(clinChar))
+  if (!is.null(categorize)) {
+    if (class(categorize) != "breaksStrategy") {
+      stop("categorize needs to be a breaksStrategy object")
+    }
+    char@categorize <- categorize
+  }
+  clinChar@extractSettings <- append(clinChar@extractSettings, char)
+  return(clinChar)
+}
+
 #' Add a location characteristic
 #' @description
 #' This function adds alocation characteristic to the clinChar object.

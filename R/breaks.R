@@ -61,7 +61,7 @@ acs <- function() {
 #' of a working human. 0-14 is child, 15-64 is working age, 65+ is retirement
 #' @return Creates a breaksStrategy object holding the labels for categorization
 #' @export
-childWorkRetire <- function() {
+ageChildWorkRetire <- function() {
   x <- c(0,15,65, 130)
   a <- dplyr::lead(x) - 1
   lab <- glue::glue("{x}-{a}")[-length(x)]
@@ -135,4 +135,62 @@ customAge <- function(breaks, labels) {
     'labels' = labels
   )
   return(ll)
+}
+
+#' Make year group using 5 yr threshold
+#' @description
+#' Helper function for year characteristic to make year breaks categorizing persons
+#' per 5 year groups
+#' @return Creates a breaksStrategy object holding the labels for categorization
+#' @export
+year5yrGrp <- function() {
+  this_year <- as.integer(lubridate::year(lubridate::today()))
+  x <- seq(2000, (this_year + 5), by = 5)
+  a <- dplyr::lead(x) - 1
+  lab <- glue::glue("{x}-{a}")[-length(x)]
+  ll <- tibble::tibble(
+    value = as.numeric(2000:(this_year + 1)),
+    grp = cut(as.numeric(2000:(this_year + 1)), breaks = x, labels = lab, right = FALSE)
+  )
+  br <- new("breaksStrategy", breaks = ll)
+  return(br)
+}
+
+
+#' Make year group using 10 yr threshold
+#' @description
+#' Helper function for year characteristic to make year breaks categorizing persons
+#' per 10 year groups
+#' @return Creates a breaksStrategy object holding the labels for categorization
+#' @export
+year10yrGrp <- function() {
+  this_year <- as.integer(lubridate::year(lubridate::today()))
+  x <- seq(2000, (this_year + 10), by = 10)
+  a <- dplyr::lead(x) - 1
+  lab <- glue::glue("{x}-{a}")[-length(x)]
+  ll <- tibble::tibble(
+    value = as.numeric(2000:(this_year + 1)),
+    grp = cut(as.numeric(2000:(this_year + 1)), breaks = x, labels = lab, right = FALSE)
+  )
+  br <- new("breaksStrategy", breaks = ll)
+  return(br)
+}
+
+#' Make year group by covid time
+#' @description
+#' Helper function for year characteristic to make year breaks categorizing persons
+#' by covid time where 2000-2019 is pre-covid, 2020-2022 is covid and 2023+ is post-covid
+#' @return Creates a breaksStrategy object holding the labels for categorization
+#' @export
+yearCovid <- function() {
+  this_year <- as.integer(lubridate::year(lubridate::today()))
+  x <- c(2000,2020, 2023, (this_year + 1))
+  a <- dplyr::lead(x) - 1
+  lab <- c("pre-covid", "covid", "post-covid")
+  ll <- tibble::tibble(
+    value = as.numeric(2000:(this_year + 1)),
+    grp = cut(as.numeric(2000:(this_year + 1)), breaks = x, labels = lab, right = FALSE)
+  )
+  br <- new("breaksStrategy", breaks = ll)
+  return(br)
 }

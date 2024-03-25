@@ -96,16 +96,23 @@ setMethod("build_query", "ClinChar", function(x){
   codesetTable <- x@executionSettings@codesetTable
 
   cs_tbl <- codeset_key(x)
+  if (length(cs_tbl) > 0) {
+    cs_query <- bind_codeset_queries(cs_tbl, codesetTable = codesetTable)
+    drop_temp_tb_tw_cs <- drop_temp_tables(x@executionSettings)
+  } else {
+    cs_query <- ""
+    drop_temp_tb_tw_cs <- trunc_drop(timeWindowTable)
+  }
 
   # collect all sql for char run
   collect_sql <- glue::glue(
     make_dat_table(), # make the dat table
     as_sql(x@targetCohort), # create target cohort
-    bind_codeset_queries(cs_tbl, codesetTable = codesetTable),
+    cs_query,
     paste(purrr::map_chr(x@extractSettings, ~as_sql(.x)), collapse = "\n\n"), # run covars
     "\n-- Drop Temp Tables\n",
     drop_temp_tables(x@targetCohort),
-    drop_temp_tables(x@executionSettings),
+    drop_temp_tb_tw_cs,
     drop_domain_temp(x), # drop tables
     .sep = "\n\n"
   ) |>

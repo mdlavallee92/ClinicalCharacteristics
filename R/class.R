@@ -82,6 +82,20 @@ setClass("ageChar",
          )
 )
 
+setClass("yearChar",
+         slots = c(
+           domain = "character",
+           orderId = "integer",
+           categorize = "ANY"
+         ),
+         prototype = list(
+           domain = "year",
+           orderId = NA_integer_,
+           categorize = NULL
+         )
+)
+
+
 ## Location Char -------------------------------------
 setClass("locationChar",
          slots = c(
@@ -396,6 +410,26 @@ setMethod("as_sql", "ageChar", function(x){
 
 })
 
+
+## year --------------
+
+setMethod("as_sql", "yearChar", function(x){
+
+  domain <- x@domain
+  sql <- glue::glue(
+    "-- Make {domain} query
+     INSERT INTO {{dataTable}} (cohort_id, subject_id, category_id, time_id, value_id, value)
+     SELECT t.cohort_definition_id AS cohort_id, t.subject_id,
+     {x@orderId} AS category_id,
+     -999 AS time_id,
+     YEAR(t.cohort_start_date) AS value_id,
+     1 AS value
+     FROM {{targetTable}} t
+     ;"
+  )
+  return(sql)
+
+})
 
 ## demographic --------------
 setMethod("as_sql", "demoConceptChar", function(x){

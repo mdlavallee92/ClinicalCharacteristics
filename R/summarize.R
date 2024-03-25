@@ -45,6 +45,18 @@ categorize_value <- function(tbl, breaksKey) {
   return(tb)
 }
 
+
+categorize_year <- function(tbl, breaksKey) {
+  tb <- tbl |>
+    dplyr::left_join(breaksKey, by = c("value_id" = "value")) |>
+    dplyr::mutate(
+      value = 1,
+      value_id = grp
+    ) |>
+    dplyr::select(-c(grp))
+  return(tb)
+}
+
 #
 
 # Summary --------------------
@@ -216,6 +228,33 @@ setMethod("sum_char", "ageChar", function(x, clinChar){
   return(tb)
 
 })
+
+
+setMethod("sum_char", "yearChar", function(x, clinChar){
+
+  orderId <- x@orderId
+
+  tb <- list(
+    'continuous' = NULL,
+    'categorical' = NULL
+  )
+
+  if (!is.null(x@categorize)) {
+    #TODO change this to categorize year
+    tb$categorical <- retrieveTable(clinChar = clinChar, category_id = orderId) |>
+      categorize_year(breaksKey = x@categorize@breaks) |>
+      summarize_categorical(clinChar) |>
+      label_table(clinChar)
+  } else {
+    tb$categorical <- retrieveTable(clinChar = clinChar, category_id = orderId) |>
+      summarize_categorical(clinChar) |>
+      label_table(clinChar)
+  }
+
+  return(tb)
+
+})
+
 
 setMethod("sum_char", "locationChar", function(x, clinChar){
 
