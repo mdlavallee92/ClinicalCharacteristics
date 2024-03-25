@@ -35,11 +35,18 @@ insert_time_table <- function(connection, clinChar) {
     bullet = "pointer",
     bullet_col = "yellow"
   )
+
+  if(connection@dbms == "snowflake") {
+    tempTabToggle <- FALSE
+  } else{
+    tempTabToggle <- TRUE
+  }
+
   DatabaseConnector::insertTable(
     connection = connection,
     tableName = clinChar@executionSettings@timeWindowTable,
     data = time_tbl,
-    tempTable = TRUE
+    tempTable = tempTabToggle
   )
 
 
