@@ -142,6 +142,7 @@ clinCharJobDetails <- function(clinChar) {
   invisible(charType)
 }
 
+# UI ---------------------------
 
 #' Runs the characterization and extracts data into an arrow object
 #' @description
@@ -187,5 +188,34 @@ runClinicalCharacteristics <- function(connection, clinChar) {
     reportOverallTime = FALSE
   )
 
+  invisible(sql)
+}
+
+#' Function to review the query built by clinical characteristics
+#' @param clinChar the clinChar object
+#' @param savePath the location to save the query to review. By default
+#' this saves the query to a file named clinCharQuery.sql in your active
+#' directory
+#' @return a monaco html widget to review the query. You may edit the query in the
+#' viewer and save to the file created by this function
+#' @export
+reviewQuery <- function(clinChar, savePath = here::here("clinCharQuery.sql")) {
+  sql <- build_query(clinChar)
+  cli::cat_bullet(
+    glue::glue("Writing ClinChar Query to: {crayon::cyan(savePath)}"),
+    bullet = "pointer",
+    bullet_col = "yellow"
+  )
+  readr::write_file(sql, savePath)
+  cli::cat_bullet(
+    glue::glue("Opening {crayon::magenta('Monaco')} widget"),
+    bullet = "pointer",
+    bullet_col = "yellow"
+  )
+  monaco::monaco(
+    contents = savePath,
+    language = "sql",
+    theme = "vs"
+  )
   invisible(sql)
 }
