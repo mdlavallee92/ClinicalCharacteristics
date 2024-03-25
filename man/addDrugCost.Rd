@@ -23,7 +23,7 @@ on when to search for the presence of a value. use \code{makeTimeTable} function
 
 \item{categorize}{describes how the continuous value should be categorized.
 This function takes a breaksStrategy object to describe the categories ow it is left NULL.
-If the parameter is NULL then no categoization summary is done}
+If the parameter is NULL then no categorization summary is done}
 }
 \value{
 adds a costChar object of drug exposure into the clinChar extractSettings slot

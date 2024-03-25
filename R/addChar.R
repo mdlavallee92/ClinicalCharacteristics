@@ -3,13 +3,15 @@ set_order_id <- function(clinChar) {
   return(order_id)
 }
 
+# Demographics ----------------------------------
+
 #' Add an age characteristic
 #' @description
 #' This function adds an age characteristic to the clinChar object.
 #' @param clinChar a clinChar object maintaining the components of the characterization
 #' @param categorize describes how the continuous value should be categorized.
 #' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
-#' If the parameter is NULL then no categoization summary is done
+#' If the parameter is NULL then no categorization summary is done
 #' @return adds a ageChar object into the clinChar extractSettings slot
 #' @export
 addAgeChar <- function(clinChar, categorize = NULL) {
@@ -91,6 +93,8 @@ addLocationChar <- function(clinChar) {
 }
 
 
+# Lab -------------------------
+
 #' Add a lab characteristic
 #' @description
 #' This function adds a lab characteristic to the clinChar object.
@@ -104,7 +108,7 @@ addLocationChar <- function(clinChar) {
 #' all vairable will pull all values in the time window
 #' @param categorize describes how the continuous value should be categorized.
 #' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
-#' If the parameter is NULL then no categoization summary is done
+#' If the parameter is NULL then no categorization summary is done
 #' @return adds a labChar object into the clinChar extractSettings slot
 #' @export
 addLabChar <- function(clinChar, labIds, unitIds, timeWindows, limit = c("last", "first", "all"),
@@ -139,6 +143,8 @@ addLabChar <- function(clinChar, labIds, unitIds, timeWindows, limit = c("last",
   clinChar@extractSettings <- append(clinChar@extractSettings, labChar)
   return(clinChar)
 }
+
+# Presence -------------------------
 
 #' Add a visit occurrence presence characteristic
 #' @description
@@ -356,6 +362,50 @@ addProcedurePresence <- function(clinChar, conceptSets, timeWindows, limit = c("
   return(clinChar)
 }
 
+#' Add a measurement presence characteristic
+#' @description
+#' This function adds a presence characteristic to the clinChar object for a measurement.
+#' A presence characteristic summarizes whether a person had the event of
+#' interest as described by a set of codes during a window of time.
+#' We use an CIRCE concept set to specify the set of codes to use to determine the presence of an event
+#' in a domain table.
+#' @param clinChar a clinChar object maintaining the components of the characterization
+#' @param conceptSets a list of concept sets that specify the codes to search within the domain
+#' @param timeWindows a timeWindow object that specifies the boundaries relative to the target start date
+#' on when to search for the presence of a value. use `makeTimeTable` function
+#' @param limit specify which values to use in the characteristic. The last variable will pull the last value in the
+#' time window, the first variable will pull the first value in the time window and the
+#' all vairable will pull all values in the time window
+#' @return adds a presenceChar object of measurement into the clinChar extractSettings slot
+#' @export
+addMeasurementPresence <- function(clinChar, conceptSets, timeWindows, limit = c("first", "last", "all")) {
+
+  limit <- match.arg(limit)
+
+  # check if clinChar is snwoflake and use temp schema
+  if (check_dbms(clinChar) == "snowflake") {
+    tempSchema <-clinChar@executionSettings@workDatabaseSchema
+    #tbl_codeset <- glue::glue("{tempSchema}.drug_codeset_tmp")
+    tbl_domain <- glue::glue("{tempSchema}.meas_domain_tmp")
+  } else {
+    tbl_domain <- "#meas_domain"
+  }
+
+  measChar <- new("presenceChar", domain = "measurement", orderId = set_order_id(clinChar))
+  measChar@conceptSets <- conceptSets
+  measChar@limit <- limit
+  measChar@time <- timeWindows
+  measChar@tempTables <- list(
+    'domain' = tbl_domain,
+    'codeset' =  c()
+  )
+  clinChar@extractSettings <- append(clinChar@extractSettings, measChar)
+  clinChar <- infuse_codset_id(clinChar)
+  return(clinChar)
+}
+
+# Count ----------------------------------
+
 #' Add a drug exposure count characteristic
 #' @description
 #' This function adds a count characteristic to the clinChar object for a drug exposure.
@@ -366,7 +416,7 @@ addProcedurePresence <- function(clinChar, conceptSets, timeWindows, limit = c("
 #' @param conceptSets a list of concept sets that specify the codes to search within the domain
 #' @param categorize describes how the continuous value should be categorized.
 #' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
-#' If the parameter is NULL then no categoization summary is done
+#' If the parameter is NULL then no categorization summary is done
 #' @return adds a countChar object of drug exposure into the clinChar extractSettings slot
 #' @export
 addDrugCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = c(32810, 32869)) {
@@ -394,7 +444,7 @@ addDrugCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize =
     if (class(categorize) != "breaksStrategy") {
       stop("categorize needs to be a breaksStrategy object")
     }
-    char@categorize <- categorize
+    drugChar@categorize <- categorize
   }
 
   clinChar@extractSettings <- append(clinChar@extractSettings, drugChar)
@@ -441,13 +491,194 @@ addVisitCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize 
     if (class(categorize) != "breaksStrategy") {
       stop("categorize needs to be a breaksStrategy object")
     }
-    char@categorize <- categorize
+    visitChar@categorize <- categorize
   }
 
   clinChar@extractSettings <- append(clinChar@extractSettings, visitChar)
   clinChar <- infuse_codset_id(clinChar)
   return(clinChar)
 }
+
+
+#' Add a condition count characteristic
+#' @description
+#' This function adds a count characteristic to the clinChar object for a condition.
+#' A count characteristics enumerates the number of events observed during a window of time.
+#' @param clinChar a clinChar object maintaining the components of the characterization
+#' @param timeWindows a timeWindow object that specifies the boundaries relative to the target start date
+#' on when to search for the presence of a value. use `makeTimeTable` function
+#' @param conceptSets a list of concept sets that specify the codes to search within the domain
+#' @param categorize describes how the continuous value should be categorized.
+#' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
+#' If the parameter is NULL then no categorization summary is done
+#' @return adds a countChar object of condition into the clinChar extractSettings slot
+#' @export
+addConditionCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = c(32810, 32869)) {
+
+  # check if clinChar is snwoflake and use temp schema
+  if (check_dbms(clinChar) == "snowflake") {
+    tempSchema <-clinChar@executionSettings@workDatabaseSchema
+    tbl_count <- glue::glue("{tempSchema}.cond_count_tmp")
+  } else {
+    tbl_count <- "#cond_count"
+  }
+
+  condChar <- new("countChar", domain = "condition_occurrence", orderId = set_order_id(clinChar))
+  condChar@time <- timeWindows
+  condChar@conceptSets <- conceptSets
+  condChar@conceptType <- as.integer(conceptType)
+  condChar@tempTables <- list(
+    'count' = tbl_count,
+    'codeset' = c()
+  )
+
+  if (!is.null(categorize)) {
+    if (class(categorize) != "breaksStrategy") {
+      stop("categorize needs to be a breaksStrategy object")
+    }
+    condChar@categorize <- categorize
+  }
+
+  clinChar@extractSettings <- append(clinChar@extractSettings, condChar)
+  clinChar <- infuse_codset_id(clinChar)
+  return(clinChar)
+}
+
+
+#' Add a procedure count characteristic
+#' @description
+#' This function adds a count characteristic to the clinChar object for a procedure.
+#' A count characteristics enumerates the number of events observed during a window of time.
+#' @param clinChar a clinChar object maintaining the components of the characterization
+#' @param timeWindows a timeWindow object that specifies the boundaries relative to the target start date
+#' on when to search for the presence of a value. use `makeTimeTable` function
+#' @param conceptSets a list of concept sets that specify the codes to search within the domain
+#' @param categorize describes how the continuous value should be categorized.
+#' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
+#' If the parameter is NULL then no categorization summary is done
+#' @return adds a countChar object of procedure into the clinChar extractSettings slot
+#' @export
+addProcedureCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = c(32810, 32869)) {
+
+  # check if clinChar is snwoflake and use temp schema
+  if (check_dbms(clinChar) == "snowflake") {
+    tempSchema <-clinChar@executionSettings@workDatabaseSchema
+    tbl_count <- glue::glue("{tempSchema}.proc_count_tmp")
+  } else {
+    tbl_count <- "#proc_count"
+  }
+
+  procChar <- new("countChar", domain = "procedure_occurrence", orderId = set_order_id(clinChar))
+  procChar@conceptSets <- conceptSets
+  procChar@conceptType <- as.integer(conceptType)
+  procChar@time <- timeWindows
+  procChar@tempTables <- list(
+    'count' = tbl_count,
+    'codeset' = c()
+  )
+
+  if (!is.null(categorize)) {
+    if (class(categorize) != "breaksStrategy") {
+      stop("categorize needs to be a breaksStrategy object")
+    }
+    procChar@categorize <- categorize
+  }
+
+  clinChar@extractSettings <- append(clinChar@extractSettings, procChar)
+  clinChar <- infuse_codset_id(clinChar)
+  return(clinChar)
+}
+
+#' Add a measurement count characteristic
+#' @description
+#' This function adds a count characteristic to the clinChar object for a measurement .
+#' A count characteristics enumerates the number of events observed during a window of time.
+#' @param clinChar a clinChar object maintaining the components of the characterization
+#' @param timeWindows a timeWindow object that specifies the boundaries relative to the target start date
+#' on when to search for the presence of a value. use `makeTimeTable` function
+#' @param conceptSets a list of concept sets that specify the codes to search within the domain
+#' @param categorize describes how the continuous value should be categorized.
+#' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
+#' If the parameter is NULL then no categorization summary is done
+#' @return adds a countChar object of measurement  into the clinChar extractSettings slot
+#' @export
+addMeasurementCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = c(32810, 32869)) {
+
+  # check if clinChar is snwoflake and use temp schema
+  if (check_dbms(clinChar) == "snowflake") {
+    tempSchema <-clinChar@executionSettings@workDatabaseSchema
+    tbl_count <- glue::glue("{tempSchema}.meas_count_tmp")
+  } else {
+    tbl_count <- "#meas_count"
+  }
+
+  measChar <- new("countChar", domain = "measurement", orderId = set_order_id(clinChar))
+  measChar@time <- timeWindows
+  measChar@conceptSets <- conceptSets
+  measChar@conceptType <- as.integer(conceptType)
+  measChar@tempTables <- list(
+    'count' = tbl_count,
+    'codeset' = c()
+  )
+
+  if (!is.null(categorize)) {
+    if (class(categorize) != "breaksStrategy") {
+      stop("categorize needs to be a breaksStrategy object")
+    }
+    measChar@categorize <- categorize
+  }
+
+  clinChar@extractSettings <- append(clinChar@extractSettings, measChar)
+  clinChar <- infuse_codset_id(clinChar)
+  return(clinChar)
+}
+
+
+#' Add a observation count characteristic
+#' @description
+#' This function adds a count characteristic to the clinChar object for a observation.
+#' A count characteristics enumerates the number of events observed during a window of time.
+#' @param clinChar a clinChar object maintaining the components of the characterization
+#' @param timeWindows a timeWindow object that specifies the boundaries relative to the target start date
+#' on when to search for the presence of a value. use `makeTimeTable` function
+#' @param conceptSets a list of concept sets that specify the codes to search within the domain
+#' @param categorize describes how the continuous value should be categorized.
+#' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
+#' If the parameter is NULL then no categorization summary is done
+#' @return adds a countChar object of observation into the clinChar extractSettings slot
+#' @export
+addObservationCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = c(32810, 32869)) {
+
+  # check if clinChar is snwoflake and use temp schema
+  if (check_dbms(clinChar) == "snowflake") {
+    tempSchema <-clinChar@executionSettings@workDatabaseSchema
+    tbl_count <- glue::glue("{tempSchema}.obs_count_tmp")
+  } else {
+    tbl_count <- "#obs_count"
+  }
+
+  obsChar <- new("countChar", domain = "observation", orderId = set_order_id(clinChar))
+  obsChar@conceptSets <- conceptSets
+  obsChar@conceptType <- as.integer(conceptType)
+  obsChar@time <- timeWindows
+  obsChar@tempTables <- list(
+    'count' = tbl_count,
+    'codeset' = c()
+  )
+
+  if (!is.null(categorize)) {
+    if (class(categorize) != "breaksStrategy") {
+      stop("categorize needs to be a breaksStrategy object")
+    }
+    obsChar@categorize <- categorize
+  }
+
+  clinChar@extractSettings <- append(clinChar@extractSettings, obsChar)
+  clinChar <- infuse_codset_id(clinChar)
+  return(clinChar)
+}
+
+# Cost -------------------------------
 
 #' Add a drug exposure cost characteristic
 #' @description
@@ -459,7 +690,7 @@ addVisitCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize 
 #' @param costType the column in the cost table to summarize
 #' @param categorize describes how the continuous value should be categorized.
 #' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
-#' If the parameter is NULL then no categoization summary is done
+#' If the parameter is NULL then no categorization summary is done
 #' @return adds a costChar object of drug exposure into the clinChar extractSettings slot
 #' @export
 addDrugCost <- function(clinChar, timeWindows, conceptSets = NULL,
@@ -469,7 +700,7 @@ addDrugCost <- function(clinChar, timeWindows, conceptSets = NULL,
   # check if clinChar is snwoflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    tbl_count <- glue::glue("{tempSchema}.drug_count_tmp")
+    tbl_count <- glue::glue("{tempSchema}.drug_cost_tmp")
   } else {
     tbl_cost <- "#drug_cost"
   }
@@ -487,7 +718,7 @@ addDrugCost <- function(clinChar, timeWindows, conceptSets = NULL,
     if (class(categorize) != "breaksStrategy") {
       stop("categorize needs to be a breaksStrategy object")
     }
-    char@categorize <- categorize
+    drugChar@categorize <- categorize
   }
 
   clinChar@extractSettings <- append(clinChar@extractSettings, drugChar)
@@ -495,16 +726,76 @@ addDrugCost <- function(clinChar, timeWindows, conceptSets = NULL,
   return(clinChar)
 }
 
+#' Add a drug exposure cost characteristic
+#' @description
+#' This function adds a cost characteristic to the clinChar object for a drug exposure.
+#' A cost characteristics summarizes the total cost of events observed during a window of time.
+#' @param clinChar a clinChar object maintaining the components of the characterization
+#' @param timeWindows a timeWindow object that specifies the boundaries relative to the target start date
+#' on when to search for the presence of a value. use `makeTimeTable` function
+#' @param costType the column in the cost table to summarize
+#' @param categorize describes how the continuous value should be categorized.
+#' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
+#' If the parameter is NULL then no categorization summary is done
+#' @return adds a costChar object of drug exposure into the clinChar extractSettings slot
+#' @export
+addProcedureCost <- function(clinChar, timeWindows, conceptSets = NULL,
+                        costType = "amount_allowed", categorize = NULL,
+                        conceptType = c(32810, 32869)) {
 
+  # check if clinChar is snwoflake and use temp schema
+  if (check_dbms(clinChar) == "snowflake") {
+    tempSchema <-clinChar@executionSettings@workDatabaseSchema
+    tbl_count <- glue::glue("{tempSchema}.proc_cost_tmp")
+  } else {
+    tbl_cost <- "#drug_cost"
+  }
+
+  procChar <- new("costChar", domain = "procedure_occurrence", orderId = set_order_id(clinChar))
+  procChar@costType <- costType
+  procChar@conceptSets <- conceptSets
+  procChar@conceptType <- as.integer(conceptType)
+  procChar@time <- timeWindows
+  procChar@tempTables <- list(
+    'cost' = tbl_cost,
+    'codeset' = c()
+  )
+  if (!is.null(categorize)) {
+    if (class(categorize) != "breaksStrategy") {
+      stop("categorize needs to be a breaksStrategy object")
+    }
+    procChar@categorize <- categorize
+  }
+
+  clinChar@extractSettings <- append(clinChar@extractSettings, procChar)
+  clinChar <- infuse_codset_id(clinChar)
+  return(clinChar)
+}
+
+
+#' Add a vist cost characteristic
+#' @description
+#' This function adds a cost characteristic to the clinChar object for a visit.
+#' A cost characteristics summarizes the total cost of events observed during a window of time.
+#' @param clinChar a clinChar object maintaining the components of the characterization
+#' @param timeWindows a timeWindow object that specifies the boundaries relative to the target start date
+#' on when to search for the presence of a value. use `makeTimeTable` function
+#' @param costType the column in the cost table to summarize
+#' @param categorize describes how the continuous value should be categorized.
+#' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
+#' If the parameter is NULL then no categorization summary is done
+#' @return adds a costChar object of visit into the clinChar extractSettings slot
+#' @export
 addVisitCost <- function(clinChar, timeWindows,
                          conceptSets = NULL,
-                         costType = "amount_allowed", categorize = NULL,
+                         costType = "amount_allowed",
+                         categorize = NULL,
                          conceptType = c(32810, 32869)) {
 
   # check if clinChar is snwoflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    tbl_count <- glue::glue("{tempSchema}.visit_count_tmp")
+    tbl_count <- glue::glue("{tempSchema}.visit_cost_tmp")
   } else {
     tbl_cost <- "#visit_cost"
   }
@@ -522,7 +813,7 @@ addVisitCost <- function(clinChar, timeWindows,
     if (class(categorize) != "breaksStrategy") {
       stop("categorize needs to be a breaksStrategy object")
     }
-    char@categorize <- categorize
+    visitChar@categorize <- categorize
   }
 
   clinChar@extractSettings <- append(clinChar@extractSettings, visitChar)
@@ -530,7 +821,18 @@ addVisitCost <- function(clinChar, timeWindows,
   return(clinChar)
 }
 
+# Time In -----------------------------
 
+#' Add a time in cohort characteristic
+#' @description
+#' This function finds the time spent in a cohort per patient. This takes
+#' the difference between the cohort start date and end date
+#' @param clinChar a clinChar object maintaining the components of the characterization
+#' @param categorize describes how the continuous value should be categorized.
+#' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
+#' If the parameter is NULL then no categorization summary is done
+#' @return adds a timeInChar object into the clinChar extractSettings slot
+#' @export
 addTimeInCohort <- function(clinChar, categorize = NULL) {
 
   cohortChar <- new("timeInChar", domain = "cohort", orderId = set_order_id(clinChar))
@@ -546,7 +848,16 @@ addTimeInCohort <- function(clinChar, categorize = NULL) {
   return(clinChar)
 }
 
-
+#' Add a time in inpatient characteristic
+#' @description
+#' This function finds the time spent in inpatient hospitalization per patient. This takes
+#' the difference between the visit start date and end date
+#' @param clinChar a clinChar object maintaining the components of the characterization
+#' @param categorize describes how the continuous value should be categorized.
+#' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
+#' If the parameter is NULL then no categorization summary is done
+#' @return adds a timeInChar object into the clinChar extractSettings slot
+#' @export
 addTimeInInpatient <- function(clinChar, categorize = NULL) {
 
   cohortChar <- new("timeInChar", domain = "inpatient", orderId = set_order_id(clinChar))
@@ -561,6 +872,8 @@ addTimeInInpatient <- function(clinChar, categorize = NULL) {
   clinChar@extractSettings <- append(clinChar@extractSettings, cohortChar)
   return(clinChar)
 }
+
+# Time To -------------------------------
 
 #' Add a drug exposure timeTo characteristic
 #' @description
@@ -578,7 +891,7 @@ addTimeInInpatient <- function(clinChar, categorize = NULL) {
 #' all vairable will pull all values in the time window
 #' @param categorize describes how the continuous value should be categorized.
 #' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
-#' If the parameter is NULL then no categoization summary is done
+#' If the parameter is NULL then no categorization summary is done
 #' @return adds a timeToChar object of drug exposure into the clinChar extractSettings slot
 #' @export
 addTimeToDrug <- function(clinChar, conceptSets, timeWindows, limit = c("first", "last", "all"),
@@ -634,7 +947,7 @@ addTimeToDrug <- function(clinChar, conceptSets, timeWindows, limit = c("first",
 #' all vairable will pull all values in the time window
 #' @param categorize describes how the continuous value should be categorized.
 #' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
-#' If the parameter is NULL then no categoization summary is done
+#' If the parameter is NULL then no categorization summary is done
 #' @return adds a timeToChar object of condition into the clinChar extractSettings slot
 #' @export
 addTimeToCondition <- function(clinChar, conceptSets, timeWindows, limit = c("first", "last", "all"),
@@ -669,6 +982,167 @@ addTimeToCondition <- function(clinChar, conceptSets, timeWindows, limit = c("fi
   }
 
   clinChar@extractSettings <- append(clinChar@extractSettings, condChar)
+  clinChar <- infuse_codset_id(clinChar)
+  return(clinChar)
+}
+
+#' Add a procedure timeTo characteristic
+#' @description
+#' This function adds a timeTo characteristic to the clinChar object for a procedure.
+#' A timeTo characteristic summarizes the time to an event of
+#' interest as described by a set of codes during a window of time.
+#' We use an CIRCE concept set to specify the set of codes to use to determine the presence of an event
+#' in a domain table.
+#' @param clinChar a clinChar object maintaining the components of the characterization
+#' @param conceptSets a list of concept sets that specify the codes to search within the domain
+#' @param timeWindows a timeWindow object that specifies the boundaries relative to the target start date
+#' on when to search for the presence of a value. use `makeTimeTable` function
+#' @param limit specify which values to use in the characteristic. The last variable will pull the last value in the
+#' time window, the first variable will pull the first value in the time window and the
+#' all vairable will pull all values in the time window
+#' @param categorize describes how the continuous value should be categorized.
+#' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
+#' If the parameter is NULL then no categorization summary is done
+#' @return adds a timeToChar object of procedure into the clinChar extractSettings slot
+#' @export
+addTimeToProcedure <- function(clinChar, conceptSets, timeWindows, limit = c("first", "last", "all"),
+                               categorize = NULL) {
+
+  limit <- match.arg(limit)
+
+  # check if clinChar is snwoflake and use temp schema
+  if (check_dbms(clinChar) == "snowflake") {
+    tempSchema <-clinChar@executionSettings@workDatabaseSchema
+    tbl_duration <- glue::glue("{tempSchema}.proc_duration_tmp")
+  } else {
+    tbl_duration <- "#proc_duration"
+  }
+
+  procChar <- new("timeToChar", domain = "procedure_occurrence", orderId = set_order_id(clinChar))
+  procChar@conceptSets <- conceptSets
+  procChar@time <- timeWindows
+  procChar@limit <- limit
+  procChar@tempTables <- list(
+    'duration' = tbl_duration,
+    'codeset' = c()
+  )
+
+  if (!is.null(categorize)) {
+    if (class(categorize) != "breaksStrategy") {
+      stop("categorize needs to be a breaksStrategy object")
+    }
+    procChar@categorize <- categorize
+  }
+
+  clinChar@extractSettings <- append(clinChar@extractSettings, procChar)
+  clinChar <- infuse_codset_id(clinChar)
+  return(clinChar)
+}
+
+
+#' Add a measurement timeTo characteristic
+#' @description
+#' This function adds a timeTo characteristic to the clinChar object for a measurement.
+#' A timeTo characteristic summarizes the time to an event of
+#' interest as described by a set of codes during a window of time.
+#' We use an CIRCE concept set to specify the set of codes to use to determine the presence of an event
+#' in a domain table.
+#' @param clinChar a clinChar object maintaining the components of the characterization
+#' @param conceptSets a list of concept sets that specify the codes to search within the domain
+#' @param timeWindows a timeWindow object that specifies the boundaries relative to the target start date
+#' on when to search for the presence of a value. use `makeTimeTable` function
+#' @param limit specify which values to use in the characteristic. The last variable will pull the last value in the
+#' time window, the first variable will pull the first value in the time window and the
+#' all vairable will pull all values in the time window
+#' @param categorize describes how the continuous value should be categorized.
+#' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
+#' If the parameter is NULL then no categorization summary is done
+#' @return adds a timeToChar object of measurement into the clinChar extractSettings slot
+#' @export
+addTimeToMeasurement <- function(clinChar, conceptSets, timeWindows, limit = c("first", "last", "all"),
+                               categorize = NULL) {
+
+  limit <- match.arg(limit)
+
+  # check if clinChar is snwoflake and use temp schema
+  if (check_dbms(clinChar) == "snowflake") {
+    tempSchema <-clinChar@executionSettings@workDatabaseSchema
+    tbl_duration <- glue::glue("{tempSchema}.meas_duration_tmp")
+  } else {
+    tbl_duration <- "#meas_duration"
+  }
+
+  measChar <- new("timeToChar", domain = "measurement", orderId = set_order_id(clinChar))
+  measChar@conceptSets <- conceptSets
+  measChar@time <- timeWindows
+  measChar@limit <- limit
+  measChar@tempTables <- list(
+    'duration' = tbl_duration,
+    'codeset' = c()
+  )
+
+  if (!is.null(categorize)) {
+    if (class(categorize) != "breaksStrategy") {
+      stop("categorize needs to be a breaksStrategy object")
+    }
+    measChar@categorize <- categorize
+  }
+
+  clinChar@extractSettings <- append(clinChar@extractSettings, measChar)
+  clinChar <- infuse_codset_id(clinChar)
+  return(clinChar)
+}
+
+
+#' Add a observation timeTo characteristic
+#' @description
+#' This function adds a timeTo characteristic to the clinChar object for a observation.
+#' A timeTo characteristic summarizes the time to an event of
+#' interest as described by a set of codes during a window of time.
+#' We use an CIRCE concept set to specify the set of codes to use to determine the presence of an event
+#' in a domain table.
+#' @param clinChar a clinChar object maintaining the components of the characterization
+#' @param conceptSets a list of concept sets that specify the codes to search within the domain
+#' @param timeWindows a timeWindow object that specifies the boundaries relative to the target start date
+#' on when to search for the presence of a value. use `makeTimeTable` function
+#' @param limit specify which values to use in the characteristic. The last variable will pull the last value in the
+#' time window, the first variable will pull the first value in the time window and the
+#' all vairable will pull all values in the time window
+#' @param categorize describes how the continuous value should be categorized.
+#' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
+#' If the parameter is NULL then no categorization summary is done
+#' @return adds a timeToChar object of observation into the clinChar extractSettings slot
+#' @export
+addTimeToObservation <- function(clinChar, conceptSets, timeWindows, limit = c("first", "last", "all"),
+                                 categorize = NULL) {
+
+  limit <- match.arg(limit)
+
+  # check if clinChar is snwoflake and use temp schema
+  if (check_dbms(clinChar) == "snowflake") {
+    tempSchema <-clinChar@executionSettings@workDatabaseSchema
+    tbl_duration <- glue::glue("{tempSchema}.obs_duration_tmp")
+  } else {
+    tbl_duration <- "#obs_duration"
+  }
+
+  obsChar <- new("timeToChar", domain = "observation", orderId = set_order_id(clinChar))
+  obsChar@conceptSets <- conceptSets
+  obsChar@time <- timeWindows
+  obsChar@limit <- limit
+  obsChar@tempTables <- list(
+    'duration' = tbl_duration,
+    'codeset' = c()
+  )
+
+  if (!is.null(categorize)) {
+    if (class(categorize) != "breaksStrategy") {
+      stop("categorize needs to be a breaksStrategy object")
+    }
+    obsChar@categorize <- categorize
+  }
+
+  clinChar@extractSettings <- append(clinChar@extractSettings, obsChar)
   clinChar <- infuse_codset_id(clinChar)
   return(clinChar)
 }
@@ -720,7 +1194,7 @@ addTimeToVisit <- function(clinChar, conceptSets, timeWindows, limit = c("first"
     if (class(categorize) != "breaksStrategy") {
       stop("categorize needs to be a breaksStrategy object")
     }
-    char@categorize <- categorize
+    visitChar@categorize <- categorize
   }
 
   clinChar@extractSettings <- append(clinChar@extractSettings, visitChar)
