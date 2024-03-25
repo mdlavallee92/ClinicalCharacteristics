@@ -904,7 +904,7 @@ setMethod("drop_temp_tables", "presenceChar", function(x){
 
 setMethod("drop_temp_tables", "targetCohort", function(x){
 
-  sql <- trunc_drop(clinChar@targetCohort@tempTable)
+  sql <- trunc_drop(x@targetCohort@tempTable)
   return(sql)
 
 })
