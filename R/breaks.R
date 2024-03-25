@@ -1,5 +1,5 @@
 
-## Age breaks
+# Age breaks ---------------------------------
 
 #' Make 5 yr age group
 #' @description
@@ -129,13 +129,7 @@ age18 <- function() {
   return(br)
 }
 
-customAge <- function(breaks, labels) {
-  ll <- list(
-    'breaks' = breaks,
-    'labels' = labels
-  )
-  return(ll)
-}
+# year breaks--------------------
 
 #' Make year group using 5 yr threshold
 #' @description
@@ -190,6 +184,24 @@ yearCovid <- function() {
   ll <- tibble::tibble(
     value = as.numeric(2000:(this_year + 1)),
     grp = cut(as.numeric(2000:(this_year + 1)), breaks = x, labels = lab, right = FALSE)
+  )
+  br <- new("breaksStrategy", breaks = ll)
+  return(br)
+}
+
+
+# Custom breaks --------------------------
+
+#' Function to make custom categorical breaks
+#' @param x a sequence of values to categorize
+#' @param breaks the breaks to the x sequenece..see `cut`
+#' @param labels the labels of the sequence
+#' @return Creates a breaksStrategy object holding the labels for categorization
+#' @export
+customBreaks <- function(x, breaks, labels) {
+  ll <- tibble::tibble(
+    value = x,
+    grp = cut(x, breaks = breaks, labels = labels, right = FALSE)
   )
   br <- new("breaksStrategy", breaks = ll)
   return(br)
