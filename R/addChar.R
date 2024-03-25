@@ -271,6 +271,91 @@ addDrugPresence <- function(clinChar, conceptSets, timeWindows, limit = c("first
   return(clinChar)
 }
 
+#' Add a observation presence characteristic
+#' @description
+#' This function adds a presence characteristic to the clinChar object for a observation.
+#' A presence characteristic summarizes whether a person had the event of
+#' interest as described by a set of codes during a window of time.
+#' We use an CIRCE concept set to specify the set of codes to use to determine the presence of an event
+#' in a domain table.
+#' @param clinChar a clinChar object maintaining the components of the characterization
+#' @param conceptSets a list of concept sets that specify the codes to search within the domain
+#' @param timeWindows a timeWindow object that specifies the boundaries relative to the target start date
+#' on when to search for the presence of a value. use `makeTimeTable` function
+#' @param limit specify which values to use in the characteristic. The last variable will pull the last value in the
+#' time window, the first variable will pull the first value in the time window and the
+#' all vairable will pull all values in the time window
+#' @return adds a presenceChar object of observation into the clinChar extractSettings slot
+#' @export
+addObservationPresence <- function(clinChar, conceptSets, timeWindows, limit = c("first", "last", "all")) {
+
+  limit <- match.arg(limit)
+
+  # check if clinChar is snwoflake and use temp schema
+  if (check_dbms(clinChar) == "snowflake") {
+    tempSchema <-clinChar@executionSettings@workDatabaseSchema
+    #tbl_codeset <- glue::glue("{tempSchema}.drug_codeset_tmp")
+    tbl_domain <- glue::glue("{tempSchema}.obs_domain_tmp")
+  } else {
+    tbl_domain <- "#obs_domain"
+  }
+
+  obsChar <- new("presenceChar", domain = "observation", orderId = set_order_id(clinChar))
+  obsChar@conceptSets <- conceptSets
+  obsChar@limit <- limit
+  obsChar@time <- timeWindows
+  obsChar@tempTables <- list(
+    'domain' = tbl_domain,
+    'codeset' =  c()
+  )
+  clinChar@extractSettings <- append(clinChar@extractSettings, obsChar)
+  clinChar <- infuse_codset_id(clinChar)
+  return(clinChar)
+}
+
+
+#' Add a Procedure presence characteristic
+#' @description
+#' This function adds a presence characteristic to the clinChar object for a Procedure.
+#' A presence characteristic summarizes whether a person had the event of
+#' interest as described by a set of codes during a window of time.
+#' We use an CIRCE concept set to specify the set of codes to use to determine the presence of an event
+#' in a domain table.
+#' @param clinChar a clinChar object maintaining the components of the characterization
+#' @param conceptSets a list of concept sets that specify the codes to search within the domain
+#' @param timeWindows a timeWindow object that specifies the boundaries relative to the target start date
+#' on when to search for the presence of a value. use `makeTimeTable` function
+#' @param limit specify which values to use in the characteristic. The last variable will pull the last value in the
+#' time window, the first variable will pull the first value in the time window and the
+#' all vairable will pull all values in the time window
+#' @return adds a presenceChar object of Procedure into the clinChar extractSettings slot
+#' @export
+addProcedurePresence <- function(clinChar, conceptSets, timeWindows, limit = c("first", "last", "all")) {
+
+  limit <- match.arg(limit)
+
+  # check if clinChar is snwoflake and use temp schema
+  if (check_dbms(clinChar) == "snowflake") {
+    tempSchema <-clinChar@executionSettings@workDatabaseSchema
+    #tbl_codeset <- glue::glue("{tempSchema}.drug_codeset_tmp")
+    tbl_domain <- glue::glue("{tempSchema}.proc_domain_tmp")
+  } else {
+    tbl_domain <- "#proc_domain"
+  }
+
+  procChar <- new("presenceChar", domain = "procedure_occurrence", orderId = set_order_id(clinChar))
+  procChar@conceptSets <- conceptSets
+  procChar@limit <- limit
+  procChar@time <- timeWindows
+  procChar@tempTables <- list(
+    'domain' = tbl_domain,
+    'codeset' =  c()
+  )
+  clinChar@extractSettings <- append(clinChar@extractSettings, procChar)
+  clinChar <- infuse_codset_id(clinChar)
+  return(clinChar)
+}
+
 #' Add a drug exposure count characteristic
 #' @description
 #' This function adds a count characteristic to the clinChar object for a drug exposure.

@@ -50,6 +50,12 @@ domain_translate <- function(domain) {
                  'concept_type_id' = "procedure_type_concept_id",
                  'event_date' = "procedure_date"
                ),
+               "observation" = list(
+                 'record_id' = "observation_id",
+                 'concept_id' = "observation_concept_id",
+                 'concept_type_id' = "observation_type_concept_id",
+                 'event_date' = "observation_date"
+               ),
                "measurement" = list(
                  'record_id' = "measurement_id",
                  'concept_id' = "measurement_concept_id",
