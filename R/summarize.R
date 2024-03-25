@@ -285,19 +285,26 @@ setMethod("sum_char", "costChar", function(x, clinChar){
 
   orderId <- x@orderId
 
-  cost_labels <- cost_categories()
-
   tb <- list(
     'continuous' = NULL,
     'categorical' = NULL
   )
 
 
+  if (!is.null(x@conceptSets)) {
+    codesetKey <- tibble::tibble(
+      value_id = x@tempTables$codeset,
+      value_name = purrr::map_chr(x@conceptSets, ~.x@Name)
+    )
+  } else {
+    codesetKey <- cost_categories()
+  }
+
   tb$continuous <- retrieveTable(clinChar = clinChar, category_id = orderId) |>
     summarize_continuous() |>
     label_table(clinChar) |>
     dplyr::left_join(
-      cost_labels, by = "value_id"
+      codesetKey, by = "value_id"
     ) |>
     dplyr::relocate(
       value_name, .after = value_id
@@ -471,19 +478,14 @@ tabulateClinicalCharacteristics <- function(clinChar) {
 #' @export
 previewClincalCharacteristics <- function(tb, type = c("categorical", "continuous")) {
 
-  cat_dat <- tb$categorical |>
-    dplyr::mutate(
-      cohort_name = snakecase::to_title_case(cohort_name),
-      category_name = snakecase::to_title_case(category_name)
-    )
-
-  cts_dat <- tb$continuous |>
-    dplyr::mutate(
-      cohort_name = snakecase::to_title_case(cohort_name),
-      category_name = snakecase::to_title_case(category_name)
-    )
 
   if (type == "categorical") {
+    cat_dat <- tb$categorical |>
+      dplyr::mutate(
+        cohort_name = snakecase::to_title_case(cohort_name),
+        category_name = snakecase::to_title_case(category_name)
+      )
+
     res_tb <- reactable::reactable(
       data = cat_dat,
       columns = list(
@@ -512,6 +514,13 @@ previewClincalCharacteristics <- function(tb, type = c("categorical", "continuou
   }
 
   if (type == "continuous") {
+
+    cts_dat <- tb$continuous |>
+      dplyr::mutate(
+        cohort_name = snakecase::to_title_case(cohort_name),
+        category_name = snakecase::to_title_case(category_name)
+      )
+
     res_tb <- reactable::reactable(
       data = cts_dat,
       columns = list(
