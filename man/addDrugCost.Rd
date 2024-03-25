@@ -7,8 +7,10 @@
 addDrugCost(
   clinChar,
   timeWindows,
+  conceptSets = NULL,
   costType = "amount_allowed",
-  categorize = NULL
+  categorize = NULL,
+  conceptType = c(32810, 32869)
 )
 }
 \arguments{
