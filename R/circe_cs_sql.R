@@ -206,7 +206,7 @@ infuse_codset_id <- function(clinChar) {
 
   for (i in seq_along(clinChar@extractSettings)) {
     classChar <- class(clinChar@extractSettings[[i]])
-    if (classChar %in% c("presenceChar", "timeToChar", "countChar")) {
+    if (classChar %in% c("presenceChar", "timeToChar", "countChar", "costChar")) {
       clinChar@extractSettings[[i]] <-
         hash_to_id(clinChar@extractSettings[[i]], clinChar)
     } else{
