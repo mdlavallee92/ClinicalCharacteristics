@@ -69,7 +69,9 @@ makeClinChar <- function(targetCohortIds,
 }
 
 make_dat_table <- function() {
-  sql <- glue::glue("CREATE TABLE {{dataTable}} (
+  sql <- glue::glue("
+  -- Init Data table
+  CREATE TABLE {{dataTable}} (
   cohort_id int NOT NULL,
   subject_id bigint NOT NULL,
   category_id int NOT NULL,

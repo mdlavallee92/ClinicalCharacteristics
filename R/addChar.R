@@ -700,7 +700,7 @@ addDrugCost <- function(clinChar, timeWindows, conceptSets = NULL,
   # check if clinChar is snwoflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    tbl_count <- glue::glue("{tempSchema}.drug_cost_tmp")
+    tbl_cost <- glue::glue("{tempSchema}.drug_cost_tmp")
   } else {
     tbl_cost <- "#drug_cost"
   }
@@ -746,7 +746,7 @@ addProcedureCost <- function(clinChar, timeWindows, conceptSets = NULL,
   # check if clinChar is snwoflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    tbl_count <- glue::glue("{tempSchema}.proc_cost_tmp")
+    tbl_cost <- glue::glue("{tempSchema}.proc_cost_tmp")
   } else {
     tbl_cost <- "#drug_cost"
   }
@@ -795,7 +795,7 @@ addVisitCost <- function(clinChar, timeWindows,
   # check if clinChar is snwoflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    tbl_count <- glue::glue("{tempSchema}.visit_cost_tmp")
+    tbl_cost <- glue::glue("{tempSchema}.visit_cost_tmp")
   } else {
     tbl_cost <- "#visit_cost"
   }
