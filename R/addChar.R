@@ -84,10 +84,12 @@ addYearChar <- function(clinChar, categorize = NULL) {
 #' @description
 #' This function adds alocation characteristic to the clinChar object.
 #' @param clinChar a clinChar object maintaining the components of the characterization
+#' @param locationTable a locationTable object set using the the makeLocTable fn
 #' @return adds a locationChar object into the clinChar extractSettings slot
 #' @export
-addLocationChar <- function(clinChar) {
-  char <- new("locationChar", orderId = set_order_id(clinChar))
+addLocationChar <- function(clinChar, locationTable) {
+  char <- new("locationChar", orderId = set_order_id(clinChar),
+              locationTable = locationTable)
   clinChar@extractSettings <- append(clinChar@extractSettings, char)
   return(clinChar)
 }
@@ -99,8 +101,7 @@ addLocationChar <- function(clinChar) {
 #' @description
 #' This function adds a lab characteristic to the clinChar object.
 #' @param clinChar a clinChar object maintaining the components of the characterization
-#' @param labIds OMOP concept ids for labs
-#' @param unitIds OMOP concept ids for units
+#' @param labUnitTable a labUnitTable object specifying the lab-unit combos to search
 #' @param timeWindows a timeWindow object that specifies the boundaries relative to the target start date
 #' on when to search for the presence of a value. use `makeTimeTable` function
 #' @param limit specify which values to use in the characteristic. The last variable will pull the last value in the
@@ -111,7 +112,7 @@ addLocationChar <- function(clinChar) {
 #' If the parameter is NULL then no categorization summary is done
 #' @return adds a labChar object into the clinChar extractSettings slot
 #' @export
-addLabChar <- function(clinChar, labIds, unitIds, timeWindows, limit = c("last", "first", "all"),
+addLabChar <- function(clinChar, labUnitTable, timeWindows, limit = c("last", "first", "all"),
                        categorize = NULL) {
 
   limit <- match.arg(limit)
@@ -125,8 +126,7 @@ addLabChar <- function(clinChar, labIds, unitIds, timeWindows, limit = c("last",
   }
 
   labChar <- new("labChar", orderId = set_order_id(clinChar))
-  labChar@labIds <- as.integer(labIds)
-  labChar@unitIds <- as.integer(unitIds)
+  labChar@labUnitTable <- labUnitTable
   labChar@time <- timeWindows
   labChar@limit <- limit
   labChar@tempTables <- list(
