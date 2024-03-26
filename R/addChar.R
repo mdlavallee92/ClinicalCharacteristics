@@ -404,6 +404,48 @@ addMeasurementPresence <- function(clinChar, conceptSets, timeWindows, limit = c
   return(clinChar)
 }
 
+
+#' Add a device presence characteristic
+#' @description
+#' This function adds a presence characteristic to the clinChar object for a device.
+#' A presence characteristic summarizes whether a person had the event of
+#' interest as described by a set of codes during a window of time.
+#' We use an CIRCE concept set to specify the set of codes to use to determine the presence of an event
+#' in a domain table.
+#' @param clinChar a clinChar object maintaining the components of the characterization
+#' @param conceptSets a list of concept sets that specify the codes to search within the domain
+#' @param timeWindows a timeWindow object that specifies the boundaries relative to the target start date
+#' on when to search for the presence of a value. use `makeTimeTable` function
+#' @param limit specify which values to use in the characteristic. The last variable will pull the last value in the
+#' time window, the first variable will pull the first value in the time window and the
+#' all vairable will pull all values in the time window
+#' @return adds a presenceChar object of device into the clinChar extractSettings slot
+#' @export
+addDevicePresence <- function(clinChar, conceptSets, timeWindows, limit = c("first", "last", "all")) {
+
+  limit <- match.arg(limit)
+
+  # check if clinChar is snwoflake and use temp schema
+  if (check_dbms(clinChar) == "snowflake") {
+    tempSchema <-clinChar@executionSettings@workDatabaseSchema
+    tbl_domain <- glue::glue("{tempSchema}.dev_domain_tmp")
+  } else {
+    tbl_domain <- "#dev_domain"
+  }
+
+  devChar <- new("presenceChar", domain = "device_exposure", orderId = set_order_id(clinChar))
+  devChar@conceptSets <- conceptSets
+  devChar@limit <- limit
+  devChar@time <- timeWindows
+  devChar@tempTables <- list(
+    'domain' = tbl_domain,
+    'codeset' =  c()
+  )
+  clinChar@extractSettings <- append(clinChar@extractSettings, devChar)
+  clinChar <- infuse_codset_id(clinChar)
+  return(clinChar)
+}
+
 # Count ----------------------------------
 
 #' Add a drug exposure count characteristic

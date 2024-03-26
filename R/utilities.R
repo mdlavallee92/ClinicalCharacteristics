@@ -56,6 +56,12 @@ domain_translate <- function(domain) {
                  'concept_type_id' = "observation_type_concept_id",
                  'event_date' = "observation_date"
                ),
+               "device_exposure" = list(
+                 'record_id' = "device_exposure_id",
+                 'concept_id' = "device_concept_id",
+                 'concept_type_id' = "device_type_concept_id",
+                 'event_date' = "device_exposure_start_date"
+               ),
                "measurement" = list(
                  'record_id' = "measurement_id",
                  'concept_id' = "measurement_concept_id",
