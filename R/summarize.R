@@ -171,6 +171,7 @@ label_table <- function(tbl, clinChar) {
 
 setGeneric("sum_char", function(x, clinChar)  standardGeneric("sum_char"))
 
+## Demo Concept Char ----------------
 setMethod("sum_char", "demoConceptChar", function(x, clinChar){
 
   orderId <- x@orderId
@@ -197,7 +198,7 @@ setMethod("sum_char", "demoConceptChar", function(x, clinChar){
 
 })
 
-
+## Age Char ----------------
 setMethod("sum_char", "ageChar", function(x, clinChar){
 
   orderId <- x@orderId
@@ -229,7 +230,7 @@ setMethod("sum_char", "ageChar", function(x, clinChar){
 
 })
 
-
+## Year Char ----------------
 setMethod("sum_char", "yearChar", function(x, clinChar){
 
   orderId <- x@orderId
@@ -255,10 +256,11 @@ setMethod("sum_char", "yearChar", function(x, clinChar){
 
 })
 
-
+## Location Char ----------------
 setMethod("sum_char", "locationChar", function(x, clinChar){
 
   orderId <- x@orderId
+  locKey <- x@locationTable@key
 
   tb <- list(
     'continuous' = NULL,
@@ -267,15 +269,28 @@ setMethod("sum_char", "locationChar", function(x, clinChar){
 
   tb$categorical <- retrieveTable(clinChar = clinChar, category_id = orderId) |>
     summarize_categorical(clinChar) |>
+    dplyr::left_join(locKey, by = "value_id") |>
     label_table(clinChar)
   return(tb)
 
 })
 
-
+## Lab Char ----------------
 setMethod("sum_char", "labChar", function(x, clinChar){
 
   orderId <- x@orderId
+  labKey <- x@labUnitTable@key |>
+    dplyr::mutate(
+      lab_unit_code = as.numeric(
+        (measurement_concept_id * 1000000) + (unit_concept_id - (floor(unit_concept_id/1000) * 1000))
+        )
+    ) |>
+    dplyr::mutate(
+      unit_name2 = dplyr::if_else(unit_concept_id == 0, "no units", unit_name),
+      value_name = glue::glue("{measurement_name} ({unit_name2})"),
+      value_id = lab_unit_code
+    ) |>
+    dplyr::select(value_id, value_name)
 
   tb <- list(
     'continuous' = NULL,
@@ -284,12 +299,19 @@ setMethod("sum_char", "labChar", function(x, clinChar){
 
   tb$continuous <- retrieveTable(clinChar = clinChar, category_id = orderId) |>
     summarize_continuous() |>
-    label_table(clinChar)
+    dplyr::inner_join(
+      labKey, by = "value_id"
+    ) |>
+    label_table(clinChar) |>
+    dplyr::relocate(
+      value_name, .after = value_id
+    )
+
   return(tb)
 
 })
 
-
+## Presecent Char ----------------
 setMethod("sum_char", "presenceChar", function(x, clinChar){
 
   orderId <- x@orderId
@@ -319,7 +341,7 @@ setMethod("sum_char", "presenceChar", function(x, clinChar){
 
 
 
-
+## Cost Char ----------------
 setMethod("sum_char", "costChar", function(x, clinChar){
 
   orderId <- x@orderId
@@ -361,7 +383,7 @@ setMethod("sum_char", "costChar", function(x, clinChar){
 
 })
 
-
+## Count Char ----------------
 setMethod("sum_char", "countChar", function(x, clinChar){
 
   orderId <- x@orderId
@@ -406,6 +428,7 @@ setMethod("sum_char", "countChar", function(x, clinChar){
 
 })
 
+## TimeIn Char ----------------
 setMethod("sum_char", "timeInChar", function(x, clinChar){
 
   orderId <- x@orderId
@@ -439,7 +462,7 @@ setMethod("sum_char", "timeInChar", function(x, clinChar){
 
 })
 
-
+## TimeTo Char ----------------
 setMethod("sum_char", "timeToChar", function(x, clinChar){
 
   orderId <- x@orderId
@@ -477,6 +500,7 @@ setMethod("sum_char", "timeToChar", function(x, clinChar){
 
 })
 
+# UI -------------------------------
 
 #' Summarizes the characterization and pulls into R
 #' @description
@@ -523,6 +547,9 @@ previewClincalCharacteristics <- function(tb, type = c("categorical", "continuou
       dplyr::mutate(
         cohort_name = snakecase::to_title_case(cohort_name),
         category_name = snakecase::to_title_case(category_name)
+      ) |>
+      dplyr::arrange(
+        cohort_id, category_id, time_id, value_id
       )
 
     res_tb <- reactable::reactable(
@@ -558,6 +585,9 @@ previewClincalCharacteristics <- function(tb, type = c("categorical", "continuou
       dplyr::mutate(
         cohort_name = snakecase::to_title_case(cohort_name),
         category_name = snakecase::to_title_case(category_name)
+      ) |>
+      dplyr::arrange(
+        cohort_id, category_id, time_id, value_id
       )
 
     res_tb <- reactable::reactable(
