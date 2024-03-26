@@ -4,10 +4,12 @@
 \alias{addLocationChar}
 \title{Add a location characteristic}
 \usage{
-addLocationChar(clinChar)
+addLocationChar(clinChar, locationTable)
 }
 \arguments{
 \item{clinChar}{a clinChar object maintaining the components of the characterization}
+
+\item{locationTable}{a locationTable object set using the the makeLocTable fn}
 }
 \value{
 adds a locationChar object into the clinChar extractSettings slot

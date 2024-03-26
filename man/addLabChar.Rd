@@ -6,8 +6,7 @@
 \usage{
 addLabChar(
   clinChar,
-  labIds,
-  unitIds,
+  labUnitTable,
   timeWindows,
   limit = c("last", "first", "all"),
   categorize = NULL
@@ -16,9 +15,7 @@ addLabChar(
 \arguments{
 \item{clinChar}{a clinChar object maintaining the components of the characterization}
 
-\item{labIds}{OMOP concept ids for labs}
-
-\item{unitIds}{OMOP concept ids for units}
+\item{labUnitTable}{a labUnitTable object specifying the lab-unit combos to search}
 
 \item{timeWindows}{a timeWindow object that specifies the boundaries relative to the target start date
 on when to search for the presence of a value. use \code{makeTimeTable} function}
