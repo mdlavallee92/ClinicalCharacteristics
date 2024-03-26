@@ -97,14 +97,31 @@ setClass("yearChar",
 
 
 ## Location Char -------------------------------------
+
+setClass("locationTable",
+         slots = c(
+           column = "character",
+           key = "data.frame"
+         ),
+         prototype = list(
+           column = "location_source_value",
+           key = tibble::tibble(
+             value_id = c(),
+             value_name = c()
+           )
+         )
+)
+
 setClass("locationChar",
          slots = c(
            domain = "character",
-           orderId = "integer"
+           orderId = "integer",
+           locationTable = "locationTable"
          ),
          prototype = list(
            domain = "location",
-           orderId = NA_integer_
+           orderId = NA_integer_,
+           locationTable = new("locationTable")
          )
 )
 
@@ -122,12 +139,27 @@ setClass("demoConceptChar",
 )
 
 ## Lab Char ------------------------
+setClass("labUnitTable",
+         slots = c(
+            key = "data.frame"
+         ),
+         prototype = list(
+           key = tibble::tibble(
+             measurement_concept_id = c(),
+             measurement_name = c(),
+             unit_concept_id = c(),
+             unit_name = c(),
+             lab_unit_code = c()
+           )
+         )
+)
+
+
 setClass("labChar",
          slots = c(
            domain = "character",
            orderId = "integer",
-           labIds = "integer",
-           unitIds = "integer",
+           labUnitTable = "labUnitTable",
            limit = "character",
            time = "data.frame",
            tempTables = "list",
@@ -136,8 +168,7 @@ setClass("labChar",
          prototype = list(
            domain = "labs",
            orderId = NA_integer_,
-           labIds = NA_integer_,
-           unitIds = NA_integer_,
+           labUnitTable = new("labUnitTable"),
            limit = "first",
            time = data.frame('time_id' = 1, 'time_a' = -365, 'time_b' = -1),
            tempTables = list(),
@@ -479,8 +510,10 @@ setMethod("as_sql", "locationChar", function(x){
 ## lab vlaues ------------------
 setMethod("as_sql", "labChar", function(x){
 
-  labIds <- paste(x@labIds, collapse = ", ")
-  unitIds <- paste(x@unitIds, collapse = ", ")
+  labIds <- unique(x@labUnitTable@key$measurement_concept_id) |>
+    paste(collapse = ", ")
+  unitIds <- unique(x@labUnitTable@key$unit_concept_id) |>
+    paste(collapse = ", ")
   query_sql <- glue::glue(
     "
     -- Find matching lab values
@@ -904,7 +937,7 @@ setMethod("drop_temp_tables", "presenceChar", function(x){
 
 setMethod("drop_temp_tables", "targetCohort", function(x){
 
-  sql <- trunc_drop(x@targetCohort@tempTable)
+  sql <- trunc_drop(x@tempTable)
   return(sql)
 
 })
