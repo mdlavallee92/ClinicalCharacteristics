@@ -57,7 +57,75 @@ categorize_year <- function(tbl, breaksKey) {
   return(tb)
 }
 
-#
+# Score Value --------------------
+
+score_value <- function(tbl, scoreKey) {
+
+  # join arrow with score key
+  tb <- tbl |>
+    dplyr::mutate(
+      value_id = dplyr::case_when(
+        value_id == -999 ~ value,
+        TRUE ~ value_id
+      )
+    ) |>
+    dplyr::left_join(scoreKey, by = c("value_id" = "id")) |>
+    dplyr::mutate(
+      value = dplyr::case_when(
+        is.na(w) ~ 0,
+        TRUE ~ w
+      )
+    )|>
+    dplyr::select(-w)
+
+  # get score from demographics time invariant
+  demoScore <- tb |>
+    dplyr::filter(time_id == -999) |>
+    dplyr::group_by(cohort_id, subject_id) |>
+    dplyr::summarize(
+      value = sum(value)
+    ) |>
+    dplyr::ungroup() |>
+    dplyr::rename(
+      demo_value = value
+    )
+  # get score for domain, time varying
+  domainScore <- tb |>
+    dplyr::filter(time_id != -999) |>
+    dplyr::group_by(cohort_id, subject_id, time_id) |>
+    dplyr::summarize(
+      value = sum(value)
+    ) |>
+    dplyr::ungroup()
+
+  #determine score for people
+  fullScore <- domainScore |>
+    dplyr::left_join(demoScore,
+                     by = c("cohort_id", "subject_id")) |>
+    dplyr::mutate(
+      value = value + demo_value
+    ) |>
+    dplyr::group_by(cohort_id, time_id) |>
+    dplyr::summarize(
+      n = dplyr::n_distinct(subject_id),
+      mean = mean(value),
+      sd = sd(value),
+      min_value = min(value),
+      p25_value = quantile(value, probs = c(0.25)),
+      median_value = median(value),
+      p75_value = quantile(value, probs = c(0.75)),
+      max_value = max(value)
+    ) |>
+    dplyr::ungroup() |>
+    dplyr::collect() |>
+    dplyr::mutate(
+      value_id = -999,
+      category_id = -999
+    )
+
+  return(fullScore)
+
+}
 
 # Summary --------------------
 
@@ -219,7 +287,7 @@ setMethod("sum_char", "ageChar", function(x, clinChar){
     )
 
   if (!is.null(x@categorize)) {
-    tb$categorical <- retrieveTable(clinChar = clinChar, category_id = 1) |>
+    tb$categorical <- retrieveTable(clinChar = clinChar, category_id = orderId) |>
       categorize_value(breaksKey = x@categorize@breaks) |>
       summarize_categorical(clinChar) |>
       label_table(clinChar)
@@ -356,7 +424,7 @@ setMethod("sum_char", "labChar", function(x, clinChar){
 
 })
 
-## Presecent Char ----------------
+## Presence Char ----------------
 setMethod("sum_char", "presenceChar", function(x, clinChar){
 
   orderId <- x@orderId
@@ -380,6 +448,34 @@ setMethod("sum_char", "presenceChar", function(x, clinChar){
     dplyr::relocate(
       value_name, .after = value_id
     )
+
+
+  if (!is.null(x@score)) {
+    cat_to_get <- x@score@domain[-1]
+    ii <- c(orderId, find_char(clinChar, type = cat_to_get))
+    timeKey <- set_time_labels(clinChar)
+
+    tb$continuous <- retrieveTable(clinChar = clinChar, category_id = ii) |>
+      score_value(scoreKey = x@score@weights) |>
+      dplyr::mutate(
+        category_name = x@score@name,
+        value_name = x@score@name
+      ) |>
+      dplyr::left_join(
+        cohort_key(clinChar), by = "cohort_id"
+      ) |>
+      dplyr::left_join(
+        timeKey, by = "time_id"
+      ) |>
+      dplyr::select(
+        cohort_id, cohort_name, category_id, category_name,
+        time_id, time_name, value_id, value_name,
+        n:max_value
+      )
+
+  }
+
+
   return(tb)
 
 })
@@ -417,7 +513,7 @@ setMethod("sum_char", "costChar", function(x, clinChar){
     )
 
   if (!is.null(x@categorize)) {
-    tb$categorical <- retrieveTable(clinChar = clinChar, category_id = 1) |>
+    tb$categorical <- retrieveTable(clinChar = clinChar, category_id = orderId) |>
       categorize_value(breaksKey = x@categorize@breaks) |>
       summarize_categorical(clinChar) |>
       label_table(clinChar)
@@ -462,7 +558,7 @@ setMethod("sum_char", "countChar", function(x, clinChar){
     )
 
   if (!is.null(x@categorize)) {
-    tb$categorical <- retrieveTable(clinChar = clinChar, category_id = 1) |>
+    tb$categorical <- retrieveTable(clinChar = clinChar, category_id = orderId) |>
       categorize_value(breaksKey = x@categorize@breaks) |>
       summarize_categorical(clinChar) |>
       label_table(clinChar)
@@ -496,7 +592,7 @@ setMethod("sum_char", "timeInChar", function(x, clinChar){
     )
 
   if (!is.null(x@categorize)) {
-    tb$categorical <- retrieveTable(clinChar = clinChar, category_id = 1) |>
+    tb$categorical <- retrieveTable(clinChar = clinChar, category_id = orderId) |>
       categorize_value(breaksKey = x@categorize@breaks) |>
       summarize_categorical(clinChar) |>
       label_table(clinChar)
@@ -534,7 +630,7 @@ setMethod("sum_char", "timeToChar", function(x, clinChar){
     )
 
   if (!is.null(x@categorize)) {
-    tb$categorical <- retrieveTable(clinChar = clinChar, category_id = 1) |>
+    tb$categorical <- retrieveTable(clinChar = clinChar, category_id = orderId) |>
       categorize_value(breaksKey = x@categorize@breaks) |>
       summarize_categorical(clinChar) |>
       label_table(clinChar)

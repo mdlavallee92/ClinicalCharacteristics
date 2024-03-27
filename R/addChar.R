@@ -17,7 +17,7 @@ set_order_id <- function(clinChar) {
 addAgeChar <- function(clinChar, categorize = NULL) {
   char <- new("ageChar", orderId = set_order_id(clinChar))
   if (!is.null(categorize)) {
-    if (class(categorize) != "breaksStrategy") {
+    if (!methods::is(categorize, "breaksStrategy")) {
       stop("categorize needs to be a breaksStrategy object")
     }
     char@categorize <- categorize
@@ -71,7 +71,7 @@ addEthnicityChar <- function(clinChar) {
 addYearChar <- function(clinChar, categorize = NULL) {
   char <- new("yearChar", domain = "year", orderId = set_order_id(clinChar))
   if (!is.null(categorize)) {
-    if (class(categorize) != "breaksStrategy") {
+    if (!methods::is(categorize, "breaksStrategy")) {
       stop("categorize needs to be a breaksStrategy object")
     }
     char@categorize <- categorize
@@ -167,7 +167,7 @@ addLabChar <- function(clinChar, labUnitTable, timeWindows, limit = c("last", "f
   )
 
   if (!is.null(categorize)) {
-    if (class(categorize) != "breaksStrategy") {
+    if (!methods::is(categorize, "breaksStrategy")) {
       stop("categorize needs to be a breaksStrategy object")
     }
     char@categorize <- categorize
@@ -193,9 +193,14 @@ addLabChar <- function(clinChar, labUnitTable, timeWindows, limit = c("last", "f
 #' @param limit specify which values to use in the characteristic. The last variable will pull the last value in the
 #' time window, the first variable will pull the first value in the time window and the
 #' all vairable will pull all values in the time window
+#' @param score describes how the categorical value should be converted to a continuous score.
+#' This function takes a scoreStrategy object to describe the scoring ow it is left NULL.
+#' If the parameter is NULL then no continuous summary is done
 #' @return adds a presenceChar object of visit_occurrence into the clinChar extractSettings slot
 #' @export
-addVisitPresence <- function(clinChar, conceptSets, timeWindows, limit = c("first", "last", "all")) {
+addVisitPresence <- function(clinChar, conceptSets, timeWindows,
+                             limit = c("first", "last", "all"),
+                             score = NULL) {
 
   limit <- match.arg(limit)
 
@@ -218,6 +223,14 @@ addVisitPresence <- function(clinChar, conceptSets, timeWindows, limit = c("firs
     'codeset' = c()
   )
 
+  if (!is.null(score)) {
+    if (!methods::is(score, "scoreStrategy")) {
+      stop("Score needs to be a scoreStrategy object")
+    }
+    visitChar@score <- score
+  }
+
+
   clinChar@extractSettings <- append(clinChar@extractSettings, visitChar)
   clinChar <- infuse_codset_id(clinChar)
   return(clinChar)
@@ -238,9 +251,14 @@ addVisitPresence <- function(clinChar, conceptSets, timeWindows, limit = c("firs
 #' @param limit specify which values to use in the characteristic. The last variable will pull the last value in the
 #' time window, the first variable will pull the first value in the time window and the
 #' all vairable will pull all values in the time window
+#' @param score describes how the categorical value should be converted to a continuous score.
+#' This function takes a scoreStrategy object to describe the scoring ow it is left NULL.
+#' If the parameter is NULL then no continuous summary is done
 #' @return adds a presenceChar object of condition_occurrence into the clinChar extractSettings slot
 #' @export
-addConditionPresence <- function(clinChar, conceptSets, timeWindows, limit = c("first", "last", "all")) {
+addConditionPresence <- function(clinChar, conceptSets, timeWindows,
+                                 limit = c("first", "last", "all"),
+                                 score = NULL) {
 
   limit <- match.arg(limit)
 
@@ -263,6 +281,13 @@ addConditionPresence <- function(clinChar, conceptSets, timeWindows, limit = c("
     'codeset' = c()
   )
 
+  if (!is.null(score)) {
+    if (!methods::is(score, "scoreStrategy")) {
+      stop("Score needs to be a scoreStrategy object")
+    }
+    conditionChar@score <- score
+  }
+
   clinChar@extractSettings <- append(clinChar@extractSettings, conditionChar)
   clinChar <- infuse_codset_id(clinChar)
   return(clinChar)
@@ -282,9 +307,14 @@ addConditionPresence <- function(clinChar, conceptSets, timeWindows, limit = c("
 #' @param limit specify which values to use in the characteristic. The last variable will pull the last value in the
 #' time window, the first variable will pull the first value in the time window and the
 #' all vairable will pull all values in the time window
+#' @param score describes how the categorical value should be converted to a continuous score.
+#' This function takes a scoreStrategy object to describe the scoring ow it is left NULL.
+#' If the parameter is NULL then no continuous summary is done
 #' @return adds a presenceChar object of drug exposure into the clinChar extractSettings slot
 #' @export
-addDrugPresence <- function(clinChar, conceptSets, timeWindows, limit = c("first", "last", "all")) {
+addDrugPresence <- function(clinChar, conceptSets, timeWindows,
+                            limit = c("first", "last", "all"),
+                            score = NULL) {
 
   limit <- match.arg(limit)
 
@@ -305,6 +335,14 @@ addDrugPresence <- function(clinChar, conceptSets, timeWindows, limit = c("first
     'domain' = tbl_domain,
     'codeset' =  c()
   )
+
+  if (!is.null(score)) {
+    if (!methods::is(score, "scoreStrategy")) {
+      stop("Score needs to be a scoreStrategy object")
+    }
+    drugChar@score <- score
+  }
+
   clinChar@extractSettings <- append(clinChar@extractSettings, drugChar)
   clinChar <- infuse_codset_id(clinChar)
   return(clinChar)
@@ -324,9 +362,14 @@ addDrugPresence <- function(clinChar, conceptSets, timeWindows, limit = c("first
 #' @param limit specify which values to use in the characteristic. The last variable will pull the last value in the
 #' time window, the first variable will pull the first value in the time window and the
 #' all vairable will pull all values in the time window
+#' @param score describes how the categorical value should be converted to a continuous score.
+#' This function takes a scoreStrategy object to describe the scoring ow it is left NULL.
+#' If the parameter is NULL then no continuous summary is done
 #' @return adds a presenceChar object of observation into the clinChar extractSettings slot
 #' @export
-addObservationPresence <- function(clinChar, conceptSets, timeWindows, limit = c("first", "last", "all")) {
+addObservationPresence <- function(clinChar, conceptSets, timeWindows,
+                                   limit = c("first", "last", "all"),
+                                   score = NULL) {
 
   limit <- match.arg(limit)
 
@@ -347,6 +390,14 @@ addObservationPresence <- function(clinChar, conceptSets, timeWindows, limit = c
     'domain' = tbl_domain,
     'codeset' =  c()
   )
+
+  if (!is.null(score)) {
+    if (!methods::is(score, "scoreStrategy")) {
+      stop("Score needs to be a scoreStrategy object")
+    }
+    obsChar@score <- score
+  }
+
   clinChar@extractSettings <- append(clinChar@extractSettings, obsChar)
   clinChar <- infuse_codset_id(clinChar)
   return(clinChar)
@@ -367,9 +418,14 @@ addObservationPresence <- function(clinChar, conceptSets, timeWindows, limit = c
 #' @param limit specify which values to use in the characteristic. The last variable will pull the last value in the
 #' time window, the first variable will pull the first value in the time window and the
 #' all vairable will pull all values in the time window
+#' @param score describes how the categorical value should be converted to a continuous score.
+#' This function takes a scoreStrategy object to describe the scoring ow it is left NULL.
+#' If the parameter is NULL then no continuous summary is done
 #' @return adds a presenceChar object of Procedure into the clinChar extractSettings slot
 #' @export
-addProcedurePresence <- function(clinChar, conceptSets, timeWindows, limit = c("first", "last", "all")) {
+addProcedurePresence <- function(clinChar, conceptSets, timeWindows,
+                                 limit = c("first", "last", "all"),
+                                 score = NULL) {
 
   limit <- match.arg(limit)
 
@@ -390,6 +446,14 @@ addProcedurePresence <- function(clinChar, conceptSets, timeWindows, limit = c("
     'domain' = tbl_domain,
     'codeset' =  c()
   )
+
+  if (!is.null(score)) {
+    if (!methods::is(score, "scoreStrategy")) {
+      stop("Score needs to be a scoreStrategy object")
+    }
+    procChar@score <- score
+  }
+
   clinChar@extractSettings <- append(clinChar@extractSettings, procChar)
   clinChar <- infuse_codset_id(clinChar)
   return(clinChar)
@@ -409,9 +473,14 @@ addProcedurePresence <- function(clinChar, conceptSets, timeWindows, limit = c("
 #' @param limit specify which values to use in the characteristic. The last variable will pull the last value in the
 #' time window, the first variable will pull the first value in the time window and the
 #' all vairable will pull all values in the time window
+#' @param score describes how the categorical value should be converted to a continuous score.
+#' This function takes a scoreStrategy object to describe the scoring ow it is left NULL.
+#' If the parameter is NULL then no continuous summary is done
 #' @return adds a presenceChar object of measurement into the clinChar extractSettings slot
 #' @export
-addMeasurementPresence <- function(clinChar, conceptSets, timeWindows, limit = c("first", "last", "all")) {
+addMeasurementPresence <- function(clinChar, conceptSets, timeWindows,
+                                   limit = c("first", "last", "all"),
+                                   score = NULL) {
 
   limit <- match.arg(limit)
 
@@ -432,6 +501,14 @@ addMeasurementPresence <- function(clinChar, conceptSets, timeWindows, limit = c
     'domain' = tbl_domain,
     'codeset' =  c()
   )
+
+  if (!is.null(score)) {
+    if (!methods::is(score, "scoreStrategy")) {
+      stop("Score needs to be a scoreStrategy object")
+    }
+    measChar@score <- score
+  }
+
   clinChar@extractSettings <- append(clinChar@extractSettings, measChar)
   clinChar <- infuse_codset_id(clinChar)
   return(clinChar)
@@ -452,9 +529,14 @@ addMeasurementPresence <- function(clinChar, conceptSets, timeWindows, limit = c
 #' @param limit specify which values to use in the characteristic. The last variable will pull the last value in the
 #' time window, the first variable will pull the first value in the time window and the
 #' all vairable will pull all values in the time window
+#' @param score describes how the categorical value should be converted to a continuous score.
+#' This function takes a scoreStrategy object to describe the scoring ow it is left NULL.
+#' If the parameter is NULL then no continuous summary is done
 #' @return adds a presenceChar object of device into the clinChar extractSettings slot
 #' @export
-addDevicePresence <- function(clinChar, conceptSets, timeWindows, limit = c("first", "last", "all")) {
+addDevicePresence <- function(clinChar, conceptSets, timeWindows,
+                              limit = c("first", "last", "all"),
+                              score = NULL) {
 
   limit <- match.arg(limit)
 
@@ -474,6 +556,14 @@ addDevicePresence <- function(clinChar, conceptSets, timeWindows, limit = c("fir
     'domain' = tbl_domain,
     'codeset' =  c()
   )
+
+  if (!is.null(score)) {
+    if (!methods::is(score, "scoreStrategy")) {
+      stop("Score needs to be a scoreStrategy object")
+    }
+    devChar@score <- score
+  }
+
   clinChar@extractSettings <- append(clinChar@extractSettings, devChar)
   clinChar <- infuse_codset_id(clinChar)
   return(clinChar)
@@ -516,7 +606,7 @@ addDrugCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize =
   )
 
   if (!is.null(categorize)) {
-    if (class(categorize) != "breaksStrategy") {
+    if (!methods::is(categorize, "breaksStrategy")) {
       stop("categorize needs to be a breaksStrategy object")
     }
     drugChar@categorize <- categorize
@@ -563,7 +653,7 @@ addVisitCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize 
   )
 
   if (!is.null(categorize)) {
-    if (class(categorize) != "breaksStrategy") {
+    if (!methods::is(categorize, "breaksStrategy")) {
       stop("categorize needs to be a breaksStrategy object")
     }
     visitChar@categorize <- categorize
@@ -608,7 +698,7 @@ addConditionCount <- function(clinChar, timeWindows, conceptSets = NULL, categor
   )
 
   if (!is.null(categorize)) {
-    if (class(categorize) != "breaksStrategy") {
+    if (!methods::is(categorize, "breaksStrategy")) {
       stop("categorize needs to be a breaksStrategy object")
     }
     condChar@categorize <- categorize
@@ -653,7 +743,7 @@ addProcedureCount <- function(clinChar, timeWindows, conceptSets = NULL, categor
   )
 
   if (!is.null(categorize)) {
-    if (class(categorize) != "breaksStrategy") {
+    if (!methods::is(categorize, "breaksStrategy")) {
       stop("categorize needs to be a breaksStrategy object")
     }
     procChar@categorize <- categorize
@@ -697,7 +787,7 @@ addMeasurementCount <- function(clinChar, timeWindows, conceptSets = NULL, categ
   )
 
   if (!is.null(categorize)) {
-    if (class(categorize) != "breaksStrategy") {
+    if (!methods::is(categorize, "breaksStrategy")) {
       stop("categorize needs to be a breaksStrategy object")
     }
     measChar@categorize <- categorize
@@ -742,7 +832,7 @@ addObservationCount <- function(clinChar, timeWindows, conceptSets = NULL, categ
   )
 
   if (!is.null(categorize)) {
-    if (class(categorize) != "breaksStrategy") {
+    if (!methods::is(categorize, "breaksStrategy")) {
       stop("categorize needs to be a breaksStrategy object")
     }
     obsChar@categorize <- categorize
@@ -790,7 +880,7 @@ addDrugCost <- function(clinChar, timeWindows, conceptSets = NULL,
     'codeset' = c()
   )
   if (!is.null(categorize)) {
-    if (class(categorize) != "breaksStrategy") {
+    if (!methods::is(categorize, "breaksStrategy")) {
       stop("categorize needs to be a breaksStrategy object")
     }
     drugChar@categorize <- categorize
@@ -836,7 +926,7 @@ addProcedureCost <- function(clinChar, timeWindows, conceptSets = NULL,
     'codeset' = c()
   )
   if (!is.null(categorize)) {
-    if (class(categorize) != "breaksStrategy") {
+    if (!methods::is(categorize, "breaksStrategy")) {
       stop("categorize needs to be a breaksStrategy object")
     }
     procChar@categorize <- categorize
@@ -885,7 +975,7 @@ addVisitCost <- function(clinChar, timeWindows,
     'codeset' = c()
   )
   if (!is.null(categorize)) {
-    if (class(categorize) != "breaksStrategy") {
+    if (!methods::is(categorize, "breaksStrategy")) {
       stop("categorize needs to be a breaksStrategy object")
     }
     visitChar@categorize <- categorize
@@ -913,7 +1003,7 @@ addTimeInCohort <- function(clinChar, categorize = NULL) {
   cohortChar <- new("timeInChar", domain = "cohort", orderId = set_order_id(clinChar))
 
   if (!is.null(categorize)) {
-    if (class(categorize) != "breaksStrategy") {
+    if (!methods::is(categorize, "breaksStrategy")) {
       stop("categorize needs to be a breaksStrategy object")
     }
     char@categorize <- categorize
@@ -938,7 +1028,7 @@ addTimeInInpatient <- function(clinChar, categorize = NULL) {
   cohortChar <- new("timeInChar", domain = "inpatient", orderId = set_order_id(clinChar))
 
   if (!is.null(categorize)) {
-    if (class(categorize) != "breaksStrategy") {
+    if (!methods::is(categorize, "breaksStrategy")) {
       stop("categorize needs to be a breaksStrategy object")
     }
     char@categorize <- categorize
@@ -994,7 +1084,7 @@ addTimeToDrug <- function(clinChar, conceptSets, timeWindows, limit = c("first",
   )
 
   if (!is.null(categorize)) {
-    if (class(categorize) != "breaksStrategy") {
+    if (!methods::is(categorize, "breaksStrategy")) {
       stop("categorize needs to be a breaksStrategy object")
     }
     drugChar@categorize <- categorize
@@ -1050,7 +1140,7 @@ addTimeToCondition <- function(clinChar, conceptSets, timeWindows, limit = c("fi
   )
 
   if (!is.null(categorize)) {
-    if (class(categorize) != "breaksStrategy") {
+    if (!methods::is(categorize, "breaksStrategy")) {
       stop("categorize needs to be a breaksStrategy object")
     }
     condChar@categorize <- categorize
@@ -1103,7 +1193,7 @@ addTimeToProcedure <- function(clinChar, conceptSets, timeWindows, limit = c("fi
   )
 
   if (!is.null(categorize)) {
-    if (class(categorize) != "breaksStrategy") {
+    if (!methods::is(categorize, "breaksStrategy")) {
       stop("categorize needs to be a breaksStrategy object")
     }
     procChar@categorize <- categorize
@@ -1157,7 +1247,7 @@ addTimeToMeasurement <- function(clinChar, conceptSets, timeWindows, limit = c("
   )
 
   if (!is.null(categorize)) {
-    if (class(categorize) != "breaksStrategy") {
+    if (!methods::is(categorize, "breaksStrategy")) {
       stop("categorize needs to be a breaksStrategy object")
     }
     measChar@categorize <- categorize
@@ -1211,7 +1301,7 @@ addTimeToObservation <- function(clinChar, conceptSets, timeWindows, limit = c("
   )
 
   if (!is.null(categorize)) {
-    if (class(categorize) != "breaksStrategy") {
+    if (!methods::is(categorize, "breaksStrategy")) {
       stop("categorize needs to be a breaksStrategy object")
     }
     obsChar@categorize <- categorize
@@ -1266,7 +1356,7 @@ addTimeToVisit <- function(clinChar, conceptSets, timeWindows, limit = c("first"
   )
 
   if (!is.null(categorize)) {
-    if (class(categorize) != "breaksStrategy") {
+    if (!methods::is(categorize, "breaksStrategy")) {
       stop("categorize needs to be a breaksStrategy object")
     }
     visitChar@categorize <- categorize

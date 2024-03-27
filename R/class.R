@@ -15,6 +15,22 @@ setClass("breaksStrategy",
          )
 )
 
+setClass("scoreStrategy",
+         slots = c(
+           name = "character",
+           domain = "character",
+           weights = "data.frame"
+         ),
+         prototype = list(
+           name = NA_character_,
+           domain = NA_character_,
+           weights = data.frame(
+             id = c(),
+             w = c()
+           )
+         )
+)
+
 ## Target Cohort --------------------
 setClass("targetCohort",
          slots = c(
@@ -219,7 +235,8 @@ setClass("presenceChar",
            conceptSets = "list",
            limit = "character",
            time = "data.frame",
-           tempTables = "list"
+           tempTables = "list",
+           score = "ANY"
          ),
          prototype = list(
            domain = NA_character_,
@@ -227,7 +244,8 @@ setClass("presenceChar",
            conceptSets = list(),
            limit = "last",
            time = data.frame('time_id' = 1, 'time_a' = -365, 'time_b' = -1),
-           tempTables = list()
+           tempTables = list(),
+           score = NULL
          )
 )
 
