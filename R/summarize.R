@@ -682,3 +682,49 @@ previewClincalCharacteristics <- function(tb, type = c("categorical", "continuou
 
   return(res_tb)
 }
+
+#' Export the characterization
+#' @description
+#' Save the characterization result as a csv in a folder
+#' @param tb the table created from the tabulateClincalCharacteristics
+#' @param saveName a labelling name to distinguish the characterization
+#' @param savePath the folder path to save the csv, defaults to current directory
+#' @return saves a continuous and categorical csv output from the characterization
+#' @export
+exportClinicalCharacteristics <- function(tb, saveName, savePath = here::here()) {
+
+  saveName <- snakecase::to_snake_case(saveName)
+
+  if (nrow(tb$categorical) > 0) {
+    cli::cat_bullet(
+      glue::glue("Saving Categorical Characteristics as csv"),
+      bullet = "pointer",
+      bullet_col = "yellow"
+    )
+    catSaveName <- glue::glue("{saveName}_categorical")
+    catFilePath <- fs::path(savePath, catSaveName, ext = "csv")
+    readr::write_csv(tb$categorical, file = catFilePath)
+    cli::cat_line(
+      glue::glue("   Saving to {crayon::cyan(catFilePath)}")
+    )
+  }
+
+  if (nrow(tb$continuous) > 0 ) {
+    cli::cat_bullet(
+      glue::glue("Saving Continuous Characteristics as csv"),
+      bullet = "pointer",
+      bullet_col = "yellow"
+    )
+    ctsSaveName <- glue::glue("{saveName}_continuous")
+    ctsFilePath <- fs::path(savePath, ctsSaveName, ext = "csv")
+    readr::write_csv(tb$continuous, file = ctsFilePath)
+    cli::cat_line(
+      glue::glue("   Saving to {crayon::cyan(ctsFilePath)}")
+    )
+  }
+
+
+  invisible(saveName)
+
+}
+

@@ -834,6 +834,7 @@ setMethod("as_sql", "costChar", function(x){
           AND DATEADD(day, tw.time_b, a.cohort_start_date) >= d.{domain_trans$event_date}
     WHERE d.{domain_trans$concept_id} <> 0
     AND {domain_trans$concept_type_id} IN ({conceptType})
+    AND {x@costType} >= 0
     )
     SELECT d.cohort_definition_id, d.subject_id, d.time_id, d.value_id, FLOOR(SUM(d.{x@costType})) AS value
     INTO {x@tempTables$cost}
@@ -873,6 +874,7 @@ setMethod("as_sql", "costChar", function(x){
           AND DATEADD(day, tw.time_b, a.cohort_start_date) >= d.{domain_trans$event_date}
     WHERE d.{domain_trans$concept_id} <> 0
     AND {domain_trans$concept_type_id} IN ({conceptType})
+    AND {x@costType} >= 0
     )
     SELECT d.cohort_definition_id, d.subject_id, d.time_id, d.currency_concept_id, FLOOR(SUM(d.{x@costType})) AS value
     INTO {x@tempTables$cost}
