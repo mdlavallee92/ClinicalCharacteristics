@@ -1,87 +1,196 @@
-# Utilities ----------------------
+# verbose version of execute
+verboseExecute <- function(connection, sql, task, printSql = FALSE) {
 
-# check if slot is in analysis settings
-checkMode <- function(settings, mode) {
-  obj <- settings[[mode]]
-  length(obj) > 0
-}
-
-# pull covariates and prep for save
-getCovariatesAndFormat <- function(con,
-                                   tempEmulationSchema,
-                              cdmDatabaseSchema,
-                              cohortTable,
-                              cohortDatabaseSchema,
-                              domain,
-                              cohortId,
-                              covSettings) {
-
-
-  timeA <- covSettings$longTermStartDays
-  timeB <- covSettings$endDays
-  tb <-  glue::glue("{timeA}d:{timeB}d")
-  txt <- glue::glue("Building {crayon::green(domain)} Charateristics at time: {crayon::cyan(tb)}")
-
-  cli::cat_bullet(txt, bullet = "pointer", bullet_col = "yellow")
-
-  cov <- FeatureExtraction::getDbCovariateData(
-    connection = con,
-    oracleTempSchema = tempEmulationSchema,
-    cdmDatabaseSchema = cdmDatabaseSchema,
-    cohortTable = cohortTable,
-    cohortDatabaseSchema = cohortDatabaseSchema,
-    cohortId = cohortId,
-    covariateSettings = covSettings,
-    aggregated = TRUE
+  cli::cat_bullet(
+    glue::glue("Executing Task: {crayon::magenta(task)}"),
+    bullet = "pointer",
+    bullet_col = "yellow"
   )
 
+  DatabaseConnector::executeSql(connection = connection, sql = sql)
 
-  if (domain %in% c("Drugs", "Conditions", "Procedures", "Measurements", "Observations")) { # categorical format
-    tbl <- cov$covariates |>
-      dplyr::left_join(cov$covariateRef, by = c("covariateId")) |>
-      dplyr::select(
-        cohortDefinitionId, analysisId,
-        covariateId, covariateName, conceptId,
-        sumValue, averageValue) |>
-      dplyr::collect() |>
-      dplyr::mutate(
-        covariateName = gsub(".*: ", "", covariateName),
-        timeId = tb
-      )
-  } else{ # continuous format
-    tbl <- cov$covariatesContinuous |>
-      dplyr::left_join(cov$covariateRef, by = c("covariateId")) |>
-      dplyr::collect() |>
-      dplyr::mutate(
-        covariateName = gsub(".*: ", "", covariateName), # remove the junk in covariate name
-        timeId = tb
-      ) |>
-      dplyr::select(
-        cohortDefinitionId, analysisId, timeId,
-        covariateId, covariateName, conceptId,
-        countValue,
-        averageValue, standardDeviation,
-        minValue, p10Value, p25Value,
-        medianValue, p75Value, p90Value, maxValue
-      )
+  if (printSql) {
+    cli::cat_bullet(
+      glue::glue("Task {crayon::magenta(task)} done using:"),
+      bullet = "pointer",
+      bullet_col = "yellow"
+    )
+    cli::cat_line(sql, col = "#FFC000")
   }
-  return(tbl)
+
+  invisible(sql)
+}
+
+pluck_domain_char <- function(clinChar) {
+  es <- clinChar@extractSettings
+  clin_class <- purrr::map_chr(es, ~class(.x))
+  idx <- which(clin_class %in% c("presenceChar", "labChar", "countChar", "costChar",
+                                 "timeToChar", "visitDetailChar"))
+  dd <- es[idx]
+  return(dd)
 }
 
 
-
-
-
-#prints save activity to console
-#TODO add logger to this
-verboseSave <- function(object, saveName, saveLocation) {
-  savePath <- fs::path(saveLocation, saveName, ext = "csv")
-  readr::write_csv(object, file = savePath)
-  cli::cat_line()
-  txt <- glue::glue("Saved file {crayon::green(basename(savePath))} to: {crayon::cyan(saveLocation)}")
-  cli::cat_bullet(txt, bullet = "info", bullet_col = "blue")
-  cli::cat_line()
-  invisible(savePath)
+domain_translate <- function(domain) {
+  tt <- switch(domain,
+               "condition_occurrence" = list(
+                 'record_id' = "condition_occurrence_id",
+                 'concept_id' ="condition_concept_id",
+                 'concept_type_id' = "condition_type_concept_id",
+                 'event_date' = "condition_start_date"
+               ),
+               "drug_exposure" = list(
+                 'record_id' = "drug_exposure_id",
+                 'concept_id' = "drug_concept_id",
+                 'concept_type_id' = "drug_type_concept_id",
+                 'event_date' = "drug_exposure_start_date"
+               ),
+               "procedure_occurrence" = list(
+                 'record_id' = "procedure_occurrence_id",
+                 'concept_id' = "procedure_concept_id",
+                 'concept_type_id' = "procedure_type_concept_id",
+                 'event_date' = "procedure_date"
+               ),
+               "observation" = list(
+                 'record_id' = "observation_id",
+                 'concept_id' = "observation_concept_id",
+                 'concept_type_id' = "observation_type_concept_id",
+                 'event_date' = "observation_date"
+               ),
+               "device_exposure" = list(
+                 'record_id' = "device_exposure_id",
+                 'concept_id' = "device_concept_id",
+                 'concept_type_id' = "device_type_concept_id",
+                 'event_date' = "device_exposure_start_date"
+               ),
+               "measurement" = list(
+                 'record_id' = "measurement_id",
+                 'concept_id' = "measurement_concept_id",
+                 'concept_type_id' = "measurement_type_concept_id",
+                 'event_date' = "measurement_date"
+               ),
+               "visit_occurrence" = list(
+                 'record_id' = "visit_occurrence_id",
+                 'concept_id' = "visit_concept_id",
+                 'concept_type_id' = "visit_type_concept_id",
+                 'event_date' = "visit_start_date"
+               ),
+               "provider" = list(
+                 'concept_id' = "specialty_concept_id",
+                 'merge_key' = "provider_id"
+               ),
+               "care_site" = list(
+                 'concept_id' = "place_of_service_concept_id",
+                 'merge_key' = "care_site_id"
+               ),
+               "gender" = list('concept_id' ="gender_concept_id"),
+               "race" = list('concept_id' = "race_concept_id"),
+               "ethnicity" = list('concept_id' = "ethnicity_concept_id")
+  )
+  return(tt)
 }
 
 
+find_char <- function(clinChar, type = c("Age")) {
+  type <- match.arg(type)
+  type <- tolower(type)
+  cls <- purrr::map_chr(clinChar@extractSettings, ~.x@domain)
+  idx <- which(type %in% cls)
+  return(idx)
+}
+
+
+grab_concept <- function(clinChar, connection, ids) {
+
+  ids <- paste(ids, collapse = ", ")
+  cdmDatabaseSchema <- clinChar@executionSettings@cdmDatabaseSchema
+  sql <- glue::glue("SELECT c.concept_id, c.concept_name
+  FROM {cdmDatabaseSchema}.concept c WHERE c.concept_id IN ({ids})") |>
+    SqlRender::translate(targetDialect = clinChar@executionSettings@dbms)
+
+  cli::cat_bullet(
+    glue::glue("Database Query: {crayon::green('Grab concept names from CDM')}"),
+    bullet = "pointer",
+    bullet_col = "yellow"
+  )
+
+  concept_tbl <- DatabaseConnector::querySql(connection = connection, sql = sql)
+  names(concept_tbl) <- c("concept_id", "concept_name")
+
+  return(concept_tbl)
+}
+
+grab_locations <- function(clinChar, connection) {
+
+  cdmDatabaseSchema <- clinChar@executionSettings@cdmDatabaseSchema
+  sql <- glue::glue("SELECT l.location_id, l.location_source_value
+  FROM {cdmDatabaseSchema}.location l") |>
+    SqlRender::translate(targetDialect = clinChar@executionSettings@dbms)
+
+  cli::cat_bullet(
+    glue::glue("Database Query: {crayon::green('Grab unique locations from CDM')}"),
+    bullet = "pointer",
+    bullet_col = "yellow"
+  )
+
+  loc_tbl <- DatabaseConnector::querySql(connection = connection, sql = sql)
+  names(loc_tbl) <- c("value_id", "value_name")
+
+  return(loc_tbl)
+}
+
+race_categories <- function() {
+  tibble::tribble(
+    ~value_id, ~value_name,
+    8527, "White",
+    38003599, "African American",
+    8516, "Black or African American",
+    8515, "Asian",
+    0, "Not Identified"
+  )
+}
+
+gender_categories <- function() {
+  tibble::tribble(
+    ~value_id, ~value_name,
+    8532, "Female",
+    8507, "Male",
+    0, "Not Identified"
+  )
+}
+
+ethnicity_categories <- function() {
+  tibble::tribble(
+    ~value_id, ~value_name,
+    38003563, "Hispanic or Latino",
+    38003564, "Not Hispanic or Latino",
+    0, "Not Identified"
+  )
+}
+
+cost_categories <- function() {
+  tibble::tribble(
+    ~value_id, ~value_name,
+    44818668, "USD",
+    44818568, "EUR",
+    44818571, "GBP"
+  )
+}
+
+time_in_label <- function() {
+  tibble::tribble(
+    ~value_id, ~value_name,
+    1001, "Time In Cohort",
+    9201000262, "Length of Inpatient Stay"
+  )
+}
+
+count_label <- function(domain) {
+  lb <- switch(domain,
+               'drug_exposure' = "medication count",
+               'procedure_occurrence' = "procedure count",
+               'measurement' = "measurement count",
+               'condition_occurrence' = "condition count",
+               'visit_occurrence' = "visit count")
+  return(lb)
+}
