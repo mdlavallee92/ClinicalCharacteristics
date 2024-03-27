@@ -75,7 +75,7 @@ retrieveTable <- function(clinChar, category_id = NULL) {
   if (!is.null(category_id)) {
     dd <- dd |>
       dplyr::filter(
-        category_id == !!category_id
+        category_id %in% !!category_id
       )
   }
 

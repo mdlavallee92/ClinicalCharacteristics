@@ -13,14 +13,18 @@ Imports:
     crayon,
     fs,
     purrr,
-    rlang,
-    Capr,
     SqlRender,
     snakecase,
+    Capr,
     DatabaseConnector,
     dplyr,
     glue,
     readr,
-    scales,
-    tibble
+    tibble,
+    arrow,
+    here,
+    lubridate,
+    monaco,
+    reactable,
+    methods
 Additional_repositories: https://OHDSI.github.io/drat

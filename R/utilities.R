@@ -91,6 +91,15 @@ domain_translate <- function(domain) {
 }
 
 
+find_char <- function(clinChar, type = c("Age")) {
+  type <- match.arg(type)
+  type <- tolower(type)
+  cls <- purrr::map_chr(clinChar@extractSettings, ~.x@domain)
+  idx <- which(type %in% cls)
+  return(idx)
+}
+
+
 grab_concept <- function(clinChar, connection, ids) {
 
   ids <- paste(ids, collapse = ", ")
