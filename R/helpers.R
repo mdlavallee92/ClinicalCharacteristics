@@ -37,6 +37,54 @@ makeLocationTable <- function(connection, cdmDatabaseSchema, locationColumn = "l
   return(loc_obj)
 }
 
+
+#' Function to make visit detail table
+#' @param connection a database connection to the OMOP CDM using DatabaseConnector
+#' @param vocabDatabaseSchema the database schema specifying identifying the vocabulary tables
+#' @param detailType either specialty or care_site
+#' @param detailIds the OMOP concept ids to get names for
+#' @return a visitDetailTable object used in the visitDetailChar characterization
+#' @export
+makeVisitDetailTable <- function(connection,
+                                 vocabDatabaseSchema,
+                                 detailType = c("specialty", "care_site"),
+                                 detailIds) {
+
+  detailType <- match.arg(detailType)
+  domain <- switch(detailType,
+    'specialty' = "provider",
+    'care_site' = "care_site"
+  )
+  column <- switch(detailType,
+                   'specialty' = "specialty_concept_id",
+                   'care_site' = "place_of_service_concept_id"
+  )
+  # make string of detailIds
+  detailIds <- paste(detailIds, collapse = ", ")
+  sql <- glue::glue(
+    "SELECT concept_id, concept_name FROM {vocabDatabaseSchema}.concept WHERE concept_id IN ({detailIds});"
+  ) |>
+    SqlRender::translate(targetDialect = connection@dbms)
+
+  txt <- glue::glue("Grabbing {crayon::green(crayon::italic('concept_name'))} from CDM")
+  cli::cat_bullet(
+    glue::glue("{crayon::yellow('Database Query')}: {txt}"),
+    bullet = "pointer",
+    bullet_col = "yellow"
+  )
+
+  det_tbl <- DatabaseConnector::querySql(connection = connection, sql = sql) |>
+    tibble::as_tibble() |>
+    dplyr::rename_with(tolower)
+
+  vdTb <- new("visitDetailTable", domain = domain,
+              column = column,
+              key = det_tbl)
+
+  return(vdTb)
+}
+
+
 #' Exploratory function to find common lab-unit combinations
 #' @description
 #' This function is meant to be used as a preperatory step to making a labChar slot to clinChar.

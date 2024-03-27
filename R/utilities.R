@@ -24,7 +24,8 @@ verboseExecute <- function(connection, sql, task, printSql = FALSE) {
 pluck_domain_char <- function(clinChar) {
   es <- clinChar@extractSettings
   clin_class <- purrr::map_chr(es, ~class(.x))
-  idx <- which(clin_class %in% c("presenceChar", "labChar", "countChar", "costChar", "timeToChar"))
+  idx <- which(clin_class %in% c("presenceChar", "labChar", "countChar", "costChar",
+                                 "timeToChar", "visitDetailChar"))
   dd <- es[idx]
   return(dd)
 }
@@ -73,6 +74,14 @@ domain_translate <- function(domain) {
                  'concept_id' = "visit_concept_id",
                  'concept_type_id' = "visit_type_concept_id",
                  'event_date' = "visit_start_date"
+               ),
+               "provider" = list(
+                 'concept_id' = "specialty_concept_id",
+                 'merge_key' = "provider_id"
+               ),
+               "care_site" = list(
+                 'concept_id' = "place_of_service_concept_id",
+                 'merge_key' = "care_site_id"
                ),
                "gender" = list('concept_id' ="gender_concept_id"),
                "race" = list('concept_id' = "race_concept_id"),

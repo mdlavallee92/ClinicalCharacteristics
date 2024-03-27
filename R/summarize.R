@@ -275,6 +275,51 @@ setMethod("sum_char", "locationChar", function(x, clinChar){
 
 })
 
+## visit detail Char ----------------
+setMethod("sum_char", "visitDetailChar", function(x, clinChar){
+
+  orderId <- x@orderId
+  detKey <- x@visitDetailTable@key
+
+  tb <- list(
+    'continuous' = NULL,
+    'categorical' = NULL
+  )
+  #summarize continuous
+  tb$continuous <- retrieveTable(clinChar = clinChar, category_id = orderId) |>
+    dplyr::group_by(cohort_id, subject_id, category_id, time_id, value_id) |>
+    dplyr::summarize(
+      value = sum(value)
+    ) |>
+    dplyr::ungroup() |>
+    summarize_continuous() |>
+    dplyr::left_join(detKey, by = c("value_id" = "concept_id")) |>
+    dplyr::rename(
+      value_name = concept_name
+    ) |>
+    dplyr::relocate(
+      value_name, .after = "value_id"
+    ) |>
+    label_table(clinChar)
+
+  #summarize categorical
+  tb$categorical <- retrieveTable(clinChar = clinChar, category_id = orderId) |>
+    dplyr::distinct() |>
+    summarize_categorical(clinChar) |>
+    dplyr::left_join(detKey, by = c("value_id" = "concept_id")) |>
+    dplyr::rename(
+      value_name = concept_name
+    ) |>
+    dplyr::relocate(
+      value_name, .after = "value_id"
+    ) |>
+    label_table(clinChar)
+
+  return(tb)
+
+})
+
+
 ## Lab Char ----------------
 setMethod("sum_char", "labChar", function(x, clinChar){
 

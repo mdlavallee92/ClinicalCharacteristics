@@ -94,6 +94,39 @@ addLocationChar <- function(clinChar, locationTable) {
   return(clinChar)
 }
 
+# Visit Detail ------------------------
+
+#' Add a specialty characteristic
+#' @description
+#' This function adds alocation characteristic to the clinChar object.
+#' @param clinChar a clinChar object maintaining the components of the characterization
+#' @param visitDetailTable a visitDetailTable object set using the the makeLocTable fn
+#' @param timeWindows a timeWindow object that specifies the boundaries relative to the target start date
+#' on when to search for the presence of a value. use `makeTimeTable` function
+#' @return adds a visitDetailChar object into the clinChar extractSettings slot
+#' @export
+addSpecialtyChar <- function(clinChar, visitDetailTable, timeWindows) {
+
+  specChar <- new("visitDetailChar", orderId = set_order_id(clinChar),
+                  domain = "provider",
+              visitDetailTable = visitDetailTable)
+
+  # check if clinChar is snowflake and use temp schema
+  if (check_dbms(clinChar) == "snowflake") {
+    tempSchema <-clinChar@executionSettings@workDatabaseSchema
+    tbl_detail <- glue::glue("{tempSchema}.vd_tmp")
+  } else {
+    tbl_detail <- "#vd"
+  }
+
+  specChar@time <- timeWindows
+  specChar@tempTables <- list(
+    'detail' = tbl_detail
+  )
+
+  clinChar@extractSettings <- append(clinChar@extractSettings, specChar)
+  return(clinChar)
+}
 
 # Lab -------------------------
 
@@ -117,7 +150,7 @@ addLabChar <- function(clinChar, labUnitTable, timeWindows, limit = c("last", "f
 
   limit <- match.arg(limit)
 
-  # check if clinChar is snwoflake and use temp schema
+  # check if clinChar is snowflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
     tbl_lab <- glue::glue("{tempSchema}.lab_domain_tmp")
@@ -166,7 +199,7 @@ addVisitPresence <- function(clinChar, conceptSets, timeWindows, limit = c("firs
 
   limit <- match.arg(limit)
 
-  # check if clinChar is snwoflake and use temp schema
+  # check if clinChar is snowflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
     #tbl_codeset <- glue::glue("{tempSchema}.condition_codeset_tmp")
@@ -211,7 +244,7 @@ addConditionPresence <- function(clinChar, conceptSets, timeWindows, limit = c("
 
   limit <- match.arg(limit)
 
-  # check if clinChar is snwoflake and use temp schema
+  # check if clinChar is snowflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
     #tbl_codeset <- glue::glue("{tempSchema}.condition_codeset_tmp")
@@ -255,7 +288,7 @@ addDrugPresence <- function(clinChar, conceptSets, timeWindows, limit = c("first
 
   limit <- match.arg(limit)
 
-  # check if clinChar is snwoflake and use temp schema
+  # check if clinChar is snowflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
     #tbl_codeset <- glue::glue("{tempSchema}.drug_codeset_tmp")
@@ -297,7 +330,7 @@ addObservationPresence <- function(clinChar, conceptSets, timeWindows, limit = c
 
   limit <- match.arg(limit)
 
-  # check if clinChar is snwoflake and use temp schema
+  # check if clinChar is snowflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
     #tbl_codeset <- glue::glue("{tempSchema}.drug_codeset_tmp")
@@ -340,7 +373,7 @@ addProcedurePresence <- function(clinChar, conceptSets, timeWindows, limit = c("
 
   limit <- match.arg(limit)
 
-  # check if clinChar is snwoflake and use temp schema
+  # check if clinChar is snowflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
     #tbl_codeset <- glue::glue("{tempSchema}.drug_codeset_tmp")
@@ -382,7 +415,7 @@ addMeasurementPresence <- function(clinChar, conceptSets, timeWindows, limit = c
 
   limit <- match.arg(limit)
 
-  # check if clinChar is snwoflake and use temp schema
+  # check if clinChar is snowflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
     #tbl_codeset <- glue::glue("{tempSchema}.drug_codeset_tmp")
@@ -425,7 +458,7 @@ addDevicePresence <- function(clinChar, conceptSets, timeWindows, limit = c("fir
 
   limit <- match.arg(limit)
 
-  # check if clinChar is snwoflake and use temp schema
+  # check if clinChar is snowflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
     tbl_domain <- glue::glue("{tempSchema}.dev_domain_tmp")
@@ -463,7 +496,7 @@ addDevicePresence <- function(clinChar, conceptSets, timeWindows, limit = c("fir
 #' @export
 addDrugCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = c(32810, 32869)) {
 
-  # check if clinChar is snwoflake and use temp schema
+  # check if clinChar is snowflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
     tbl_count <- glue::glue("{tempSchema}.drug_count_tmp")
@@ -510,7 +543,7 @@ addDrugCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize =
 #' @export
 addVisitCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = c(32810, 32869)) {
 
-  # check if clinChar is snwoflake and use temp schema
+  # check if clinChar is snowflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
     tbl_count <- glue::glue("{tempSchema}.visit_count_tmp")
@@ -557,7 +590,7 @@ addVisitCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize 
 #' @export
 addConditionCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = c(32810, 32869)) {
 
-  # check if clinChar is snwoflake and use temp schema
+  # check if clinChar is snowflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
     tbl_count <- glue::glue("{tempSchema}.cond_count_tmp")
@@ -602,7 +635,7 @@ addConditionCount <- function(clinChar, timeWindows, conceptSets = NULL, categor
 #' @export
 addProcedureCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = c(32810, 32869)) {
 
-  # check if clinChar is snwoflake and use temp schema
+  # check if clinChar is snowflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
     tbl_count <- glue::glue("{tempSchema}.proc_count_tmp")
@@ -646,7 +679,7 @@ addProcedureCount <- function(clinChar, timeWindows, conceptSets = NULL, categor
 #' @export
 addMeasurementCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = c(32810, 32869)) {
 
-  # check if clinChar is snwoflake and use temp schema
+  # check if clinChar is snowflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
     tbl_count <- glue::glue("{tempSchema}.meas_count_tmp")
@@ -691,7 +724,7 @@ addMeasurementCount <- function(clinChar, timeWindows, conceptSets = NULL, categ
 #' @export
 addObservationCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = c(32810, 32869)) {
 
-  # check if clinChar is snwoflake and use temp schema
+  # check if clinChar is snowflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
     tbl_count <- glue::glue("{tempSchema}.obs_count_tmp")
@@ -739,7 +772,7 @@ addDrugCost <- function(clinChar, timeWindows, conceptSets = NULL,
                         costType = "amount_allowed", categorize = NULL,
                         conceptType = c(32810, 32869)) {
 
-  # check if clinChar is snwoflake and use temp schema
+  # check if clinChar is snowflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
     tbl_cost <- glue::glue("{tempSchema}.drug_cost_tmp")
@@ -785,7 +818,7 @@ addProcedureCost <- function(clinChar, timeWindows, conceptSets = NULL,
                         costType = "amount_allowed", categorize = NULL,
                         conceptType = c(32810, 32869)) {
 
-  # check if clinChar is snwoflake and use temp schema
+  # check if clinChar is snowflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
     tbl_cost <- glue::glue("{tempSchema}.proc_cost_tmp")
@@ -834,7 +867,7 @@ addVisitCost <- function(clinChar, timeWindows,
                          categorize = NULL,
                          conceptType = c(32810, 32869)) {
 
-  # check if clinChar is snwoflake and use temp schema
+  # check if clinChar is snowflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
     tbl_cost <- glue::glue("{tempSchema}.visit_cost_tmp")
@@ -941,7 +974,7 @@ addTimeToDrug <- function(clinChar, conceptSets, timeWindows, limit = c("first",
 
   limit <- match.arg(limit)
 
-  # check if clinChar is snwoflake and use temp schema
+  # check if clinChar is snowflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
     #tbl_codeset <- glue::glue("{tempSchema}.drug_codeset_tmp")
@@ -997,7 +1030,7 @@ addTimeToCondition <- function(clinChar, conceptSets, timeWindows, limit = c("fi
 
   limit <- match.arg(limit)
 
-  # check if clinChar is snwoflake and use temp schema
+  # check if clinChar is snowflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
     #tbl_codeset <- glue::glue("{tempSchema}.drug_codeset_tmp")
@@ -1052,7 +1085,7 @@ addTimeToProcedure <- function(clinChar, conceptSets, timeWindows, limit = c("fi
 
   limit <- match.arg(limit)
 
-  # check if clinChar is snwoflake and use temp schema
+  # check if clinChar is snowflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
     tbl_duration <- glue::glue("{tempSchema}.proc_duration_tmp")
@@ -1106,7 +1139,7 @@ addTimeToMeasurement <- function(clinChar, conceptSets, timeWindows, limit = c("
 
   limit <- match.arg(limit)
 
-  # check if clinChar is snwoflake and use temp schema
+  # check if clinChar is snowflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
     tbl_duration <- glue::glue("{tempSchema}.meas_duration_tmp")
@@ -1160,7 +1193,7 @@ addTimeToObservation <- function(clinChar, conceptSets, timeWindows, limit = c("
 
   limit <- match.arg(limit)
 
-  # check if clinChar is snwoflake and use temp schema
+  # check if clinChar is snowflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
     tbl_duration <- glue::glue("{tempSchema}.obs_duration_tmp")
@@ -1213,7 +1246,7 @@ addTimeToVisit <- function(clinChar, conceptSets, timeWindows, limit = c("first"
 
   limit <- match.arg(limit)
 
-  # check if clinChar is snwoflake and use temp schema
+  # check if clinChar is snowflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
     tempSchema <-clinChar@executionSettings@workDatabaseSchema
     #tbl_codeset <- glue::glue("{tempSchema}.visit_codeset_tmp")

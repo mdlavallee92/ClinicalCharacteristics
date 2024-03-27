@@ -125,6 +125,40 @@ setClass("locationChar",
          )
 )
 
+## visit Detail Char -------------------
+
+setClass("visitDetailTable",
+         slots = c(
+           domain = "character",
+           column = "character",
+           key = "data.frame"
+         ),
+         prototype = list(
+           domain = NA_character_,
+           column = NA_character_,
+           key = tibble::tibble(
+             value_id = c(),
+             value_name = c()
+           )
+         )
+)
+
+setClass("visitDetailChar",
+         slots = c(
+           domain = "character",
+           orderId = "integer",
+           visitDetailTable = "visitDetailTable",
+           time = "data.frame",
+           tempTables = "list"
+         ),
+         prototype = list(
+           domain = NA_character_,
+           orderId = NA_integer_,
+           visitDetailTable = new("visitDetailTable"),
+           time = data.frame('time_id' = 1, 'time_a' = -365, 'time_b' = -1),
+           tempTables = list()
+         )
+)
 
 ## Demo Concept Char --------------------------
 setClass("demoConceptChar",
@@ -506,6 +540,56 @@ setMethod("as_sql", "locationChar", function(x){
   return(sql)
 })
 
+
+## visitDetail -------------
+setMethod("as_sql", "visitDetailChar", function(x){
+
+  domain <- x@domain
+  domain_trans <- domain_translate(domain)
+  time_a <- paste(x@time$time_a, collapse = ", ")
+  time_b <- paste(x@time$time_b, collapse = ", ")
+  detailIds <- unique(x@visitDetailTable@key$concept_id) |>
+    paste(collapse = ", ")
+
+  querySql <- glue::glue(
+    "
+    WITH T1 AS (
+      SELECT * FROM {{timeWindowTable}} tw
+      WHERE time_a IN ({time_a}) AND time_b IN ({time_b})
+    )
+    -- Find matching {domain} covariates
+    SELECT
+      t.cohort_definition_id AS cohort_id,
+      t.subject_id, t.cohort_start_date,
+      tw.time_id,
+      d.visit_detail_start_date,
+      b.{domain_trans$concept_id} AS value_id
+     INTO {x@tempTables$detail}
+     FROM {{targetTable}} t
+     JOIN {{cdmDatabaseSchema}}.visit_detail d ON t.subject_id = d.person_id
+     JOIN {{cdmDatabaseSchema}}.{domain} b on d.{domain_trans$merge_key} = b.{domain_trans$merge_key}
+     INNER JOIN T1 tw
+          ON DATEADD(day, tw.time_a, t.cohort_start_date) <= d.visit_detail_start_date
+          AND DATEADD(day, tw.time_b, t.cohort_start_date) >= d.visit_detail_start_date
+     WHERE b.{domain_trans$concept_id} IN ({detailIds})
+     ;")
+
+  insertSql <- glue::glue(
+    " -- Insert into data table
+    INSERT INTO {{dataTable}} (cohort_id, subject_id, category_id, time_id, value_id, value)
+    SELECT i.cohort_id, i.subject_id,
+    {x@orderId} AS category_id,
+    i.time_id,
+    i.value_id,
+    1 AS value
+    FROM {x@tempTables$detail} i
+    ;
+    ")
+
+  sql <- paste(querySql, insertSql, sep = "\n\n")
+  return(sql)
+
+})
 
 ## lab vlaues ------------------
 setMethod("as_sql", "labChar", function(x){
@@ -930,6 +1014,13 @@ drop_domain_temp <- function(clinChar) {
 setMethod("drop_temp_tables", "presenceChar", function(x){
 
   sql <- trunc_drop(x@tempTables$domain)
+  return(sql)
+
+})
+
+setMethod("drop_temp_tables", "visitDetailChar", function(x){
+
+  sql <- trunc_drop(x@tempTables$detail)
   return(sql)
 
 })
