@@ -1,5 +1,6 @@
-
-# Age breaks ---------------------------------
+# Breaks -------------------------
+# Continuous => categorical
+## Age breaks ---------------------------------
 
 #' Make 5 yr age group
 #' @description
@@ -84,6 +85,7 @@ age19Grps <- function() {
   x[1] <- 1
   a <- dplyr::lead(x) - 1
   lab <- c("0", glue::glue("{x}-{a}"))[-20]
+  x <- c(0,x)
 
   ll <- tibble::tibble(
     value = as.numeric(0:129),
@@ -129,7 +131,7 @@ age18 <- function() {
   return(br)
 }
 
-# year breaks--------------------
+## year breaks--------------------
 
 #' Make year group using 5 yr threshold
 #' @description
@@ -190,7 +192,7 @@ yearCovid <- function() {
 }
 
 
-# Custom breaks --------------------------
+## Custom breaks --------------------------
 
 #' Function to make custom categorical breaks
 #' @param x a sequence of values to categorize
@@ -206,3 +208,63 @@ customBreaks <- function(x, breaks, labels) {
   br <- new("breaksStrategy", breaks = ll)
   return(br)
 }
+
+# Scores -------------------------------
+# Categorical => continuous
+
+
+charlsonIndexScore <- function() {
+
+  # deal with concept scores first
+  idx <- seq_along(charlsonConcepts())
+
+  weights <- c(
+    # Score for:Acute MI,congestive heart failure, peripheral vascular disease,
+    # cerebrovascular disease, dementia, chronic pulmonary disease,
+    # rheumatologic disease, peptic ulcer, mild liver disease, controlled diabetes
+    rep(1, times = 10),
+    # Score for: hemiplegia or paraplegia, renal disease, malignancy localizedm leukemia, lymphoma
+    rep(2, times = 5),
+    # score for: AIDS and metastatic tumor
+    rep(6, times = 2)
+  )
+
+  charlsonIndex <- new("scoreStrategy",
+                       name = "CharlsonIndex",
+                       domain = c("Condition", "Age"),
+                       weights = tibble::tibble(
+                         id = idx,
+                         w = weights
+                       )
+                       )
+
+
+  # next add age scores
+  ageScore <- age10yrGrp()@breaks |>
+    dplyr::filter(
+      value >= 50
+    ) |>
+    dplyr::mutate(
+      w = dplyr::case_when(
+       dplyr::between(value, 50, 59) ~ 1,
+       dplyr::between(value, 60, 69) ~ 2,
+       dplyr::between(value, 70, 79) ~ 3,
+       value >= 80 ~ 4
+      ),
+      id = value
+    ) |>
+    dplyr::select(
+      id, w
+    )
+
+  charlsonIndex@weights <- dplyr::bind_rows(charlsonIndex@weights, ageScore)
+  cli::cat_bullet(
+    glue::glue("{crayon::red('Note')}: User needs to add an ageChar to clinChar object when using charlsonIndexScore()"),
+    bullet = "info",
+    bullet_col = "blue"
+  )
+
+  return(charlsonIndex)
+}
+
+
