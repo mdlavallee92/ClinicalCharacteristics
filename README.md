@@ -35,50 +35,51 @@ connectionDetails <- DatabaseConnector::createConnectionDetails(
 
 connection <- DatabaseConnector::connect(connectionDetails)
 
-
-# make concept sets
-conceptSet <- list(cs(descendants(201826), name = "T2D"),
-                   cs(descendants(313217,314665), name = "af")
-)
-
-cs2 <- list(
-  cs(descendants(1503297), name = "metformin"),
-  cs(descendants(1310149), name = "warfarin")
-)
-
-# build clinChar object
 clinChar <- makeClinChar(
-    targetCohortIds = 1,
-    targetCohortNames = "Obesity",
-    dbms = "redshift",
-    cdmDatabaseSchema = "cdm_data",
-    workDatabaseSchema = "my_scratch",
-    cohortTable = "cohort_table"
-  ) |>
+  targetCohortIds = 2,
+  targetCohortNames = "Obesity",
+  dbms = "redshift",
+  cdmDatabaseSchema = executionSettings$cdmDatabaseSchema,
+  workDatabaseSchema = executionSettings$workDatabaseSchema,
+  cohortTable = executionSettings$cohortTable
+) |>
   addAgeChar(categorize = age10yrGrp()) |>
-  addRaceChar() |>
   addGenderChar() |>
-  addLocationChar() |>
+  addRaceChar() |>
+  addYearChar(categorize = year5yrGrp()) |>
+  addLocationChar(locationTable = makeLocationTable(connection, cdmDatabaseSchema = executionSettings$cdmDatabaseSchema)) |>
   addConditionPresence(
-    conceptSets = conceptSet, 
-    timeWindows = makeTimeTable(time_a = -365, time_b = -1), 
-    limit = "first") |>
-  addLabChar(
-    labIds = c(3036277), 
-    unitIds = c(8582), 
-    timeWindows = makeTimeTable(time_a = -365, time_b = -1), 
-    limit = "last") |>
-  addDrugCount(timeWindows = makeTimeTable(time_a = -365, time_b = -1)) |>
-  addDrugCost(timeWindows = makeTimeTable(time_a = -365, time_b = -1)) |>
-  addTimeToDrug(conceptSets = cs2, timeWindows = makeTimeTable(time_a = c(0, 0), time_b = c(180, 365)))
+    conceptSets = charlsonConcepts(),
+    timeWindows = makeTimeTable(time_a = -365, time_b = -1),
+    limit = "first",
+    score = charlsonIndexScore(ageId = 1)
+  ) |>
+  addDrugPresence(
+    conceptSets = atcConcepts(),
+    timeWindows = makeTimeTable(
+      time_a = c(-365, 0, 0, 0),
+      time_b = c(-1, 183, 365, 730)
+      ),
+    limit = "first"
+  ) |>
+  addDrugCount(
+    timeWindows = makeTimeTable(
+      time_a = c(-365, 0, 0, 0),
+      time_b = c(-1, 183, 365, 730)
+    )
+  ) |>
+  addVisitCount(
+    conceptSets = standardVisitConcepts(),
+    timeWindows = makeTimeTable(
+      time_a = c(-365, 0, 0, 0),
+      time_b = c(-1, 183, 365, 730)
+    )
+  )
 
-runClinicalCharacteristics(connection = connection, clinChar = clinChar)
 
-
-tb <- tabulateClinicalCharacteristics(clinChar = clinChar)
-
-previewClincalCharacteristics(tb, type = "categorical")
-previewClincalCharacteristics(tb, type = "continuous")
+res <- runClinicalCharacteristics(connection = connection, clinChar = clinChar)
+previewClincalCharacteristics(res, type = "categorical")
+previewClincalCharacteristics(res, type = "continuous")
 
 DatabaseConnector::disconnect(con)
 
