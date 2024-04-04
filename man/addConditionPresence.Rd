@@ -8,7 +8,8 @@ addConditionPresence(
   clinChar,
   conceptSets,
   timeWindows,
-  limit = c("first", "last", "all")
+  limit = c("first", "last", "all"),
+  score = NULL
 )
 }
 \arguments{
@@ -22,6 +23,10 @@ on when to search for the presence of a value. use \code{makeTimeTable} function
 \item{limit}{specify which values to use in the characteristic. The last variable will pull the last value in the
 time window, the first variable will pull the first value in the time window and the
 all vairable will pull all values in the time window}
+
+\item{score}{describes how the categorical value should be converted to a continuous score.
+This function takes a scoreStrategy object to describe the scoring ow it is left NULL.
+If the parameter is NULL then no continuous summary is done}
 }
 \value{
 adds a presenceChar object of condition_occurrence into the clinChar extractSettings slot

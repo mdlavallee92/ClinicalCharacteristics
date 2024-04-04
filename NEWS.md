@@ -1,3 +1,11 @@
+# ClinicalCharacteristics 0.2.0
+
+* Remove arrow dependency ==> aggregate on dbms
+* add labels method for char classes
+* add categorize sql 
+* add charlson sql 
+* condense runClinicalCharacteristics to tabulate and save results
+
 # ClinicalCharacteristics 0.1.0
 
 * overhaul software to remove FeatureExtraction dependency

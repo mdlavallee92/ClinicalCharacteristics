@@ -4,12 +4,24 @@
 \alias{runClinicalCharacteristics}
 \title{Runs the characterization and extracts data into an arrow object}
 \usage{
-runClinicalCharacteristics(connection, clinChar)
+runClinicalCharacteristics(
+  connection,
+  clinChar,
+  dropDat = FALSE,
+  saveName = NULL,
+  savePath = here::here()
+)
 }
 \arguments{
 \item{connection}{the DatabaseConnector connection linking to the dbms with OMOP data}
 
 \item{clinChar}{the clinChar object describing the study}
+
+\item{dropDat}{toggle option to drop temporary data table with clinChar results in the dbms}
+
+\item{saveName}{a labelling name to distinguish the characterization}
+
+\item{savePath}{the folder path to save the csv, defaults to current directory}
 }
 \value{
 runs database query described in extractSettings and uploads them to the stow object
