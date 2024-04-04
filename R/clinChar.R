@@ -3,12 +3,12 @@
 setClass("ClinChar",
          slots = c(targetCohort = "targetCohort",
                    executionSettings = "executionSettings",
-                   stowSettings = "stowSettings",
+                   #stowSettings = "stowSettings",
                    extractSettings = "list"),
          prototype = list(
            targetCohort = new("targetCohort"),
            executionSettings = new("executionSettings"),
-           stowSettings = new("stowSettings"),
+           #stowSettings = new("stowSettings"),
            extractSettings = list()
          )
 )
@@ -51,8 +51,8 @@ makeClinChar <- function(targetCohortIds,
   }
 
   if (dbms == "snowflake") {
-    clinChar@targetCohort@tempTable <- glue::glue("{workDatabaseSchema}.target_tmp")
-    clinChar@stowSettings@dataTable <- glue::glue("{workDatabaseSchema}.dat_tmp")
+    #clinChar@targetCohort@tempTable <- glue::glue("{workDatabaseSchema}.target_tmp")
+    #clinChar@stowSettings@dataTable <- glue::glue("{workDatabaseSchema}.dat_tmp")
     clinChar@executionSettings@timeWindowTable <- glue::glue("{workDatabaseSchema}.tw_tmp")
     clinChar@executionSettings@codesetTable <- glue::glue("{workDatabaseSchema}.codeset_tmp")
   }
@@ -92,7 +92,7 @@ setMethod("build_query", "ClinChar", function(x){
   workDatabaseSchema <- x@executionSettings@workDatabaseSchema
   vocabularyDatabaseSchema <- x@executionSettings@vocabularyDatabaseSchema
   cohortTable <- x@executionSettings@cohortTable
-  dataTable <- x@stowSettings@dataTable
+  dataTable <- x@executionSettings@dataTable
   targetTable <- x@targetCohort@tempTable
   timeWindowTable <- x@executionSettings@timeWindowTable
   codesetTable <- x@executionSettings@codesetTable
@@ -144,6 +144,189 @@ clinCharJobDetails <- function(clinChar) {
   invisible(charType)
 }
 
+# obj checks ----------------------
+
+check_score <- function(x) {
+  score_slot <- "score" %in% methods::slotNames(x)
+  if (score_slot) {
+    check <- !is.null(x@score)
+  } else{
+    check <- FALSE
+  }
+  return(check)
+}
+
+get_cts_ids <- function(clinChar) {
+  es <- clinChar@extractSettings
+  cln <- purrr::map_chr(es, ~methods::is(.x))
+  cts_char <- c("ageChar", "countChar", "costChar", "timeToChar", "timeInChar", "labChar")
+  ids <- which(cln %in% cts_char)
+
+  #add cat that are scored
+  to_cts <- purrr::map_lgl(es, ~check_score(.x)) |> which()
+  if (length(to_cts) > 0) {
+    to_cts <- (to_cts * 1000) + 1
+    ids <- c(ids, to_cts)
+  }
+
+  return(ids)
+}
+
+check_categorize <- function(x) {
+  score_slot <- "categorize" %in% methods::slotNames(x)
+  if (score_slot) {
+    check <- !is.null(x@categorize)
+  } else{
+    check <- FALSE
+  }
+  return(check)
+}
+
+
+get_cat_ids <- function(clinChar) {
+  es <- clinChar@extractSettings
+  cln <- purrr::map_chr(es, ~methods::is(.x))
+  cat_char <- c("demoConceptChar", "presenceChar", "visitDetailChar", "locationChar")
+  ids <- which(cln %in% cat_char)
+
+  #add cts that are categorized
+  to_cat <- purrr::map_lgl(es, ~check_categorize(.x)) |> which()
+  if (length(to_cat) > 0) {
+    to_cat <- (to_cat * 1000) + 1
+    ids <- c(ids, to_cat)
+  }
+
+  return(ids)
+}
+
+# Summarize ----------------
+
+summarize_continuous <- function(connection, dataTable, cts_ids) {
+
+  cts_ids <- cts_ids |>
+    paste(collapse = ", ")
+
+  sql <- glue::glue(
+    "WITH T1 AS (
+    SELECT * FROM {dataTable} WHERE category_id IN ({cts_ids})
+  )
+  SELECT
+  cohort_id, category_id, time_id, value_id,
+    COUNT(subject_id) AS N,
+    SUM(value) As occ_cnt,
+    STDDEV(value) AS sd,
+    min(value) AS min,
+    PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY value) as p25,
+    PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY value) as median,
+    PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY value) as p75,
+    max(value) AS max
+  FROM T1
+  GROUP BY cohort_id, category_id, time_id, value_id
+  ;") |>
+    SqlRender::translate(targetDialect = connection@dbms)
+
+  cts_sum <- DatabaseConnector::querySql(connection, sql = sql) |>
+    tibble::as_tibble() |>
+    dplyr::rename_with(tolower) |>
+    dplyr::arrange(cohort_id, category_id, time_id, value_id)
+
+  return(cts_sum)
+
+}
+
+summarize_categorical<- function(connection, dataTable, workDatabaseSchema, cohortTable, cat_ids) {
+
+  cat_ids <- cat_ids |>
+    paste(collapse = ", ")
+
+  sql <- glue::glue(
+    "WITH T1 AS (
+    SELECT * FROM {dataTable} WHERE category_id IN ({cat_ids})
+  ),
+  T2 AS (
+    SELECT cohort_definition_id AS cohort_id, COUNT(subject_id) AS tot
+    FROM {workDatabaseSchema}.{cohortTable}
+    GROUP BY cohort_definition_id
+  ),
+  T3 AS (
+    SELECT
+      cohort_id, category_id, time_id, value_id,
+      COUNT(subject_id) AS n
+    FROM T1
+    GROUP BY cohort_id, category_id, time_id, value_id
+  ),
+  T4 AS (
+    SELECT
+      a.cohort_id, a.category_id, a.time_id, a.value_id, a.n,
+      ((1.0 * a.n) / (1.0 * b.tot))  AS pct
+    FROM T3 a
+    JOIN T2 b ON a.cohort_id = b.cohort_id
+  )
+  SELECT
+  cohort_id, category_id, time_id, value_id, n, pct
+  FROM T4
+  ;") |>
+    SqlRender::translate(targetDialect = connection@dbms)
+
+  cat_sum <- DatabaseConnector::querySql(connection, sql = sql) |>
+    tibble::as_tibble() |>
+    dplyr::rename_with(tolower) |>
+    dplyr::arrange(cohort_id, category_id, time_id, value_id)
+
+  return(cat_sum)
+
+}
+
+# Labels ------
+
+cohort_key <- function(clinChar) {
+  cohortKey <- tibble::tibble(
+    cohort_id = as.numeric(clinChar@targetCohort@id),
+    cohort_name = clinChar@targetCohort@name
+  )
+  return(cohortKey)
+}
+
+set_time_labels <- function(clinChar) {
+
+  timeKey <- time_key(clinChar)
+
+  if (nrow(timeKey) == 0) {
+    timeKey <- tibble::tibble(
+      time_id = -999,
+      time_name = "Static from Index"
+    )
+  } else {
+    timeKey <- timeKey |>
+      dplyr::mutate(
+        time_name = glue::glue("{time_a}d:{time_b}d")
+      ) |>
+      dplyr::select(
+        -c(time_a, time_b)
+      ) |>
+      tibble::add_row(
+        time_id = -999,
+        time_name = "Static from Index"
+      )
+  }
+  return(timeKey)
+}
+
+set_labels <- function(clinChar) {
+
+  char_lbl <- purrr::map_dfr(clinChar@extractSettings, ~get_labels(.x)) |>
+    dplyr::left_join(
+      set_time_labels(clinChar), by = c("time_name")
+    ) |>
+    tidyr::expand_grid(cohort_key(clinChar)) |>
+    dplyr::select(
+      cohort_id, cohort_name, category_id, category_name,
+      time_id, time_name, value_id, value_name
+    )
+  return(char_lbl)
+}
+
+
 # UI ---------------------------
 
 #' Runs the characterization and extracts data into an arrow object
@@ -151,9 +334,16 @@ clinCharJobDetails <- function(clinChar) {
 #' This runs the characterization specified by the clinChar object
 #' @param connection the DatabaseConnector connection linking to the dbms with OMOP data
 #' @param clinChar the clinChar object describing the study
+#' @param dropDat toggle option to drop temporary data table with clinChar results in the dbms
+#' @param saveName a labelling name to distinguish the characterization
+#' @param savePath the folder path to save the csv, defaults to current directory
 #' @return runs database query described in extractSettings and uploads them to the stow object
 #' @export
-runClinicalCharacteristics <- function(connection, clinChar) {
+runClinicalCharacteristics <- function(connection,
+                                       clinChar,
+                                       dropDat = FALSE,
+                                       saveName = NULL,
+                                       savePath = here::here()) {
 
   cli::cat_boxx(
     "Run Clinical Characteristics Job"
@@ -165,32 +355,348 @@ runClinicalCharacteristics <- function(connection, clinChar) {
 
   insert_time_table(connection = connection, clinChar = clinChar)
 
+
+  # Run queries
+
   cli::cat_bullet(
-    "Start ClinChar Queries....",
+    "Run ClinChar Queries....",
     bullet = "pointer",
     bullet_col = "yellow"
   )
-  # execute on db
+  ## execute on db
   DatabaseConnector::executeSql(connection = connection, sql = sql)
 
-  stowTable(connection = connection, clinChar = clinChar)
+  # Next look for scoring and categories
+  es <- clinChar@extractSettings
+  to_cts <- purrr::map_lgl(es, ~check_score(.x)) |> which()
+  to_cat <- purrr::map_lgl(es, ~check_categorize(.x)) |> which()
 
-  stowCount(connection = connection, clinChar = clinChar)
+  ## Do score First
+  if (length(to_cts) > 0) {
+    cli::cat_bullet(
+      glue::glue("Score covariates {crayon::yellow('(categorical => continuous)')}"),
+      bullet = "pointer",
+      bullet_col = "yellow"
+    )
+    for (i in to_cts) {
+      ## extract score obj
+      scoreObj <- es[[i]]@score
+      cli::cat_bullet(
+        glue::glue("Build {crayon::magenta(scoreObj@name)} Score"),
+        bullet = "pointer",
+        bullet_col = "yellow"
+      )
 
-  #TODO drop #dat once it is stowed
-  cli::cat_bullet(
-    glue::glue("Drop {crayon::green(clinChar@stowSettings@dataTable)} from db"),
-    bullet = "pointer",
-    bullet_col = "yellow"
+      # Step 1: insert weights temp table
+
+      ## deal with temp tables if in snowflake
+      if(connection@dbms == "snowflake") {
+        scratchSchema <- clinChar@executionSettings@workDatabaseSchema
+        scoreTbl <- glue::glue("{scratchSchema}.{scoreObj@name}")
+        tempTabToggle <- TRUE
+      } else{
+        scoreTbl <- glue::glue("#{scoreObj@name}")
+        tempTabToggle <- FALSE
+      }
+      cli::cat_line(glue::glue("\t - Insert weights table to dbms as {crayon::green(scoreTbl)}"))
+      ## insert temp weights table
+      DatabaseConnector::insertTable(
+        connection = connection,
+        tableName = scoreTbl,
+        data = scoreObj@weights,
+        tempTable = tempTabToggle
+      )
+
+      # Step 2: Make score cov and add back to dataTable
+      cli::cat_line(glue::glue("\t - Build score and add to {crayon::green(clinChar@executionSettings@dataTable)}"))
+      score_value(
+        connection = connection,
+        dataTable = clinChar@executionSettings@dataTable,
+        scoreTable = scoreTbl,
+        workDatabaseSchema = clinChar@executionSettings@workDatabaseSchema,
+        scoreId = i,
+        scoreSql = scoreObj@sql
+      )
+      cli::cat_line(glue::glue("\t - New category_id for score: {crayon::green((i * 1000) + 1)}"))
+      # go to next score
+    }
+    #end all scores
+  }
+
+  ## Do Categories Second
+  if (length(to_cat) > 0) {
+    cli::cat_bullet(
+      glue::glue("Categorize covariates {crayon::yellow('(continuous => categorical)')}"),
+      bullet = "pointer",
+      bullet_col = "yellow"
+    )
+    for (i in to_cat) {
+      ## extract breaks obj
+      breaksObj <- es[[i]]@categorize
+      cli::cat_bullet(
+        glue::glue("Categorize using {crayon::magenta(breaksObj@name)} breaks"),
+        bullet = "pointer",
+        bullet_col = "yellow"
+      )
+      breaksKey <- breaksObj@breaks |>
+        dplyr::select(-c(grp))
+
+      # Step 1: insert breaks temp table
+
+      ## deal with temp tables if in snowflake
+      if(connection@dbms == "snowflake") {
+        scratchSchema <- clinChar@executionSettings@workDatabaseSchema
+        breaksTbl <- glue::glue("{scratchSchema}.{breaksObj@name}")
+        tempTabToggle <- TRUE
+      } else{
+        breaksTbl <- glue::glue("#{breaksObj@name}")
+        tempTabToggle <- FALSE
+      }
+      cli::cat_line(glue::glue("\t - Insert breaksKey to dbms as {crayon::green(breaksTbl)}"))
+      ## insert temp weights table
+      DatabaseConnector::insertTable(
+        connection = connection,
+        tableName = breaksTbl,
+        data = breaksKey,
+        tempTable = tempTabToggle
+      )
+
+      # Step 2: Make score cov and add back to dataTable
+      cli::cat_line(glue::glue("\t - Categorize and add to {crayon::green(clinChar@executionSettings@dataTable)}"))
+      year <- grepl("year", breaksObj@name)
+      categorize_value(
+        connection = connection,
+        dataTable = clinChar@executionSettings@dataTable,
+        breaksTable = breaksTbl,
+        workDatabaseSchema = clinChar@executionSettings@workDatabaseSchema,
+        catId = i,
+        year = year
+      )
+      cli::cat_line(glue::glue("\t - New category_id for categorized variable: {crayon::green((i * 1000) + 1)}"))
+      # go to next categorize
+    }
+    #end all categorize
+  }
+
+  # Continuous Summary
+  cts_ids <- get_cts_ids(clinChar)
+  if (length(cts_ids) > 0) {
+    cli::cat_bullet("Summarize Continuous Variables",
+                    bullet = "pointer",
+                    bullet_col = "yellow")
+    # summarize continuous covars
+    cts_sum <- summarize_continuous(
+      connection = connection,
+      dataTable = clinChar@executionSettings@dataTable,
+      cts_ids = cts_ids
+      ) |>
+      dplyr::mutate(
+        mean = occ_cnt / n # do outside ow it rounds
+      ) |>
+      dplyr::left_join(
+        set_labels(clinChar), by = c("cohort_id", "category_id", "time_id", "value_id")
+      ) |>
+      dplyr::select(
+        cohort_id, cohort_name, category_id, category_name,
+        time_id, time_name, value_id, value_name,
+        n, mean, sd, min, p25, median, p75, max
+      )
+  } else {
+    cts_sum <- tibble::tibble()
+  }
+
+
+  # Cat Summary
+  cat_ids <- get_cat_ids(clinChar)
+  if (length(cat_ids) > 0) {
+
+    cli::cat_bullet("Summarize Categorical Variables",
+                    bullet = "pointer",
+                    bullet_col = "yellow")
+
+    cat_sum <- summarize_categorical(
+      connection = connection,
+      dataTable = clinChar@executionSettings@dataTable,
+      workDatabaseSchema = clinChar@executionSettings@workDatabaseSchema,
+      cohortTable = clinChar@executionSettings@cohortTable,
+      cat_ids = cat_ids
+    ) |>
+      dplyr::left_join(
+        set_labels(clinChar), by = c("cohort_id", "category_id", "time_id", "value_id")
+      ) |>
+      dplyr::select(
+        cohort_id, cohort_name, category_id, category_name,
+        time_id, time_name, value_id, value_name,
+        n, pct
+      )
+  } else {
+    cat_sum <- tibble::tibble()
+  }
+
+  clin_char_res <- list(
+    'continuous' = cts_sum,
+    'categorical' = cat_sum
   )
-  DatabaseConnector::executeSql(
-    connection = connection,
-    trunc_drop(clinChar@stowSettings@dataTable),
-    progressBar = FALSE,
-    reportOverallTime = FALSE
-  )
 
-  invisible(sql)
+  # save as csv
+  if(is.null(saveName)) {
+    saveName <- "clin_char_res"
+  } else {
+    saveName <- snakecase::to_snake_case(saveName)
+  }
+
+  if (nrow(clin_char_res$categorical) > 0) {
+    cli::cat_bullet(
+      glue::glue("Saving Categorical Characteristics as csv"),
+      bullet = "pointer",
+      bullet_col = "yellow"
+    )
+    catSaveName <- glue::glue("{saveName}_categorical")
+    catFilePath <- fs::path(savePath, catSaveName, ext = "csv")
+    readr::write_csv(clin_char_res$categorical, file = catFilePath)
+    cli::cat_line(
+      glue::glue("   Saving to {crayon::cyan(catFilePath)}")
+    )
+  }
+
+  if (nrow(clin_char_res$continuous) > 0 ) {
+    cli::cat_bullet(
+      glue::glue("Saving Continuous Characteristics as csv"),
+      bullet = "pointer",
+      bullet_col = "yellow"
+    )
+    ctsSaveName <- glue::glue("{saveName}_continuous")
+    ctsFilePath <- fs::path(savePath, ctsSaveName, ext = "csv")
+    readr::write_csv(clin_char_res$continuous, file = ctsFilePath)
+    cli::cat_line(
+      glue::glue("   Saving to {crayon::cyan(ctsFilePath)}")
+    )
+  }
+
+
+  #drop #dat option
+  if (dropDat) {
+    cli::cat_bullet(
+      glue::glue("Drop {crayon::green(clinChar@executionSettings@dataTable)} from db"),
+      bullet = "pointer",
+      bullet_col = "yellow"
+    )
+    DatabaseConnector::executeSql(
+      connection = connection,
+      trunc_drop(clinChar@executionSettings@dataTable),
+      progressBar = FALSE,
+      reportOverallTime = FALSE
+    )
+  }
+
+  invisible(clin_char_res)
+}
+
+
+#' Preview the characterization
+#' @description
+#' This shows the characterization tables using reactable
+#' @param tb the table created from the tabulateClincalCharacteristics
+#' @param type which table to preview
+#' @return presents the reactable summarizing the characterization
+#' @export
+previewClincalCharacteristics <- function(tb, type = c("categorical", "continuous")) {
+
+
+  if (type == "categorical") {
+    cat_dat <- tb$categorical |>
+      dplyr::mutate(
+        cohort_name = snakecase::to_title_case(cohort_name),
+        category_name = snakecase::to_title_case(category_name)
+      ) |>
+      dplyr::arrange(
+        cohort_id, category_id, time_id, value_id
+      )
+
+    res_tb <- reactable::reactable(
+      data = cat_dat,
+      columns = list(
+        'cohort_id' = reactable::colDef(name = "Cohort Id"),
+        'cohort_name' = reactable::colDef(name = "Cohort Name"),
+        'category_id' = reactable::colDef(name = "Category Id"),
+        'category_name' = reactable::colDef(name = "Category Name"),
+        'time_id' = reactable::colDef(name = "Time Id"),
+        'time_name' = reactable::colDef(name = "Time Name"),
+        'value_id' = reactable::colDef(name = "Value Id"),
+        'value_name' = reactable::colDef(name = "Value Name"),
+        'n' = reactable::colDef(
+          name = "n", format = reactable::colFormat(separators = TRUE)
+        ),
+        'pct' = reactable::colDef(
+          name = "pct", format = reactable::colFormat(percent = TRUE, digits = 2)
+        )
+      ),
+      highlight = TRUE,
+      bordered = TRUE,
+      outlined = TRUE,
+      resizable = TRUE,
+      filterable = TRUE,
+      searchable = TRUE
+    )
+  }
+
+  if (type == "continuous") {
+
+    cts_dat <- tb$continuous |>
+      dplyr::mutate(
+        cohort_name = snakecase::to_title_case(cohort_name),
+        category_name = snakecase::to_title_case(category_name)
+      ) |>
+      dplyr::arrange(
+        cohort_id, category_id, time_id, value_id
+      )
+
+    res_tb <- reactable::reactable(
+      data = cts_dat,
+      columns = list(
+        'cohort_id' = reactable::colDef(name = "Cohort Id"),
+        'cohort_name' = reactable::colDef(name = "Cohort Name"),
+        'category_id' = reactable::colDef(name = "Category Id"),
+        'category_name' = reactable::colDef(name = "Category Name"),
+        'time_id' = reactable::colDef(name = "Time Id"),
+        'time_name' = reactable::colDef(name = "Time Name"),
+        'value_id' = reactable::colDef(name = "Value Id"),
+        'value_name' = reactable::colDef(name = "Value Name"),
+        'n' = reactable::colDef(
+          name = "n", format = reactable::colFormat(separators = TRUE)
+        ),
+        'mean' = reactable::colDef(
+          name = "nean", format = reactable::colFormat(separators = TRUE, digits = 2)
+        ),
+        'sd' = reactable::colDef(
+          name = "sd", format = reactable::colFormat(separators = TRUE, digits = 2)
+        ),
+        'min' = reactable::colDef(
+          name = "min", format = reactable::colFormat(separators = TRUE)
+        ),
+        'p25' = reactable::colDef(
+          name = "25th", format = reactable::colFormat(separators = TRUE, digits = 0)
+        ),
+        'median' = reactable::colDef(
+          name = "median", format = reactable::colFormat(separators = TRUE, digits = 0)
+        ),
+        'p75' = reactable::colDef(
+          name = "75th", format = reactable::colFormat(separators = TRUE, digits = 0)
+        ),
+        'max' = reactable::colDef(
+          name = "max", format = reactable::colFormat(separators = TRUE)
+        )
+      ),
+      highlight = TRUE,
+      bordered = TRUE,
+      outlined = TRUE,
+      resizable = TRUE,
+      filterable = TRUE,
+      searchable = TRUE
+    )
+  }
+
+  return(res_tb)
 }
 
 #' Function to review the query built by clinical characteristics
@@ -214,10 +720,10 @@ reviewQuery <- function(clinChar, savePath = here::here("clinCharQuery.sql")) {
     bullet = "pointer",
     bullet_col = "yellow"
   )
-  monaco::monaco(
+  mnc <- monaco::monaco(
     contents = savePath,
     language = "sql",
     theme = "vs"
   )
-  invisible(sql)
+  return(mnc)
 }
