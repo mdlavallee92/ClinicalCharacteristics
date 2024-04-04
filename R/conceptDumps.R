@@ -1,3 +1,5 @@
+#' Charlson concept set
+#' @export
 charlsonConcepts <- function() {
   conceptSet <- list(
     Capr::cs(Capr::descendants(4329847), name = "Acute Myocardial Infarction"),
@@ -19,4 +21,47 @@ charlsonConcepts <- function() {
     Capr::cs(Capr::descendants(439727), name = "AIDS")
   )
   return(conceptSet)
+}
+
+#' Atc concept set
+#' @export
+atcConcepts <- function() {
+
+  conceptSet <- list(
+    Capr::cs(Capr::descendants(21600046), name = "Drugs for acid related disorders"),
+    Capr::cs(Capr::descendants(21600712), name = "Drugs used in diabetes"),
+    Capr::cs(Capr::descendants(21600960), name = "Antithrombotic agents"),
+    Capr::cs(Capr::descendants(21601461), name = "Diuretics"),
+    Capr::cs(Capr::descendants(21601664), name = "Beta blocking agents"),
+    Capr::cs(Capr::descendants(21601744), name = "Calcium channel blockers"),
+    Capr::cs(Capr::descendants(21601782), name = "Agents acting on the renin-angiotensin system"),
+    Capr::cs(Capr::descendants(21601853), name = "Lipid modifying agents"),
+    Capr::cs(Capr::descendants(21602028), name = "Antipsoriatics"),
+    Capr::cs(Capr::descendants(21602796), name = "Antibacterials for systemic use"),
+    Capr::cs(Capr::descendants(21601387), name = "Antineoplastic agents"),
+    Capr::cs(Capr::descendants(21603890), name = "Immunosuppressants"),
+    Capr::cs(Capr::descendants(21603932), name = "Antiinflammatory and antirheumatic products"),
+    Capr::cs(Capr::descendants(21604254), name = "Opioids"),
+    Capr::cs(Capr::descendants(21604389), name = "Antiepilieptics"),
+    Capr::cs(Capr::descendants(21604489), name = "Psycholeptics"),
+    Capr::cs(Capr::descendants(21604686), name = "Antidepressants"),
+    Capr::cs(Capr::descendants(21604752), name = "Psychostimulants, agents used for ADHD and nootropics"),
+    Capr::cs(Capr::descendants(21603248), name = "Drugs for obstructive airway diseases")
+  )
+  return(conceptSet)
+
+}
+
+#' Standard visit concept set
+#' @export
+standardVisitConcepts <- function() {
+
+  conceptSet <- list(
+    Capr::cs(Capr::descendants(232,9201), name = "Inpatient"),
+    Capr::cs(Capr::descendants(9202), name = "Outpatient"),
+    Capr::cs(Capr::descendants(9203), name = "ER")
+  )
+
+  return(conceptSet)
+
 }
