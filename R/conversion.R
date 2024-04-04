@@ -15,8 +15,11 @@ age5yrGrp <- function() {
   ll <- tibble::tibble(
     value = as.numeric(0:129),
     grp = cut(0:129, breaks = x, labels = lab, right = FALSE)
-  )
-  br <- new("breaksStrategy", breaks = ll)
+  ) |>
+    dplyr::mutate(
+      grp_id = as.numeric(grp)
+    )
+  br <- new("breaksStrategy", name = "age5yrGrp", breaks = ll)
   return(br)
 }
 
@@ -32,8 +35,11 @@ age10yrGrp <- function() {
   ll <- tibble::tibble(
     value = as.numeric(0:129),
     grp = cut(0:129, breaks = x, labels = lab, right = FALSE)
-  )
-  br <- new("breaksStrategy", breaks = ll)
+  ) |>
+    dplyr::mutate(
+      grp_id = as.numeric(grp)
+    )
+  br <- new("breaksStrategy", name = "age10yrGrp", breaks = ll)
   return(br)
 }
 
@@ -43,7 +49,7 @@ age10yrGrp <- function() {
 #' style of the American Community Survey (acs)
 #' @return Creates a breaksStrategy object holding the labels for categorization
 #' @export
-acs <- function() {
+ageAcs <- function() {
   x <- c(0,5,10,15,18,20,21,22,25,30,35,40,45,50,55,
          60,62,65,67,70, 75, 80, 85, 130)
   a <- dplyr::lead(x) - 1
@@ -51,8 +57,11 @@ acs <- function() {
   ll <- tibble::tibble(
     value = as.numeric(0:129),
     grp = cut(0:129, breaks = x, labels = lab, right = FALSE)
-  )
-  br <- new("breaksStrategy", breaks = ll)
+  ) |>
+    dplyr::mutate(
+      grp_id = as.numeric(grp)
+    )
+  br <- new("breaksStrategy", name = "ageAcs", breaks = ll)
   return(br)
 }
 
@@ -69,8 +78,11 @@ ageChildWorkRetire <- function() {
   ll <- tibble::tibble(
     value = as.numeric(0:129),
     grp = cut(0:129, breaks = x, labels = lab, right = FALSE)
-  )
-  br <- new("breaksStrategy", breaks = ll)
+  ) |>
+    dplyr::mutate(
+      grp_id = as.numeric(grp)
+    )
+  br <- new("breaksStrategy", name = "ageChildWorkRetire", breaks = ll)
   return(br)
 }
 
@@ -90,8 +102,11 @@ age19Grps <- function() {
   ll <- tibble::tibble(
     value = as.numeric(0:129),
     grp = cut(0:129, breaks = x, labels = lab, right = FALSE)
-  )
-  br <- new("breaksStrategy", breaks = ll)
+  ) |>
+    dplyr::mutate(
+      grp_id = as.numeric(grp)
+    )
+  br <- new("breaksStrategy", name = "age19Grps", breaks = ll)
   return(br)
 }
 
@@ -108,8 +123,11 @@ age65 <- function() {
   ll <- tibble::tibble(
     value = as.numeric(0:129),
     grp = cut(0:129, breaks = x, labels = lab, right = FALSE)
-  )
-  br <- new("breaksStrategy", breaks = ll)
+  ) |>
+    dplyr::mutate(
+      grp_id = as.numeric(grp)
+    )
+  br <- new("breaksStrategy", name = "age65", breaks = ll)
   return(br)
 }
 
@@ -126,8 +144,11 @@ age18 <- function() {
   ll <- tibble::tibble(
     value = as.numeric(0:129),
     grp = cut(0:129, breaks = x, labels = lab, right = FALSE)
-  )
-  br <- new("breaksStrategy", breaks = ll)
+  ) |>
+    dplyr::mutate(
+      grp_id = as.numeric(grp)
+    )
+  br <- new("breaksStrategy", name = "age18", breaks = ll)
   return(br)
 }
 
@@ -147,8 +168,11 @@ year5yrGrp <- function() {
   ll <- tibble::tibble(
     value = as.numeric(2000:(this_year + 1)),
     grp = cut(as.numeric(2000:(this_year + 1)), breaks = x, labels = lab, right = FALSE)
-  )
-  br <- new("breaksStrategy", breaks = ll)
+  ) |>
+    dplyr::mutate(
+      grp_id = as.numeric(grp)
+    )
+  br <- new("breaksStrategy", name = "year5yrGrp", breaks = ll)
   return(br)
 }
 
@@ -167,8 +191,11 @@ year10yrGrp <- function() {
   ll <- tibble::tibble(
     value = as.numeric(2000:(this_year + 1)),
     grp = cut(as.numeric(2000:(this_year + 1)), breaks = x, labels = lab, right = FALSE)
-  )
-  br <- new("breaksStrategy", breaks = ll)
+  ) |>
+    dplyr::mutate(
+      grp_id = as.numeric(grp)
+    )
+  br <- new("breaksStrategy", name = "year10yrGrp", breaks = ll)
   return(br)
 }
 
@@ -186,8 +213,11 @@ yearCovid <- function() {
   ll <- tibble::tibble(
     value = as.numeric(2000:(this_year + 1)),
     grp = cut(as.numeric(2000:(this_year + 1)), breaks = x, labels = lab, right = FALSE)
-  )
-  br <- new("breaksStrategy", breaks = ll)
+  ) |>
+    dplyr::mutate(
+      grp_id = as.numeric(grp)
+    )
+  br <- new("breaksStrategy", name = "yearCovid", breaks = ll)
   return(br)
 }
 
@@ -204,16 +234,140 @@ customBreaks <- function(x, breaks, labels) {
   ll <- tibble::tibble(
     value = x,
     grp = cut(x, breaks = breaks, labels = labels, right = FALSE)
-  )
-  br <- new("breaksStrategy", breaks = ll)
+  ) |>
+    dplyr::mutate(
+      grp_id = as.numeric(grp)
+    )
+  br <- new("breaksStrategy", name = "customBreaks", breaks = ll)
   return(br)
+}
+
+## sql runner -----------
+
+categorize_sql <- function(catId) {
+  newId <- (catId * 1000) + 1
+  sql <- glue::glue("
+  WITH T1 AS (
+      -- Get covariate to categorize
+      SELECT * FROM {{dataTable}} WHERE category_id = {catId}
+    ),
+    T2 AS (
+    SELECT a.cohort_id, a.subject_id, a.category_id, a.time_id, b.grp_id AS value_id,
+      1 AS value
+    FROM T1 a
+    LEFT JOIN {{breaksTable}} b ON a.value = b.value
+    )
+    SELECT dd.cohort_id, dd.subject_id,
+      {newId} AS category_id,
+      dd.time_id,
+      value_id, value
+    INTO {{breaks_dat_tmp}}
+    FROM T2 dd
+    ;")
+
+  return(sql)
+
+}
+
+year_sql <- function(catId) {
+  newId <- (catId * 1000) + 1
+  sql <- glue::glue("
+  WITH T1 AS (
+      -- Get covariate to categorize
+      SELECT * FROM {{dataTable}} WHERE category_id = {catId}
+    ),
+    T2 AS (
+    SELECT a.cohort_id, a.subject_id, a.category_id, a.time_id, b.grp_id AS value_id,
+      1 AS value
+    FROM T1 a
+    LEFT JOIN {{breaksTable}} b ON a.value_id = b.value
+    )
+    SELECT dd.cohort_id, dd.subject_id,
+      {newId} AS category_id,
+      dd.time_id,
+      value_id, value
+    INTO {{breaks_dat_tmp}}
+    FROM T2 dd
+    ;")
+
+  return(sql)
+
+}
+
+categorize_value <- function(connection, dataTable, breaksTable, workDatabaseSchema, catId, year) {
+
+  dbms <- connection@dbms
+
+  if (dbms == "snowflake") {
+    breaks_dat_tmp <- glue::glue("{workDatabaseSchema}.breaks_tmp")
+  } else{
+    breaks_dat_tmp <- "#breaks"
+  }
+  if (year) {
+    cat_sql <- year_sql(catId) |> glue::glue()
+  } else {
+    cat_sql <- categorize_sql(catId) |> glue::glue()
+  }
+
+  sql <- glue::glue("
+    /* Step 1: Make Score Values */
+    {cat_sql}
+
+    /* Step 2: Insert into data table */
+    INSERT INTO {dataTable} (cohort_id, subject_id, category_id, time_id, value_id, value)
+    SELECT * FROM {breaks_dat_tmp};
+
+    /* Step 3: Drop temp score tables */
+    TRUNCATE TABLE {breaks_dat_tmp}; DROP TABLE {breaks_dat_tmp};
+    TRUNCATE TABLE {breaksTable}; DROP TABLE {breaksTable};") |>
+    SqlRender::translate(targetDialect = dbms)
+
+  DatabaseConnector::executeSql(connection, sql)
+  invisible(sql)
+
 }
 
 # Scores -------------------------------
 # Categorical => continuous
 
+## sql runner -----------
+score_value <- function(connection, dataTable, scoreTable, workDatabaseSchema, scoreId, scoreSql) {
 
-charlsonIndexScore <- function() {
+  dbms <- connection@dbms
+
+  if (dbms == "snowflake") {
+    score_dat_tmp <- glue::glue("{workDatabaseSchema}.score_tmp")
+  } else{
+    score_dat_tmp <- "#score"
+  }
+
+  newId <- (scoreId * 1000) + 1
+  scoreSql2 <- glue::glue(scoreSql)
+  sql <- glue::glue("
+    /* Step 1: Make Score Values */
+    {scoreSql2}
+
+    /* Step 2: Insert into data table */
+    INSERT INTO {dataTable} (cohort_id, subject_id, category_id, time_id, value_id, value)
+    SELECT * FROM {score_dat_tmp};
+
+    /* Step 3: Drop temp score tables */
+    TRUNCATE TABLE {score_dat_tmp}; DROP TABLE {score_dat_tmp};
+    TRUNCATE TABLE {scoreTable}; DROP TABLE {scoreTable};") |>
+    SqlRender::translate(targetDialect = dbms)
+
+  DatabaseConnector::executeSql(connection, sql)
+  invisible(sql)
+}
+
+
+## Charlson -----------------------------
+
+#' Function to make charlson score
+#' @param ageId the id of the age slot in the clinChar object
+#' @return Creates a scoreStrategy object holding weights for score
+#' @export
+charlsonIndexScore <- function(ageId) {
 
   # deal with concept scores first
   idx <- seq_along(charlsonConcepts())
@@ -229,9 +383,16 @@ charlsonIndexScore <- function() {
     rep(6, times = 2)
   )
 
+  charlsonSql <- fs::path_package("ClinicalCharacteristics", "sql/CharlsonIndex.sql") |>
+    readr::read_file() |>
+    glue::glue()
+
+
+
   charlsonIndex <- new("scoreStrategy",
                        name = "CharlsonIndex",
                        domain = c("Condition", "Age"),
+                       sql = charlsonSql,
                        weights = tibble::tibble(
                          id = idx,
                          w = weights
@@ -266,5 +427,79 @@ charlsonIndexScore <- function() {
 
   return(charlsonIndex)
 }
+
+# insert_score_weights <- function(connection, clinChar, scoreObj) {
+#
+#   cli::cat_bullet(
+#     glue::glue("Insert weights to create score for {scoreObj@name}"),
+#     bullet = "pointer",
+#     bullet_col = "yellow"
+#   )
+#
+#   if(connection@dbms == "snowflake") {
+#     scratchSchema <- clinChar@executionSettings@workDatabaseSchema
+#     scoreTbl <- glue::glue("{scratchSchema}.score_{scoreObj@name}")
+#     tempTabToggle <- TRUE
+#   } else{
+#     scoreTbl <- glue::glue("#score_{scoreObj@name}")
+#     tempTabToggle <- FALSE
+#   }
+#
+#   DatabaseConnector::insertTable(
+#     connection = connection,
+#     tableName = scoreTbl,
+#     data = scoreObj@weights,
+#     tempTable = tempTabToggle
+#   )
+#
+#
+#   invisible(scoreObj@weights)
+# }
+
+charlsonSql <- function(scoreObj, ageId) {
+
+  cat_ids <- paste(ageId, conditionId, sep = ", ")
+  new_id <- (conditionId * 1000) + 1
+  # make charlson score sql
+  sql <- glue::glue("
+  -- Charlson Score Sql
+  WITH T1 AS (
+      -- Get category ids corresponding to charlson age and condition presence
+      SELECT cohort_id, subject_id, category_id, time_id,
+      CAST(CASE WHEN category_id = {ageId} THEN value ELSE value_id END AS int) AS value_id,
+      value
+      FROM {{dataTable}} WHERE category_id IN ({cat_ids})
+    ),
+    T2 AS (
+    SELECT a.cohort_id, a.subject_id, a.category_id, a.time_id, a.value_id,
+      CASE WHEN b.w IS NULL THEN 0 ELSE b.w END AS value
+    FROM T1 a
+    LEFT JOIN {{scoreTable}} b ON CAST(a.value_id AS INT) = CAST(b.id AS INT)
+    ),
+    age AS (
+      SELECT cohort_id, subject_id, SUM(value) AS age_score
+      FROM T2
+      WHERE category_id = {ageId}
+      GROUP BY cohort_id, subject_id
+    ),
+    cond AS (
+      SELECT cohort_id, subject_id, time_id, SUM(value) AS cond_score
+      FROM T2
+      WHERE category_id = {conditionId}
+      GROUP BY cohort_id, subject_id, time_id
+    )
+    SELECT dd.cohort_id, dd.subject_id,
+      {new_id} AS category_id,
+      dd.time_id,
+      -999 AS value_id,
+      dd.cond_score + ag.age_score AS value
+    INTO {{score_dat_tmp}}
+    FROM cond dd
+    JOIN age ag ON ag.cohort_id = dd.cohort_id AND ag.subject_id = dd.subject_id
+    ;")
+
+  return(sql)
+}
+
 
 
