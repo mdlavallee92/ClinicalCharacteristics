@@ -1,3 +1,8 @@
+# ClinicalCharacteristics 0.2.1
+
+* bug fix to aggregate yearChar
+* bug fix label table for year coerce to char
+
 # ClinicalCharacteristics 0.2.0
 
 * Remove arrow dependency ==> aggregate on dbms
