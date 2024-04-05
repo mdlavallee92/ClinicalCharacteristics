@@ -139,34 +139,6 @@ grab_locations <- function(clinChar, connection) {
   return(loc_tbl)
 }
 
-race_categories <- function() {
-  tibble::tribble(
-    ~value_id, ~value_name,
-    8527, "White",
-    38003599, "African American",
-    8516, "Black or African American",
-    8515, "Asian",
-    0, "Not Identified"
-  )
-}
-
-gender_categories <- function() {
-  tibble::tribble(
-    ~value_id, ~value_name,
-    8532, "Female",
-    8507, "Male",
-    0, "Not Identified"
-  )
-}
-
-ethnicity_categories <- function() {
-  tibble::tribble(
-    ~value_id, ~value_name,
-    38003563, "Hispanic or Latino",
-    38003564, "Not Hispanic or Latino",
-    0, "Not Identified"
-  )
-}
 
 cost_categories <- function() {
   tibble::tribble(
