@@ -186,7 +186,7 @@ check_categorize <- function(x) {
 get_cat_ids <- function(clinChar) {
   es <- clinChar@extractSettings
   cln <- purrr::map_chr(es, ~methods::is(.x))
-  cat_char <- c("demoConceptChar", "presenceChar", "visitDetailChar", "locationChar")
+  cat_char <- c("demoConceptChar", "presenceChar", "visitDetailChar", "locationChar", "yearChar")
   ids <- which(cln %in% cat_char)
 
   #add cts that are categorized

@@ -1180,7 +1180,7 @@ setMethod("get_labels", "yearChar", function(x){
     lbl_tbl <- year10yrGrp()@breaks |>
       dplyr::select(value) |>
       dplyr::mutate(
-        value_id = as.character(value),
+        value_id = value,
         value_name = glue::glue("Y{value}")
       ) |>
       dplyr::mutate(# add category name for breaks
