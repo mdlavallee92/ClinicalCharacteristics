@@ -1216,7 +1216,7 @@ race_categories <- function() {
     38003581, "Filipino",
     38003589, "Pakistani",
     38003614, "European",
-    38003615, "	Middle Eastern or North African",
+    38003615, "Middle Eastern or North African",
     38003585, "Korean",
     38003575, "Bangladeshi",
     38003574, "Asian Indian",
