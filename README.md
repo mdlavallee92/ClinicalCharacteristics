@@ -11,11 +11,12 @@ a table shell approach where characteristic extraction are limited to what is sp
 
 To install `ClinicalCharacteristics`, follow these steps:
 
-1) clone the repository from the BI Bitbucket RWECODE.
+1) clone the repository 
 2) Open the `ClinicalCharacteristics.RProj` file in the repository
 3) Navigate to the build tab in RStudio and select Install
 4) Exit out of the `ClinicalCharacteristics.RProj` session
 5) **Recommended** create a new `RProj` to test the package.
+6) Use CohortGenerator to build a cohort def in scratch
 
 ## Example
 
@@ -27,7 +28,7 @@ library(Capr)
 
 # make connection details
 connectionDetails <- DatabaseConnector::createConnectionDetails(
-  dbms = 'redshift',
+  dbms = '<dbms>',
   user = "<user>",
   password = "<password>",
   connectionString = "<jdbcString>"
@@ -36,9 +37,9 @@ connectionDetails <- DatabaseConnector::createConnectionDetails(
 connection <- DatabaseConnector::connect(connectionDetails)
 
 clinChar <- makeClinChar(
-  targetCohortIds = 2,
-  targetCohortNames = "Obesity",
-  dbms = "redshift",
+  targetCohortIds = 1,
+  targetCohortNames = "Target",
+  dbms = '<dbms>',
   cdmDatabaseSchema = executionSettings$cdmDatabaseSchema,
   workDatabaseSchema = executionSettings$workDatabaseSchema,
   cohortTable = executionSettings$cohortTable

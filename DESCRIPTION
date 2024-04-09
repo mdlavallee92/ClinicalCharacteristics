@@ -21,7 +21,7 @@ Imports:
     glue,
     readr,
     tibble,
-    arrow,
+    tidyr,
     here,
     lubridate,
     monaco,
