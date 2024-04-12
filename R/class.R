@@ -308,7 +308,7 @@ setClass("countChar",
          prototype = list(
            domain = NA_character_,
            orderId = NA_integer_,
-           conceptType = 32869L,
+           conceptType = NA_integer_,
            conceptSets = NULL,
            time = data.frame('time_id' = 1, 'time_a' = -365, 'time_b' = -1),
            tempTables = list(),
@@ -734,6 +734,14 @@ setMethod("as_sql", "countChar", function(x){
   domain_trans <- domain_translate(domain)
   time_a <- paste(x@time$time_a, collapse = ", ")
   time_b <- paste(x@time$time_b, collapse = ", ")
+  if (!is.na(x@conceptType)) {
+    conceptType <- paste(x@conceptType, collapse = ", ")
+    conceptTypeSql <- glue::glue(
+      "AND {domain_trans$concept_type_id} IN ({conceptType})"
+    )
+  } else{
+    conceptTypeSql <- ""
+  }
   conceptType <- paste(x@conceptType, collapse = ", ")
 
   if (!is.null(x@conceptSets)) {
@@ -761,7 +769,7 @@ setMethod("as_sql", "countChar", function(x){
           ON DATEADD(day, tw.time_a, a.cohort_start_date) <= d.{domain_trans$event_date}
           AND DATEADD(day, tw.time_b, a.cohort_start_date) >= d.{domain_trans$event_date}
     WHERE d.{domain_trans$concept_id} <> 0
-    AND {domain_trans$concept_type_id} IN ({conceptType})
+    {conceptTypeSql}
     )
     SELECT d.cohort_definition_id, d.subject_id, d.time_id, d.value_id, COUNT(d.{domain_trans$record_id}) AS value
     INTO {x@tempTables$count}
