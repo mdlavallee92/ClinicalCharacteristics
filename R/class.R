@@ -1157,13 +1157,30 @@ setMethod("get_labels", "ageChar", function(x){
 setMethod("get_labels", "yearChar", function(x){
 
   # get base ids
-  lbl_tbl <- tibble::tibble(
-    category_id = x@orderId,
-    category_name = x@domain,
-    value_id = -999,
-    value_name = x@domain,
-    time_name = "Static from Index"
-  )
+  # lbl_tbl <- tibble::tibble(
+  #   category_id = x@orderId,
+  #   category_name = x@domain,
+  #   value_id = -999,
+  #   value_name = x@domain,
+  #   time_name = "Static from Index"
+  # )
+
+  # get value names for  breaks
+  lbl_tbl <- year10yrGrp()@breaks |>
+    dplyr::select(value) |>
+    dplyr::mutate(
+      value_id = value,
+      value_name = glue::glue("Y{value}")
+    ) |>
+    dplyr::mutate(# add category name for breaks
+      category_id = x@orderId,
+      category_name = x@domain,
+      .before = 1
+    ) |>
+    dplyr::mutate(
+      time_name = "Static from Index"
+    ) |>
+    dplyr::select(-c(value))
 
   # check if categorized
   if (!is.null(x@categorize)) {
@@ -1186,26 +1203,13 @@ setMethod("get_labels", "yearChar", function(x){
       dplyr::mutate(
         value_name = as.character(value_name)
       )
+
+    lbl_tbl <- dplyr::bind_rows(lbl_tbl, lbl_tbl_cat)
   }
-  # get value names for  breaks
-  lbl_tbl <- year10yrGrp()@breaks |>
-    dplyr::select(value) |>
-    dplyr::mutate(
-      value_id = value,
-      value_name = glue::glue("Y{value}")
-    ) |>
-    dplyr::mutate(# add category name for breaks
-      category_id = x@orderId,
-      category_name = x@domain,
-      .before = 1
-    ) |>
-    dplyr::mutate(
-      time_name = "Static from Index"
-    ) |>
-    dplyr::select(-c(value))
 
 
-  lbl_tbl <- dplyr::bind_rows(lbl_tbl, lbl_tbl_cat)
+
+
 
   return(lbl_tbl)
 
