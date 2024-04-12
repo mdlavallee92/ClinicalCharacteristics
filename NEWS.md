@@ -1,5 +1,10 @@
 # ClinicalCharacteristics 0.2.1
 
+* bug fix yearChar to add labels going back to 1987
+* bug fix conceptType in CountChar
+
+# ClinicalCharacteristics 0.2.1
+
 * bug fix to aggregate yearChar
 * bug fix label table for year coerce to char
 
