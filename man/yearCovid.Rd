@@ -11,5 +11,5 @@ Creates a breaksStrategy object holding the labels for categorization
 }
 \description{
 Helper function for year characteristic to make year breaks categorizing persons
-by covid time where 2000-2019 is pre-covid, 2020-2022 is covid and 2023+ is post-covid
+by covid time where 1987-2019 is pre-covid, 2020-2022 is covid and 2023+ is post-covid
 }

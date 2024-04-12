@@ -9,7 +9,7 @@ addProcedureCount(
   timeWindows,
   conceptSets = NULL,
   categorize = NULL,
-  conceptType = c(32810, 32869)
+  conceptType = NULL
 )
 }
 \arguments{
@@ -23,6 +23,8 @@ on when to search for the presence of a value. use \code{makeTimeTable} function
 \item{categorize}{describes how the continuous value should be categorized.
 This function takes a breaksStrategy object to describe the categories ow it is left NULL.
 If the parameter is NULL then no categorization summary is done}
+
+\item{conceptType}{the procedure type concept ids to use to limit the count}
 }
 \value{
 adds a countChar object of procedure into the clinChar extractSettings slot
