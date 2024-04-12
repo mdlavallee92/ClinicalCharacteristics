@@ -582,6 +582,7 @@ addDevicePresence <- function(clinChar, conceptSets, timeWindows,
 #' @param categorize describes how the continuous value should be categorized.
 #' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
 #' If the parameter is NULL then no categorization summary is done
+#' @param conceptType the drug type concept ids to use to limit the count
 #' @return adds a countChar object of drug exposure into the clinChar extractSettings slot
 #' @export
 addDrugCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = c(32810, 32869)) {
@@ -599,7 +600,9 @@ addDrugCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize =
   drugChar <- new("countChar", domain = "drug_exposure", orderId = set_order_id(clinChar))
   drugChar@time <- timeWindows
   drugChar@conceptSets <- conceptSets
-  drugChar@conceptType <- as.integer(conceptType)
+  if (!is.null(conceptType)) {
+    drugChar@conceptType <- as.integer(conceptType)
+  }
   drugChar@tempTables <- list(
     'count' = tbl_count,
     'codeset' = c()
@@ -629,9 +632,10 @@ addDrugCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize =
 #' @param categorize describes how the continuous value should be categorized.
 #' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
 #' If the parameter is NULL then no categorization summary is done
+#' @param conceptType the visit type concept ids to use to limit the count
 #' @return adds a countChar object of visit into the clinChar extractSettings slot
 #' @export
-addVisitCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = c(32810, 32869)) {
+addVisitCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = NULL) {
 
   # check if clinChar is snowflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
@@ -645,7 +649,9 @@ addVisitCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize 
 
   visitChar <- new("countChar", domain = "visit_occurrence", orderId = set_order_id(clinChar))
   visitChar@conceptSets <- conceptSets
-  visitChar@conceptType <- as.integer(conceptType)
+  if (!is.null(conceptType)) {
+    visitChar@conceptType <- as.integer(conceptType)
+  }
   visitChar@time <- timeWindows
   visitChar@tempTables <- list(
     'count' = tbl_count,
@@ -676,9 +682,10 @@ addVisitCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize 
 #' @param categorize describes how the continuous value should be categorized.
 #' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
 #' If the parameter is NULL then no categorization summary is done
+#' @param conceptType the condition type concept ids to use to limit the count
 #' @return adds a countChar object of condition into the clinChar extractSettings slot
 #' @export
-addConditionCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = c(32810, 32869)) {
+addConditionCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = NULL) {
 
   # check if clinChar is snowflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
@@ -691,7 +698,9 @@ addConditionCount <- function(clinChar, timeWindows, conceptSets = NULL, categor
   condChar <- new("countChar", domain = "condition_occurrence", orderId = set_order_id(clinChar))
   condChar@time <- timeWindows
   condChar@conceptSets <- conceptSets
-  condChar@conceptType <- as.integer(conceptType)
+  if (!is.null(conceptType)) {
+    condChar@conceptType <- as.integer(conceptType)
+  }
   condChar@tempTables <- list(
     'count' = tbl_count,
     'codeset' = c()
@@ -721,9 +730,10 @@ addConditionCount <- function(clinChar, timeWindows, conceptSets = NULL, categor
 #' @param categorize describes how the continuous value should be categorized.
 #' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
 #' If the parameter is NULL then no categorization summary is done
+#' @param conceptType the procedure type concept ids to use to limit the count
 #' @return adds a countChar object of procedure into the clinChar extractSettings slot
 #' @export
-addProcedureCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = c(32810, 32869)) {
+addProcedureCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = NULL) {
 
   # check if clinChar is snowflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
@@ -735,7 +745,9 @@ addProcedureCount <- function(clinChar, timeWindows, conceptSets = NULL, categor
 
   procChar <- new("countChar", domain = "procedure_occurrence", orderId = set_order_id(clinChar))
   procChar@conceptSets <- conceptSets
-  procChar@conceptType <- as.integer(conceptType)
+  if (!is.null(conceptType)) {
+    procChar@conceptType <- as.integer(conceptType)
+  }
   procChar@time <- timeWindows
   procChar@tempTables <- list(
     'count' = tbl_count,
@@ -765,9 +777,10 @@ addProcedureCount <- function(clinChar, timeWindows, conceptSets = NULL, categor
 #' @param categorize describes how the continuous value should be categorized.
 #' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
 #' If the parameter is NULL then no categorization summary is done
+#' @param conceptType the measurement type concept ids to use to limit the count
 #' @return adds a countChar object of measurement  into the clinChar extractSettings slot
 #' @export
-addMeasurementCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = c(32810, 32869)) {
+addMeasurementCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = NULL) {
 
   # check if clinChar is snowflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
@@ -780,7 +793,9 @@ addMeasurementCount <- function(clinChar, timeWindows, conceptSets = NULL, categ
   measChar <- new("countChar", domain = "measurement", orderId = set_order_id(clinChar))
   measChar@time <- timeWindows
   measChar@conceptSets <- conceptSets
-  measChar@conceptType <- as.integer(conceptType)
+  if (!is.null(conceptType)) {
+    measChar@conceptType <- as.integer(conceptType)
+  }
   measChar@tempTables <- list(
     'count' = tbl_count,
     'codeset' = c()
@@ -810,9 +825,10 @@ addMeasurementCount <- function(clinChar, timeWindows, conceptSets = NULL, categ
 #' @param categorize describes how the continuous value should be categorized.
 #' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
 #' If the parameter is NULL then no categorization summary is done
+#' @param conceptType the observation type concept ids to use to limit the count
 #' @return adds a countChar object of observation into the clinChar extractSettings slot
 #' @export
-addObservationCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = c(32810, 32869)) {
+addObservationCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = NULL) {
 
   # check if clinChar is snowflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
@@ -824,7 +840,9 @@ addObservationCount <- function(clinChar, timeWindows, conceptSets = NULL, categ
 
   obsChar <- new("countChar", domain = "observation", orderId = set_order_id(clinChar))
   obsChar@conceptSets <- conceptSets
-  obsChar@conceptType <- as.integer(conceptType)
+  if (!is.null(conceptType)) {
+    obsChar@conceptType <- as.integer(conceptType)
+  }
   obsChar@time <- timeWindows
   obsChar@tempTables <- list(
     'count' = tbl_count,
