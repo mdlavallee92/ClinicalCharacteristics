@@ -162,12 +162,12 @@ age18 <- function() {
 #' @export
 year5yrGrp <- function() {
   this_year <- as.integer(lubridate::year(lubridate::today()))
-  x <- seq(2000, (this_year + 5), by = 5)
+  x <- seq(1987, (this_year + 5), by = 5)
   a <- dplyr::lead(x) - 1
   lab <- glue::glue("{x}-{a}")[-length(x)]
   ll <- tibble::tibble(
-    value = as.numeric(2000:(this_year + 1)),
-    grp = cut(as.numeric(2000:(this_year + 1)), breaks = x, labels = lab, right = FALSE)
+    value = as.numeric(1987:(this_year + 1)),
+    grp = cut(as.numeric(1987:(this_year + 1)), breaks = x, labels = lab, right = FALSE)
   ) |>
     dplyr::mutate(
       grp_id = as.numeric(grp)
@@ -185,12 +185,12 @@ year5yrGrp <- function() {
 #' @export
 year10yrGrp <- function() {
   this_year <- as.integer(lubridate::year(lubridate::today()))
-  x <- seq(2000, (this_year + 10), by = 10)
+  x <- seq(1987, (this_year + 10), by = 10)
   a <- dplyr::lead(x) - 1
   lab <- glue::glue("{x}-{a}")[-length(x)]
   ll <- tibble::tibble(
-    value = as.numeric(2000:(this_year + 1)),
-    grp = cut(as.numeric(2000:(this_year + 1)), breaks = x, labels = lab, right = FALSE)
+    value = as.numeric(1987:(this_year + 1)),
+    grp = cut(as.numeric(1987:(this_year + 1)), breaks = x, labels = lab, right = FALSE)
   ) |>
     dplyr::mutate(
       grp_id = as.numeric(grp)
@@ -202,17 +202,17 @@ year10yrGrp <- function() {
 #' Make year group by covid time
 #' @description
 #' Helper function for year characteristic to make year breaks categorizing persons
-#' by covid time where 2000-2019 is pre-covid, 2020-2022 is covid and 2023+ is post-covid
+#' by covid time where 1987-2019 is pre-covid, 2020-2022 is covid and 2023+ is post-covid
 #' @return Creates a breaksStrategy object holding the labels for categorization
 #' @export
 yearCovid <- function() {
   this_year <- as.integer(lubridate::year(lubridate::today()))
-  x <- c(2000,2020, 2023, (this_year + 1))
+  x <- c(1987,2020, 2023, (this_year + 1))
   a <- dplyr::lead(x) - 1
   lab <- c("pre-covid", "covid", "post-covid")
   ll <- tibble::tibble(
-    value = as.numeric(2000:(this_year + 1)),
-    grp = cut(as.numeric(2000:(this_year + 1)), breaks = x, labels = lab, right = FALSE)
+    value = as.numeric(1987:(this_year + 1)),
+    grp = cut(as.numeric(1987:(this_year + 1)), breaks = x, labels = lab, right = FALSE)
   ) |>
     dplyr::mutate(
       grp_id = as.numeric(grp)
