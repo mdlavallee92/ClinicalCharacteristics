@@ -734,7 +734,7 @@ setMethod("as_sql", "countChar", function(x){
   domain_trans <- domain_translate(domain)
   time_a <- paste(x@time$time_a, collapse = ", ")
   time_b <- paste(x@time$time_b, collapse = ", ")
-  if (!is.na(x@conceptType)) {
+  if (!all(is.na(x@conceptType))) {
     conceptType <- paste(x@conceptType, collapse = ", ")
     conceptTypeSql <- glue::glue(
       "AND {domain_trans$concept_type_id} IN ({conceptType})"
@@ -1168,7 +1168,7 @@ setMethod("get_labels", "yearChar", function(x){
   # check if categorized
   if (!is.null(x@categorize)) {
     # get value names for  breaks
-    lbl_tbl <- x@categorize@breaks |>
+    lbl_tbl_cat <- x@categorize@breaks |>
       dplyr::select(grp_id, grp) |>
       dplyr::distinct() |>
       dplyr::rename(
@@ -1182,30 +1182,30 @@ setMethod("get_labels", "yearChar", function(x){
       ) |>
       dplyr::mutate(
         time_name = "Static from Index"
+      ) |>
+      dplyr::mutate(
+        value_name = as.character(value_name)
       )
-  } else{
-    # get value names for  breaks
-    lbl_tbl <- year10yrGrp()@breaks |>
-      dplyr::select(value) |>
-      dplyr::mutate(
-        value_id = value,
-        value_name = glue::glue("Y{value}")
-      ) |>
-      dplyr::mutate(# add category name for breaks
-        category_id = x@orderId,
-        category_name = x@domain,
-        .before = 1
-      ) |>
-      dplyr::mutate(
-        time_name = "Static from Index"
-      ) |>
-      dplyr::select(-c(value))
   }
-
-  lbl_tbl <- lbl_tbl |>
+  # get value names for  breaks
+  lbl_tbl <- year10yrGrp()@breaks |>
+    dplyr::select(value) |>
     dplyr::mutate(
-      value_name = as.character(value_name)
-    )
+      value_id = value,
+      value_name = glue::glue("Y{value}")
+    ) |>
+    dplyr::mutate(# add category name for breaks
+      category_id = x@orderId,
+      category_name = x@domain,
+      .before = 1
+    ) |>
+    dplyr::mutate(
+      time_name = "Static from Index"
+    ) |>
+    dplyr::select(-c(value))
+
+
+  lbl_tbl <- dplyr::bind_rows(lbl_tbl, lbl_tbl_cat)
 
   return(lbl_tbl)
 
