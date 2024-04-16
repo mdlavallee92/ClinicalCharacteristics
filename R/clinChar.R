@@ -51,8 +51,8 @@ makeClinChar <- function(targetCohortIds,
   }
 
   if (dbms == "snowflake") {
-    #clinChar@targetCohort@tempTable <- glue::glue("{workDatabaseSchema}.target_tmp")
-    #clinChar@stowSettings@dataTable <- glue::glue("{workDatabaseSchema}.dat_tmp")
+    clinChar@targetCohort@tempTable <- glue::glue("{workDatabaseSchema}.target_tmp")
+    clinChar@executionSettings@dataTable <- glue::glue("{workDatabaseSchema}.dat_tmp")
     clinChar@executionSettings@timeWindowTable <- glue::glue("{workDatabaseSchema}.tw_tmp")
     clinChar@executionSettings@codesetTable <- glue::glue("{workDatabaseSchema}.codeset_tmp")
   }
