@@ -1412,10 +1412,7 @@ setMethod("get_labels", "costChar", function(x){
       value_name = purrr::map_chr(x@conceptSets, ~.x@Name)
     )
   } else {
-    lbl_tbl <- tibble::tibble(
-      value_id = -999,
-      value_name = glue::glue("cost_{x@domain}")
-    )
+    lbl_tbl <- cost_categories()
   }
 
   # get base ids
