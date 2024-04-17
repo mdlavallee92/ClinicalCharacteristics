@@ -341,7 +341,7 @@ set_labels <- function(clinChar) {
 #' @export
 runClinicalCharacteristics <- function(connection,
                                        clinChar,
-                                       dropDat = FALSE,
+                                       dropDat = TRUE,
                                        saveName = NULL,
                                        savePath = here::here()) {
 
