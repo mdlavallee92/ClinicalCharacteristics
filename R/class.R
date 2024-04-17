@@ -1615,3 +1615,33 @@ setMethod("get_labels", "locationChar", function(x){
 
   return(lbl_tbl)
 })
+
+
+## visitDetailChar ----------------
+setMethod("get_labels", "visitDetailChar", function(x){
+
+  time_tbl <- x@time |>
+    dplyr::mutate(
+      time_name = glue::glue("{time_a}d:{time_b}d")
+    ) |>
+    dplyr::select(
+      -c(time_a, time_b)
+    )
+
+  # get base ids
+  vdKey <- x@visitDetailTable@key |>
+    dplyr::rename(
+      value_id = concept_id,
+      value_name = concept_name
+    )
+
+  lbl_tbl <- vdKey  |>
+    tidyr::expand_grid(time_tbl) |>
+    dplyr::mutate(
+      category_id = x@orderId,
+      category_name = x@visitDetailTable@domain,
+      .before = 1
+    )
+
+  return(lbl_tbl)
+})
