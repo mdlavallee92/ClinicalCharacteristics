@@ -1,4 +1,11 @@
-# ClinicalCharacteristics 0.2.1
+# ClinicalCharacteristics 0.2.3
+
+* bug fix specialty visit
+* bug fix dat table interface (drop table and suffix for dat table name)
+* bug fix cost labels
+* bug fix score and categorize issues in snowflake
+
+# ClinicalCharacteristics 0.2.2
 
 * bug fix yearChar to add labels going back to 1987
 * bug fix conceptType in CountChar

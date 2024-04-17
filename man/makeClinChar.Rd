@@ -11,7 +11,8 @@ makeClinChar(
   cdmDatabaseSchema,
   vocabularyDatabaseSchema = cdmDatabaseSchema,
   workDatabaseSchema,
-  cohortTable
+  cohortTable,
+  datTableName = "dat"
 )
 }
 \arguments{

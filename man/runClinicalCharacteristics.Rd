@@ -7,7 +7,7 @@
 runClinicalCharacteristics(
   connection,
   clinChar,
-  dropDat = FALSE,
+  dropDat = TRUE,
   saveName = NULL,
   savePath = here::here()
 )
