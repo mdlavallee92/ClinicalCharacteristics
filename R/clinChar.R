@@ -37,7 +37,8 @@ makeClinChar <- function(targetCohortIds,
                          cdmDatabaseSchema,
                          vocabularyDatabaseSchema = cdmDatabaseSchema,
                          workDatabaseSchema,
-                         cohortTable) {
+                         cohortTable,
+                         datTableName = "dat") {
   # make new clin char object
   clinChar <- new("ClinChar")
   # add target ids
@@ -52,9 +53,11 @@ makeClinChar <- function(targetCohortIds,
 
   if (dbms == "snowflake") {
     clinChar@targetCohort@tempTable <- glue::glue("{workDatabaseSchema}.target_tmp")
-    clinChar@executionSettings@dataTable <- glue::glue("{workDatabaseSchema}.dat_tmp")
+    clinChar@executionSettings@dataTable <- glue::glue("{workDatabaseSchema}.{datTableName}_tmp")
     clinChar@executionSettings@timeWindowTable <- glue::glue("{workDatabaseSchema}.tw_tmp")
     clinChar@executionSettings@codesetTable <- glue::glue("{workDatabaseSchema}.codeset_tmp")
+  } else{
+    clinChar@executionSettings@dataTable <- glue::glue("#{datTableName}")
   }
 
   # add execution settings
@@ -327,6 +330,27 @@ set_labels <- function(clinChar) {
 }
 
 
+check_and_drop_dat <- function(connection, clinChar) {
+
+  datTable <- clinChar@executionSettings@dataTable
+  sql <- glue::glue("DROP TABLE IF EXISTS {datTable}")
+
+  cli::cat_bullet(
+    glue::glue("Drop {crayon::green(datTable)} from db if it already exists"),
+    bullet = "pointer",
+    bullet_col = "yellow"
+  )
+  DatabaseConnector::executeSql(
+    connection = connection,
+    sql,
+    progressBar = FALSE,
+    reportOverallTime = FALSE
+  )
+
+  invisible(datTable)
+
+}
+
 # UI ---------------------------
 
 #' Runs the characterization and extracts data into an arrow object
@@ -341,7 +365,7 @@ set_labels <- function(clinChar) {
 #' @export
 runClinicalCharacteristics <- function(connection,
                                        clinChar,
-                                       dropDat = FALSE,
+                                       dropDat = TRUE,
                                        saveName = NULL,
                                        savePath = here::here()) {
 
@@ -352,6 +376,8 @@ runClinicalCharacteristics <- function(connection,
   cli::cat_line()
   # build sql
   sql <- build_query(clinChar)
+
+  check_and_drop_dat(connection, clinChar)
 
   insert_time_table(connection = connection, clinChar = clinChar)
 
@@ -393,10 +419,10 @@ runClinicalCharacteristics <- function(connection,
       if(connection@dbms == "snowflake") {
         scratchSchema <- clinChar@executionSettings@workDatabaseSchema
         scoreTbl <- glue::glue("{scratchSchema}.{scoreObj@name}")
-        tempTabToggle <- TRUE
+        tempTabToggle <- FALSE
       } else{
         scoreTbl <- glue::glue("#{scoreObj@name}")
-        tempTabToggle <- FALSE
+        tempTabToggle <- TRUE
       }
       cli::cat_line(glue::glue("\t - Insert weights table to dbms as {crayon::green(scoreTbl)}"))
       ## insert temp weights table
@@ -447,10 +473,10 @@ runClinicalCharacteristics <- function(connection,
       if(connection@dbms == "snowflake") {
         scratchSchema <- clinChar@executionSettings@workDatabaseSchema
         breaksTbl <- glue::glue("{scratchSchema}.{breaksObj@name}")
-        tempTabToggle <- TRUE
+        tempTabToggle <- FALSE
       } else{
         breaksTbl <- glue::glue("#{breaksObj@name}")
-        tempTabToggle <- FALSE
+        tempTabToggle <- TRUE
       }
       cli::cat_line(glue::glue("\t - Insert breaksKey to dbms as {crayon::green(breaksTbl)}"))
       ## insert temp weights table

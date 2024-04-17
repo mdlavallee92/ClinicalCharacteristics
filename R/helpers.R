@@ -24,11 +24,13 @@ makeLocationTable <- function(connection, cdmDatabaseSchema, locationColumn = "l
     glue::glue("   {crayon::yellow('> Database Query')}: {txt}")
   )
 
+  loc_col_sym <- rlang::sym(locationColumn)
+
   loc_tbl <- DatabaseConnector::querySql(connection = connection, sql = sql) |>
     dplyr::rename_with(tolower) |>
     dplyr::rename(
       value_id = location_id,
-      value_name = location_source_value
+      value_name = !!locationColumn
     )
   loc_obj <- new("locationTable",
                  column = locationColumn,

@@ -559,7 +559,8 @@ setMethod("as_sql", "locationChar", function(x){
      1 AS value
      FROM {{targetTable}} t
      JOIN {{cdmDatabaseSchema}}.person d
-     ON t.subject_id = d.person_id;"
+     ON t.subject_id = d.person_id
+     WHERE d.location_ID IS NOT NULL;"
   )
 
   return(sql)
@@ -1412,10 +1413,7 @@ setMethod("get_labels", "costChar", function(x){
       value_name = purrr::map_chr(x@conceptSets, ~.x@Name)
     )
   } else {
-    lbl_tbl <- tibble::tibble(
-      value_id = -999,
-      value_name = glue::glue("cost_{x@domain}")
-    )
+    lbl_tbl <- cost_categories()
   }
 
   # get base ids
@@ -1612,6 +1610,36 @@ setMethod("get_labels", "locationChar", function(x){
     dplyr::mutate(
       category_id = x@orderId,
       category_name = glue::glue("Location"),
+      .before = 1
+    )
+
+  return(lbl_tbl)
+})
+
+
+## visitDetailChar ----------------
+setMethod("get_labels", "visitDetailChar", function(x){
+
+  time_tbl <- x@time |>
+    dplyr::mutate(
+      time_name = glue::glue("{time_a}d:{time_b}d")
+    ) |>
+    dplyr::select(
+      -c(time_a, time_b)
+    )
+
+  # get base ids
+  vdKey <- x@visitDetailTable@key |>
+    dplyr::rename(
+      value_id = concept_id,
+      value_name = concept_name
+    )
+
+  lbl_tbl <- vdKey  |>
+    tidyr::expand_grid(time_tbl) |>
+    dplyr::mutate(
+      category_id = x@orderId,
+      category_name = x@visitDetailTable@domain,
       .before = 1
     )
 
