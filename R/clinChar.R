@@ -393,10 +393,10 @@ runClinicalCharacteristics <- function(connection,
       if(connection@dbms == "snowflake") {
         scratchSchema <- clinChar@executionSettings@workDatabaseSchema
         scoreTbl <- glue::glue("{scratchSchema}.{scoreObj@name}")
-        tempTabToggle <- TRUE
+        tempTabToggle <- FALSE
       } else{
         scoreTbl <- glue::glue("#{scoreObj@name}")
-        tempTabToggle <- FALSE
+        tempTabToggle <- TRUE
       }
       cli::cat_line(glue::glue("\t - Insert weights table to dbms as {crayon::green(scoreTbl)}"))
       ## insert temp weights table
@@ -447,10 +447,10 @@ runClinicalCharacteristics <- function(connection,
       if(connection@dbms == "snowflake") {
         scratchSchema <- clinChar@executionSettings@workDatabaseSchema
         breaksTbl <- glue::glue("{scratchSchema}.{breaksObj@name}")
-        tempTabToggle <- TRUE
+        tempTabToggle <- FALSE
       } else{
         breaksTbl <- glue::glue("#{breaksObj@name}")
-        tempTabToggle <- FALSE
+        tempTabToggle <- TRUE
       }
       cli::cat_line(glue::glue("\t - Insert breaksKey to dbms as {crayon::green(breaksTbl)}"))
       ## insert temp weights table
