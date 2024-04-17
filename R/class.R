@@ -559,7 +559,8 @@ setMethod("as_sql", "locationChar", function(x){
      1 AS value
      FROM {{targetTable}} t
      JOIN {{cdmDatabaseSchema}}.person d
-     ON t.subject_id = d.person_id;"
+     ON t.subject_id = d.person_id
+     WHERE d.location_ID IS NOT NULL;"
   )
 
   return(sql)
