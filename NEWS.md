@@ -1,4 +1,4 @@
-# ClinicalCharacteristics 0.2.3
+# ClinicalCharacteristics 0.2.4
 
 * add databaseId column
 * add orderId as the order of the char and replace categoryId with a stagnant id
