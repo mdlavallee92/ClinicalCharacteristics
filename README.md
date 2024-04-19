@@ -34,12 +34,22 @@ connectionDetails <- DatabaseConnector::createConnectionDetails(
   connectionString = "<jdbcString>"
 )
 
+executionSettings <- list(
+  database = "my_omop_data",
+  cdmDatabaseSchema = "cdm",
+  workDatabaseSchema = "scratch",
+  cohortTable = "cohorts"
+)
+
+outputFolder <- here::here("my_output")
+
 connection <- DatabaseConnector::connect(connectionDetails)
 
 clinChar <- makeClinChar(
   targetCohortIds = 1,
   targetCohortNames = "Target",
-  dbms = '<dbms>',
+  dbms = connection@dbms,
+  database = executionSettings$database
   cdmDatabaseSchema = executionSettings$cdmDatabaseSchema,
   workDatabaseSchema = executionSettings$workDatabaseSchema,
   cohortTable = executionSettings$cohortTable
@@ -78,7 +88,13 @@ clinChar <- makeClinChar(
   )
 
 
-res <- runClinicalCharacteristics(connection = connection, clinChar = clinChar)
+res <- runClinicalCharacteristics(
+  connection = connection, 
+  clinChar = clinChar,
+  saveName = "my_table",
+  savePath = outputFolder,
+  dropDat = TRUE)
+
 previewClincalCharacteristics(res, type = "categorical")
 previewClincalCharacteristics(res, type = "continuous")
 
