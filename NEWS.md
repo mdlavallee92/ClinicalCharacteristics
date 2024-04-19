@@ -1,5 +1,10 @@
 # ClinicalCharacteristics 0.2.3
 
+* add databaseId column
+* add orderId as the order of the char and replace categoryId with a stagnant id
+
+# ClinicalCharacteristics 0.2.3
+
 * bug fix specialty visit
 * bug fix dat table interface (drop table and suffix for dat table name)
 * bug fix cost labels

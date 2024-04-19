@@ -8,6 +8,7 @@ makeClinChar(
   targetCohortIds,
   targetCohortNames = NULL,
   dbms,
+  database,
   cdmDatabaseSchema,
   vocabularyDatabaseSchema = cdmDatabaseSchema,
   workDatabaseSchema,
