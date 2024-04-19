@@ -33,7 +33,8 @@ addAgeChar <- function(clinChar, categorize = NULL) {
 #' @return adds a demoConceptChar object into the clinChar extractSettings slot
 #' @export
 addGenderChar <- function(clinChar) {
-  char <- new("demoConceptChar", domain = "gender", orderId = set_order_id(clinChar))
+  char <- new("demoConceptChar", domain = "gender", orderId = set_order_id(clinChar),
+              categoryId = 1002L)
   clinChar@extractSettings <- append(clinChar@extractSettings, char)
   return(clinChar)
 }
@@ -45,7 +46,8 @@ addGenderChar <- function(clinChar) {
 #' @return adds a demoConceptChar object into the clinChar extractSettings slot
 #' @export
 addRaceChar <- function(clinChar) {
-  char <- new("demoConceptChar", domain = "race", orderId = set_order_id(clinChar))
+  char <- new("demoConceptChar", domain = "race", orderId = set_order_id(clinChar),
+              categoryId = 1003L)
   clinChar@extractSettings <- append(clinChar@extractSettings, char)
   return(clinChar)
 }
@@ -57,7 +59,8 @@ addRaceChar <- function(clinChar) {
 #' @return adds a demoConceptChar object into the clinChar extractSettings slot
 #' @export
 addEthnicityChar <- function(clinChar) {
-  char <- new("demoConceptChar", domain = "ethnicity", orderId = set_order_id(clinChar))
+  char <- new("demoConceptChar", domain = "ethnicity", orderId = set_order_id(clinChar),
+              categoryId = 1004L)
   clinChar@extractSettings <- append(clinChar@extractSettings, char)
   return(clinChar)
 }
@@ -109,7 +112,8 @@ addSpecialtyChar <- function(clinChar, visitDetailTable, timeWindows) {
 
   specChar <- new("visitDetailChar", orderId = set_order_id(clinChar),
                   domain = "provider",
-              visitDetailTable = visitDetailTable)
+              visitDetailTable = visitDetailTable,
+              categoryId = 9001L)
 
   # check if clinChar is snowflake and use temp schema
   if (check_dbms(clinChar) == "snowflake") {
@@ -158,7 +162,8 @@ addLabChar <- function(clinChar, labUnitTable, timeWindows, limit = c("last", "f
     tbl_lab <- "#lab_domain"
   }
 
-  labChar <- new("labChar", orderId = set_order_id(clinChar))
+  labChar <- new("labChar", orderId = set_order_id(clinChar),
+                 categoryId = 5005L)
   labChar@labUnitTable <- labUnitTable
   labChar@time <- timeWindows
   labChar@limit <- limit
@@ -214,7 +219,8 @@ addVisitPresence <- function(clinChar, conceptSets, timeWindows,
     tbl_domain <- "#visit_domain"
   }
 
-  visitChar <- new("presenceChar", domain = "visit_occurrence", orderId = set_order_id(clinChar))
+  visitChar <- new("presenceChar", domain = "visit_occurrence", orderId = set_order_id(clinChar),
+                   categoryId = 8001L)
   visitChar@conceptSets <- conceptSets
   visitChar@time <- timeWindows
   visitChar@limit <- limit
@@ -272,7 +278,8 @@ addConditionPresence <- function(clinChar, conceptSets, timeWindows,
     tbl_domain <- "#condition_domain"
   }
 
-  conditionChar <- new("presenceChar", domain = "condition_occurrence", orderId = set_order_id(clinChar))
+  conditionChar <- new("presenceChar", domain = "condition_occurrence", orderId = set_order_id(clinChar),
+                       categoryId = 2001L)
   conditionChar@conceptSets <- conceptSets
   conditionChar@time <- timeWindows
   conditionChar@limit <- limit
@@ -327,7 +334,8 @@ addDrugPresence <- function(clinChar, conceptSets, timeWindows,
     tbl_domain <- "#drug_domain"
   }
 
-  drugChar <- new("presenceChar", domain = "drug_exposure", orderId = set_order_id(clinChar))
+  drugChar <- new("presenceChar", domain = "drug_exposure", orderId = set_order_id(clinChar),
+                  categoryId = 3001L)
   drugChar@conceptSets <- conceptSets
   drugChar@limit <- limit
   drugChar@time <- timeWindows
@@ -382,7 +390,8 @@ addObservationPresence <- function(clinChar, conceptSets, timeWindows,
     tbl_domain <- "#obs_domain"
   }
 
-  obsChar <- new("presenceChar", domain = "observation", orderId = set_order_id(clinChar))
+  obsChar <- new("presenceChar", domain = "observation", orderId = set_order_id(clinChar),
+                 categoryId = 6001L)
   obsChar@conceptSets <- conceptSets
   obsChar@limit <- limit
   obsChar@time <- timeWindows
@@ -438,7 +447,8 @@ addProcedurePresence <- function(clinChar, conceptSets, timeWindows,
     tbl_domain <- "#proc_domain"
   }
 
-  procChar <- new("presenceChar", domain = "procedure_occurrence", orderId = set_order_id(clinChar))
+  procChar <- new("presenceChar", domain = "procedure_occurrence", orderId = set_order_id(clinChar),
+                  categoryId = 4001L)
   procChar@conceptSets <- conceptSets
   procChar@limit <- limit
   procChar@time <- timeWindows
@@ -493,7 +503,8 @@ addMeasurementPresence <- function(clinChar, conceptSets, timeWindows,
     tbl_domain <- "#meas_domain"
   }
 
-  measChar <- new("presenceChar", domain = "measurement", orderId = set_order_id(clinChar))
+  measChar <- new("presenceChar", domain = "measurement", orderId = set_order_id(clinChar),
+                  categoryId = 5001L)
   measChar@conceptSets <- conceptSets
   measChar@limit <- limit
   measChar@time <- timeWindows
@@ -548,7 +559,8 @@ addDevicePresence <- function(clinChar, conceptSets, timeWindows,
     tbl_domain <- "#dev_domain"
   }
 
-  devChar <- new("presenceChar", domain = "device_exposure", orderId = set_order_id(clinChar))
+  devChar <- new("presenceChar", domain = "device_exposure", orderId = set_order_id(clinChar),
+                 categoryId = 7001L)
   devChar@conceptSets <- conceptSets
   devChar@limit <- limit
   devChar@time <- timeWindows
@@ -597,7 +609,8 @@ addDrugCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize =
     tbl_count <- "#drug_count"
   }
 
-  drugChar <- new("countChar", domain = "drug_exposure", orderId = set_order_id(clinChar))
+  drugChar <- new("countChar", domain = "drug_exposure", orderId = set_order_id(clinChar),
+                  categoryId = 3002L)
   drugChar@time <- timeWindows
   drugChar@conceptSets <- conceptSets
   if (!is.null(conceptType)) {
@@ -647,7 +660,8 @@ addVisitCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize 
     tbl_count <- "#visit_count"
   }
 
-  visitChar <- new("countChar", domain = "visit_occurrence", orderId = set_order_id(clinChar))
+  visitChar <- new("countChar", domain = "visit_occurrence", orderId = set_order_id(clinChar),
+                   categoryId = 8002L)
   visitChar@conceptSets <- conceptSets
   if (!is.null(conceptType)) {
     visitChar@conceptType <- as.integer(conceptType)
@@ -695,7 +709,8 @@ addConditionCount <- function(clinChar, timeWindows, conceptSets = NULL, categor
     tbl_count <- "#cond_count"
   }
 
-  condChar <- new("countChar", domain = "condition_occurrence", orderId = set_order_id(clinChar))
+  condChar <- new("countChar", domain = "condition_occurrence", orderId = set_order_id(clinChar),
+                  categoryId = 2002L)
   condChar@time <- timeWindows
   condChar@conceptSets <- conceptSets
   if (!is.null(conceptType)) {
@@ -743,7 +758,8 @@ addProcedureCount <- function(clinChar, timeWindows, conceptSets = NULL, categor
     tbl_count <- "#proc_count"
   }
 
-  procChar <- new("countChar", domain = "procedure_occurrence", orderId = set_order_id(clinChar))
+  procChar <- new("countChar", domain = "procedure_occurrence", orderId = set_order_id(clinChar),
+                  categoryId = 4002L)
   procChar@conceptSets <- conceptSets
   if (!is.null(conceptType)) {
     procChar@conceptType <- as.integer(conceptType)
@@ -790,7 +806,8 @@ addMeasurementCount <- function(clinChar, timeWindows, conceptSets = NULL, categ
     tbl_count <- "#meas_count"
   }
 
-  measChar <- new("countChar", domain = "measurement", orderId = set_order_id(clinChar))
+  measChar <- new("countChar", domain = "measurement", orderId = set_order_id(clinChar),
+                  categoryId = 5002L)
   measChar@time <- timeWindows
   measChar@conceptSets <- conceptSets
   if (!is.null(conceptType)) {
@@ -838,7 +855,8 @@ addObservationCount <- function(clinChar, timeWindows, conceptSets = NULL, categ
     tbl_count <- "#obs_count"
   }
 
-  obsChar <- new("countChar", domain = "observation", orderId = set_order_id(clinChar))
+  obsChar <- new("countChar", domain = "observation", orderId = set_order_id(clinChar),
+                 categoryId = 6002L)
   obsChar@conceptSets <- conceptSets
   if (!is.null(conceptType)) {
     obsChar@conceptType <- as.integer(conceptType)
@@ -888,7 +906,8 @@ addDrugCost <- function(clinChar, timeWindows, conceptSets = NULL,
     tbl_cost <- "#drug_cost"
   }
 
-  drugChar <- new("costChar", domain = "drug_exposure", orderId = set_order_id(clinChar))
+  drugChar <- new("costChar", domain = "drug_exposure", orderId = set_order_id(clinChar),
+                  categoryId = 3003L)
   drugChar@costType <- costType
   drugChar@conceptSets <- conceptSets
   drugChar@conceptType <- as.integer(conceptType)
@@ -934,7 +953,8 @@ addProcedureCost <- function(clinChar, timeWindows, conceptSets = NULL,
     tbl_cost <- "#drug_cost"
   }
 
-  procChar <- new("costChar", domain = "procedure_occurrence", orderId = set_order_id(clinChar))
+  procChar <- new("costChar", domain = "procedure_occurrence", orderId = set_order_id(clinChar),
+                  categoryId = 4003L)
   procChar@costType <- costType
   procChar@conceptSets <- conceptSets
   procChar@conceptType <- as.integer(conceptType)
@@ -983,7 +1003,8 @@ addVisitCost <- function(clinChar, timeWindows,
     tbl_cost <- "#visit_cost"
   }
 
-  visitChar <- new("costChar", domain = "visit_occurrence", orderId = set_order_id(clinChar))
+  visitChar <- new("costChar", domain = "visit_occurrence", orderId = set_order_id(clinChar),
+                   categoryId = 8003L)
   visitChar@costType <- costType
   visitChar@conceptSets <- conceptSets
   visitChar@conceptType <- as.integer(conceptType)
@@ -1018,7 +1039,8 @@ addVisitCost <- function(clinChar, timeWindows,
 #' @export
 addTimeInCohort <- function(clinChar, categorize = NULL) {
 
-  cohortChar <- new("timeInChar", domain = "cohort", orderId = set_order_id(clinChar))
+  cohortChar <- new("timeInChar", domain = "cohort", orderId = set_order_id(clinChar),
+                    categoryId = 1007L)
 
   if (!is.null(categorize)) {
     if (!methods::is(categorize, "breaksStrategy")) {
@@ -1043,7 +1065,8 @@ addTimeInCohort <- function(clinChar, categorize = NULL) {
 #' @export
 addTimeInInpatient <- function(clinChar, categorize = NULL) {
 
-  cohortChar <- new("timeInChar", domain = "inpatient", orderId = set_order_id(clinChar))
+  cohortChar <- new("timeInChar", domain = "inpatient", orderId = set_order_id(clinChar),
+                    categoryId = 8005L)
 
   if (!is.null(categorize)) {
     if (!methods::is(categorize, "breaksStrategy")) {
@@ -1092,7 +1115,8 @@ addTimeToDrug <- function(clinChar, conceptSets, timeWindows, limit = c("first",
     tbl_duration <- "#drug_duration"
   }
 
-  drugChar <- new("timeToChar", domain = "drug_exposure", orderId = set_order_id(clinChar))
+  drugChar <- new("timeToChar", domain = "drug_exposure", orderId = set_order_id(clinChar),
+                  categoryId = 3004L)
   drugChar@conceptSets <- conceptSets
   drugChar@time <- timeWindows
   drugChar@limit <- limit
@@ -1148,7 +1172,8 @@ addTimeToCondition <- function(clinChar, conceptSets, timeWindows, limit = c("fi
     tbl_duration <- "#cond_duration"
   }
 
-  condChar <- new("timeToChar", domain = "condition_occurrence", orderId = set_order_id(clinChar))
+  condChar <- new("timeToChar", domain = "condition_occurrence", orderId = set_order_id(clinChar),
+                  categoryId = 2004L)
   condChar@conceptSets <- conceptSets
   condChar@time <- timeWindows
   condChar@limit <- limit
@@ -1201,7 +1226,8 @@ addTimeToProcedure <- function(clinChar, conceptSets, timeWindows, limit = c("fi
     tbl_duration <- "#proc_duration"
   }
 
-  procChar <- new("timeToChar", domain = "procedure_occurrence", orderId = set_order_id(clinChar))
+  procChar <- new("timeToChar", domain = "procedure_occurrence", orderId = set_order_id(clinChar),
+                  categoryId = 4004L)
   procChar@conceptSets <- conceptSets
   procChar@time <- timeWindows
   procChar@limit <- limit
@@ -1255,7 +1281,8 @@ addTimeToMeasurement <- function(clinChar, conceptSets, timeWindows, limit = c("
     tbl_duration <- "#meas_duration"
   }
 
-  measChar <- new("timeToChar", domain = "measurement", orderId = set_order_id(clinChar))
+  measChar <- new("timeToChar", domain = "measurement", orderId = set_order_id(clinChar),
+                  categoryId = 5004L)
   measChar@conceptSets <- conceptSets
   measChar@time <- timeWindows
   measChar@limit <- limit
@@ -1309,7 +1336,8 @@ addTimeToObservation <- function(clinChar, conceptSets, timeWindows, limit = c("
     tbl_duration <- "#obs_duration"
   }
 
-  obsChar <- new("timeToChar", domain = "observation", orderId = set_order_id(clinChar))
+  obsChar <- new("timeToChar", domain = "observation", orderId = set_order_id(clinChar),
+                 categoryId = 6004L)
   obsChar@conceptSets <- conceptSets
   obsChar@time <- timeWindows
   obsChar@limit <- limit
@@ -1364,7 +1392,8 @@ addTimeToVisit <- function(clinChar, conceptSets, timeWindows, limit = c("first"
     tbl_duration <- "#visit_duration"
   }
 
-  visitChar <- new("timeToChar", domain = "visit_occurrence", orderId = set_order_id(clinChar))
+  visitChar <- new("timeToChar", domain = "visit_occurrence", orderId = set_order_id(clinChar),
+                   categoryId = 8004L)
   visitChar@conceptSets <- conceptSets
   visitChar@time <- timeWindows
   visitChar@limit <- limit

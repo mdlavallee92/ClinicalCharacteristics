@@ -166,3 +166,43 @@ count_label <- function(domain) {
                'visit_occurrence' = "visit count")
   return(lb)
 }
+
+
+#
+# domain_lbl <- function() {
+#   tibble::tribble(
+#     ~domain_id, ~domain_name,
+#     1001, "age",
+#     1002, "gender",
+#     1003, "race",
+#     1004, "ethnicity",
+#     1005, "year",
+#     1006, "location",
+#     1007, "time_in_cohort",
+#     2001, "condition_presence",
+#     2002, "condition_count",
+#     2004, "condition_timeTo",
+#     3001, "drug_presence",
+#     3002, "drug_count",
+#     3003, "drug_cost",
+#     3004, "drug_timeTo",
+#     4001, "procedure_presence",
+#     4002, "procedure_count",
+#     4003, "procedure_cost",
+#     4004, "procedure_timeTo",
+#     5001, "measurement_presence",
+#     5002, "measurement_count",
+#     5004, "measurement_timeTo",
+#     5005, "labs",
+#     6001, "observation_presence",
+#     6002, "observation_count",
+#     6004, "observation_timeTo",
+#     7001, "device_presence",
+#     8001, "visit_presence",
+#     8002, "visit_count",
+#     8003, "visit_cost",
+#     8004, "visit_timeTo",
+#     8005, "time_in_inpatient",
+#     9001, "provider_specialty"
+#   )
+# }

@@ -34,6 +34,7 @@ setMethod("check_dbms", "ClinChar", function(x){
 makeClinChar <- function(targetCohortIds,
                          targetCohortNames = NULL,
                          dbms,
+                         database,
                          cdmDatabaseSchema,
                          vocabularyDatabaseSchema = cdmDatabaseSchema,
                          workDatabaseSchema,
@@ -62,6 +63,7 @@ makeClinChar <- function(targetCohortIds,
 
   # add execution settings
   clinChar@executionSettings@dbms <- dbms
+  clinChar@executionSettings@database <- database
   clinChar@executionSettings@cdmDatabaseSchema <- cdmDatabaseSchema
   clinChar@executionSettings@vocabularyDatabaseSchema <- vocabularyDatabaseSchema
   clinChar@executionSettings@workDatabaseSchema <- workDatabaseSchema
@@ -133,13 +135,18 @@ clinCharJobDetails <- function(clinChar) {
   charType <- purrr::map_chr(clinChar@extractSettings, ~class(.x))
   domains <- purrr::map_chr(clinChar@extractSettings, ~.x@domain)
   orderIds <- as.character(purrr::map_int(clinChar@extractSettings, ~.x@orderId))
-
+  database <- clinChar@executionSettings@database
   cli::cat_bullet(
     crayon::yellow("Job Details"),
     bullet = "pointer",
     bullet_col = "yellow"
   )
-
+  cli::cat_line(
+    glue::glue("  ClinChar run on {crayon::green(database)}")
+  )
+  cli::cat_line(
+    glue::glue("  ClinChar tasks to do:")
+  )
   cli::cat_line(
     glue::glue("\t({crayon::yellow(orderIds)}) {charType}/{domains}")
   )
@@ -323,7 +330,7 @@ set_labels <- function(clinChar) {
     ) |>
     tidyr::expand_grid(cohort_key(clinChar)) |>
     dplyr::select(
-      cohort_id, cohort_name, category_id, category_name,
+      cohort_id, cohort_name, order_id, category_id, category_name,
       time_id, time_name, value_id, value_name
     )
   return(char_lbl)
@@ -520,10 +527,22 @@ runClinicalCharacteristics <- function(connection,
         mean = occ_cnt / n # do outside ow it rounds
       ) |>
       dplyr::left_join(
-        set_labels(clinChar), by = c("cohort_id", "category_id", "time_id", "value_id")
+        set_labels(clinChar),
+        by = c("cohort_id" = "cohort_id",
+               "category_id" = "order_id",
+               "time_id" = "time_id",
+               "value_id" = "value_id")
+      ) |>
+      dplyr::rename(
+        order_id = category_id,
+        category_id = category_id.y
+      ) |>
+      dplyr::mutate(
+        database_id = clinChar@executionSettings@database
       ) |>
       dplyr::select(
-        cohort_id, cohort_name, category_id, category_name,
+        database_id,
+        cohort_id, cohort_name, order_id, category_id, category_name,
         time_id, time_name, value_id, value_name,
         n, mean, sd, min, p25, median, p75, max
       )
@@ -548,10 +567,22 @@ runClinicalCharacteristics <- function(connection,
       cat_ids = cat_ids
     ) |>
       dplyr::left_join(
-        set_labels(clinChar), by = c("cohort_id", "category_id", "time_id", "value_id")
+        set_labels(clinChar),
+        by = c("cohort_id" = "cohort_id",
+               "category_id" = "order_id",
+               "time_id" = "time_id",
+               "value_id" = "value_id")
+      ) |>
+      dplyr::rename(
+        order_id = category_id,
+        category_id = category_id.y
+      ) |>
+      dplyr::mutate(
+        database_id = clinChar@executionSettings@database
       ) |>
       dplyr::select(
-        cohort_id, cohort_name, category_id, category_name,
+        database_id,
+        cohort_id, cohort_name, order_id, category_id, category_name,
         time_id, time_name, value_id, value_name,
         n, pct
       )
@@ -636,7 +667,7 @@ previewClincalCharacteristics <- function(tb, type = c("categorical", "continuou
         category_name = snakecase::to_title_case(category_name)
       ) |>
       dplyr::arrange(
-        cohort_id, category_id, time_id, value_id
+        cohort_id, order_id, category_id, time_id, value_id
       )
 
     res_tb <- reactable::reactable(
@@ -644,6 +675,7 @@ previewClincalCharacteristics <- function(tb, type = c("categorical", "continuou
       columns = list(
         'cohort_id' = reactable::colDef(name = "Cohort Id"),
         'cohort_name' = reactable::colDef(name = "Cohort Name"),
+        'order_id' = reactable::colDef(name = "Order Id"),
         'category_id' = reactable::colDef(name = "Category Id"),
         'category_name' = reactable::colDef(name = "Category Name"),
         'time_id' = reactable::colDef(name = "Time Id"),
@@ -674,7 +706,7 @@ previewClincalCharacteristics <- function(tb, type = c("categorical", "continuou
         category_name = snakecase::to_title_case(category_name)
       ) |>
       dplyr::arrange(
-        cohort_id, category_id, time_id, value_id
+        cohort_id, order_id, category_id, time_id, value_id
       )
 
     res_tb <- reactable::reactable(
@@ -682,6 +714,7 @@ previewClincalCharacteristics <- function(tb, type = c("categorical", "continuou
       columns = list(
         'cohort_id' = reactable::colDef(name = "Cohort Id"),
         'cohort_name' = reactable::colDef(name = "Cohort Name"),
+        'order_id' = reactable::colDef(name = "Order Id"),
         'category_id' = reactable::colDef(name = "Category Id"),
         'category_name' = reactable::colDef(name = "Category Name"),
         'time_id' = reactable::colDef(name = "Time Id"),
