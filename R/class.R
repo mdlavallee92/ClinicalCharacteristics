@@ -53,6 +53,7 @@ setClass("targetCohort",
 setClass("executionSettings",
          slots = c(
            dbms = "character",
+           database = "character",
            cdmDatabaseSchema = "character",
            vocabularyDatabaseSchema = "character",
            workDatabaseSchema = "character",
@@ -63,6 +64,7 @@ setClass("executionSettings",
          ),
          prototype = list(
            dbms = NA_character_,
+           database = "character",
            cdmDatabaseSchema = NA_character_,
            vocabularyDatabaseSchema = NA_character_,
            workDatabaseSchema = NA_character_,
@@ -95,11 +97,13 @@ setClass("ageChar",
          slots = c(
            domain = "character",
            orderId = "integer",
+           categoryId = "integer",
            categorize = "ANY"
          ),
          prototype = list(
            domain = "age",
            orderId = NA_integer_,
+           categoryId = 1001L,
            categorize = NULL
          )
 )
@@ -109,11 +113,13 @@ setClass("yearChar",
          slots = c(
            domain = "character",
            orderId = "integer",
+           categoryId = "integer",
            categorize = "ANY"
          ),
          prototype = list(
            domain = "year",
            orderId = NA_integer_,
+           categoryId = 1005L,
            categorize = NULL
          )
 )
@@ -139,11 +145,13 @@ setClass("locationChar",
          slots = c(
            domain = "character",
            orderId = "integer",
+           categoryId = "integer",
            locationTable = "locationTable"
          ),
          prototype = list(
            domain = "location",
            orderId = NA_integer_,
+           categoryId = 1006L,
            locationTable = new("locationTable")
          )
 )
@@ -187,11 +195,13 @@ setClass("visitDetailChar",
 setClass("demoConceptChar",
          slots = c(
            domain = "character",
-           orderId = "integer"
+           orderId = "integer",
+           categoryId = "integer"
          ),
          prototype = list(
            domain = NA_character_,
-           orderId = NA_integer_
+           orderId = NA_integer_,
+           categoryId = NA_integer_
          )
 )
 
@@ -216,6 +226,7 @@ setClass("labChar",
          slots = c(
            domain = "character",
            orderId = "integer",
+           categoryId = "integer",
            labUnitTable = "labUnitTable",
            limit = "character",
            time = "data.frame",
@@ -225,6 +236,7 @@ setClass("labChar",
          prototype = list(
            domain = "labs",
            orderId = NA_integer_,
+           categoryId = NA_integer_,
            labUnitTable = new("labUnitTable"),
            limit = "first",
            time = data.frame('time_id' = 1, 'time_a' = -365, 'time_b' = -1),
@@ -239,6 +251,7 @@ setClass("presenceChar",
          slots = c(
            domain = "character",
            orderId = "integer",
+           categoryId = "integer",
            conceptSets = "list",
            limit = "character",
            time = "data.frame",
@@ -248,6 +261,7 @@ setClass("presenceChar",
          prototype = list(
            domain = NA_character_,
            orderId = NA_integer_,
+           categoryId = NA_integer_,
            conceptSets = list(),
            limit = "last",
            time = data.frame('time_id' = 1, 'time_a' = -365, 'time_b' = -1),
@@ -262,11 +276,13 @@ setClass("timeInChar",
          slots = c(
            domain = "character",
            orderId = "integer",
+           categoryId = "integer",
            categorize = "ANY"
          ),
          prototype = list(
            domain = NA_character_,
            orderId = NA_integer_,
+           categoryId = NA_integer_,
            categorize = NULL
          )
 )
@@ -277,6 +293,7 @@ setClass("timeToChar",
          slots = c(
            domain = "character",
            orderId = "integer",
+           categoryId = "integer",
            conceptSets = "list",
            limit = "character",
            time = "data.frame",
@@ -286,6 +303,7 @@ setClass("timeToChar",
          prototype = list(
            domain = NA_character_,
            orderId = NA_integer_,
+           categoryId = NA_integer_,
            conceptSets = list(),
            limit = "first",
            time = data.frame('time_id' = 1, 'time_a' = -365, 'time_b' = -1),
@@ -299,6 +317,7 @@ setClass("countChar",
          slots = c(
            domain = "character",
            orderId = "integer",
+           categoryId = "integer",
            conceptSets = "ANY",
            conceptType = "integer",
            time = "data.frame",
@@ -308,6 +327,7 @@ setClass("countChar",
          prototype = list(
            domain = NA_character_,
            orderId = NA_integer_,
+           categoryId = NA_integer_,
            conceptType = NA_integer_,
            conceptSets = NULL,
            time = data.frame('time_id' = 1, 'time_a' = -365, 'time_b' = -1),
@@ -321,6 +341,7 @@ setClass("costChar",
          slots = c(
            domain = "character",
            orderId = "integer",
+           categoryId = "integer",
            conceptSets = "ANY",
            conceptType = "integer",
            costType = "character",
@@ -331,6 +352,7 @@ setClass("costChar",
          prototype = list(
            domain = NA_character_,
            orderId = NA_integer_,
+           categoryId = NA_integer_,
            costType = "amount_allowed",
            conceptType = 32869L,
            time = data.frame('time_id' = 1, 'time_a' = -365, 'time_b' = -1),
@@ -1118,7 +1140,8 @@ setMethod("get_labels", "ageChar", function(x){
 
   # get base ids
   lbl_tbl <- tibble::tibble(
-    category_id = x@orderId,
+    order_id = x@orderId,
+    category_id = x@categoryId,
     category_name = x@domain,
     value_id = -999,
     value_name = x@domain,
@@ -1136,7 +1159,8 @@ setMethod("get_labels", "ageChar", function(x){
         value_name = grp
       ) |>
       dplyr::mutate(# add category name for breaks
-        category_id = (x@orderId * 1000) + 1,
+        order_id = (x@orderId * 1000) + 1,
+        category_id = x@categoryId,
         category_name = x@categorize@name,
         .before = 1
       ) |>
@@ -1174,7 +1198,8 @@ setMethod("get_labels", "yearChar", function(x){
       value_name = glue::glue("Y{value}")
     ) |>
     dplyr::mutate(# add category name for breaks
-      category_id = x@orderId,
+      order_id = x@orderId,
+      category_id = x@categoryId,
       category_name = x@domain,
       .before = 1
     ) |>
@@ -1194,7 +1219,8 @@ setMethod("get_labels", "yearChar", function(x){
         value_name = grp
       ) |>
       dplyr::mutate(# add category name for breaks
-        category_id = (x@orderId * 1000) + 1,
+        order_id = (x@orderId * 1000) + 1,
+        category_id = x@categoryId,
         category_name = x@categorize@name,
         .before = 1
       ) |>
@@ -1282,7 +1308,8 @@ setMethod("get_labels", "demoConceptChar", function(x){
   # get base ids
   lbl_tbl <- lbl_tbl |>
     dplyr::mutate(
-    category_id = x@orderId,
+    order_id = x@orderId,
+    category_id = x@categoryId,
     category_name = x@domain,
     .before = 1
     ) |>
@@ -1311,7 +1338,8 @@ setMethod("get_labels", "presenceChar", function(x){
   ) |>
     tidyr::expand_grid(time_tbl) |>
     dplyr::mutate(
-      category_id = x@orderId,
+      order_id = x@orderId,
+      category_id = x@categoryId,
       category_name = glue::glue("presence_{x@domain}"),
       .before = 1
     )
@@ -1320,7 +1348,8 @@ setMethod("get_labels", "presenceChar", function(x){
   if (!is.null(x@score)) {
     # get value names for  breaks
     lbl_tbl_scr <- tibble::tibble(
-      category_id = (x@orderId * 1000) + 1,
+      order_id = (x@orderId * 1000) + 1,
+      category_id = x@categoryId,
       category_name = glue::glue("presence_{x@domain}"),
       value_id = -999,
       value_name = x@score@name
@@ -1363,7 +1392,8 @@ setMethod("get_labels", "countChar", function(x){
   lbl_tbl <- lbl_tbl |>
     tidyr::expand_grid(time_tbl) |>
     dplyr::mutate(
-      category_id = x@orderId,
+      order_id = x@orderId,
+      category_id = x@categoryId,
       category_name = glue::glue("count_{x@domain}"),
       .before = 1
     )
@@ -1379,7 +1409,8 @@ setMethod("get_labels", "countChar", function(x){
         value_name = grp
       ) |>
       dplyr::mutate(# add category name for breaks
-        category_id = (x@orderId * 1000) + 1,
+        order_id = (x@orderId * 1000) + 1,
+        category_id = x@categoryId,
         category_name = glue::glue("count_{x@categorize@name}"),
         .before = 1
       ) |>
@@ -1420,7 +1451,8 @@ setMethod("get_labels", "costChar", function(x){
   lbl_tbl <- lbl_tbl |>
     tidyr::expand_grid(time_tbl) |>
     dplyr::mutate(
-      category_id = x@orderId,
+      order_id = x@orderId,
+      category_id = x@categoryId,
       category_name = glue::glue("cost_{x@domain}"),
       .before = 1
     )
@@ -1436,7 +1468,8 @@ setMethod("get_labels", "costChar", function(x){
         value_name = grp
       ) |>
       dplyr::mutate(# add category name for breaks
-        category_id = (x@orderId * 1000) + 1,
+        order_id = (x@orderId * 1000) + 1,
+        category_id = x@categoryId,
         category_name = glue::glue("cost_{x@categorize@name}"),
         .before = 1
       ) |>
@@ -1470,7 +1503,8 @@ setMethod("get_labels", "timeInChar", function(x){
   lbl_tbl <- lbl_tbl |>
     tidyr::expand_grid(time_tbl) |>
     dplyr::mutate(
-      category_id = x@orderId,
+      order_id = x@orderId,
+      category_id = x@categoryId,
       category_name = glue::glue("timeIn_{x@domain}"),
       .before = 1
     )
@@ -1486,7 +1520,8 @@ setMethod("get_labels", "timeInChar", function(x){
         value_name = grp
       ) |>
       dplyr::mutate(# add category name for breaks
-        category_id = (x@orderId * 1000) + 1,
+        order_id = (x@orderId * 1000) + 1,
+        category_id = x@categoryId,
         category_name = glue::glue("timeIn_{x@categorize@name}"),
         .before = 1
       ) |>
@@ -1529,7 +1564,8 @@ setMethod("get_labels", "timeToChar", function(x){
   lbl_tbl <- lbl_tbl |>
     tidyr::expand_grid(time_tbl) |>
     dplyr::mutate(
-      category_id = x@orderId,
+      order_id = x@orderId,
+      category_id = x@categoryId,
       category_name = glue::glue("timeTo_{x@domain}"),
       .before = 1
     )
@@ -1545,7 +1581,8 @@ setMethod("get_labels", "timeToChar", function(x){
         value_name = grp
       ) |>
       dplyr::mutate(# add category name for breaks
-        category_id = (x@orderId * 1000) + 1,
+        order_id = (x@orderId * 1000) + 1,
+        category_id = x@categoryId,
         category_name = glue::glue("timeTo_{x@categorize@name}"),
         .before = 1
       ) |>
@@ -1589,8 +1626,9 @@ setMethod("get_labels", "labChar", function(x){
   lbl_tbl <- labKey |>
     tidyr::expand_grid(time_tbl) |>
     dplyr::mutate(
-      category_id = x@orderId,
-      category_name = glue::glue("Lab Measurements"),
+      order_id = x@orderId,
+      category_id = x@categoryId,
+      category_name = glue::glue("labs"),
       .before = 1
     )
 
@@ -1608,7 +1646,8 @@ setMethod("get_labels", "locationChar", function(x){
       time_name = "Static from Index"
     ) |>
     dplyr::mutate(
-      category_id = x@orderId,
+      order_id = x@orderId,
+      category_id = x@categoryId,
       category_name = glue::glue("Location"),
       .before = 1
     )
@@ -1638,7 +1677,8 @@ setMethod("get_labels", "visitDetailChar", function(x){
   lbl_tbl <- vdKey  |>
     tidyr::expand_grid(time_tbl) |>
     dplyr::mutate(
-      category_id = x@orderId,
+      order_id = x@orderId,
+      category_id = x@categoryId,
       category_name = x@visitDetailTable@domain,
       .before = 1
     )
