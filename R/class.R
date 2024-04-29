@@ -178,6 +178,7 @@ setClass("visitDetailChar",
          slots = c(
            domain = "character",
            orderId = "integer",
+           categoryId = "integer",
            visitDetailTable = "visitDetailTable",
            time = "data.frame",
            tempTables = "list"
@@ -185,6 +186,7 @@ setClass("visitDetailChar",
          prototype = list(
            domain = NA_character_,
            orderId = NA_integer_,
+           categoryId = NA_integer_,
            visitDetailTable = new("visitDetailTable"),
            time = data.frame('time_id' = 1, 'time_a' = -365, 'time_b' = -1),
            tempTables = list()
@@ -1684,4 +1686,173 @@ setMethod("get_labels", "visitDetailChar", function(x){
     )
 
   return(lbl_tbl)
+})
+
+
+# report it ------------------
+
+setGeneric("report_it", function(x)  standardGeneric("report_it"))
+
+
+## Age Char ----------
+age_report_labels <- function(lbl) {
+  lbl <- switch(lbl,
+                'age5yrGrp' = "Age Group (5 year)",
+                'age10yrGrp' = "Age Group (10 year)")
+  return(lbl)
+}
+
+setMethod("report_it", "ageChar", function(x){
+  txt1 <- glue::glue("- Age Continuous")
+  if (!is.null(x@categorize)) {
+    txt_lbl <- age_report_labels(x@categorize@name)
+    txt_cat <- glue::glue("- {txt_lbl}")
+    txt1 <- c(txt1, txt_cat)
+  }
+  return(txt1)
+})
+
+
+## DemoChar --------
+
+setMethod("report_it", "demoConceptChar", function(x){
+  dm <- snakecase::to_title_case(x@domain)
+  txt1 <- glue::glue("- {dm}")
+  return(txt1)
+})
+
+
+## yearChar --------
+
+
+year_report_labels <- function(lbl) {
+  lbl <- switch(lbl,
+                'year5yrGrp' = "Year Group (5 year)",
+                'year10yrGrp' = "Year Group (10 year)")
+  return(lbl)
+}
+
+setMethod("report_it", "yearChar", function(x){
+  txt1 <- glue::glue("- Year")
+  if (!is.null(x@categorize)) {
+    txt_lbl <- year_report_labels(x@categorize@name)
+    txt_cat <- glue::glue("- {txt_lbl}")
+    txt1 <- c(txt1, txt_cat)
+  }
+  return(txt1)
+})
+
+
+## presenceChar ----------------
+
+setMethod("report_it", "presenceChar", function(x){
+
+  dm_head <- snakecase::to_title_case(x@domain) # header domain
+  dm_sent <- tolower(snakecase::to_sentence_case(x@domain)) # sentence domain
+  lm_txt <- x@limit # limit
+  tw_txt <- report_time(x) # time windows
+  cs_txt <- report_concepts(x) # cs table
+
+  # create section header
+  txt1 <- glue::glue_collapse(
+    c(
+    glue::glue(
+    "### {dm_head}
+
+    We characterize the {lm_txt} {dm_sent} during the following time windows relative to the index date:"
+
+    ),
+    "\n**Time Windows**\n",
+    tw_txt,
+    "\n",
+    glue::glue("We use the following concept sets to characterize the presence of {dm_sent}:"),
+    "\n**Concept Sets**\n",
+    cs_txt),
+    sep = "\n"
+  )
+
+  return(txt1)
+})
+
+
+
+## countChar ----------------
+
+setMethod("report_it", "countChar", function(x){
+
+  dm_head <- snakecase::to_title_case(x@domain) # header domain
+  dm_sent <- tolower(snakecase::to_sentence_case(x@domain)) # sentence domain
+  tw_txt <- report_time(x) # time windows
+  if (!is.null(x@conceptSets)) {
+    cs_txt <- report_concepts(x) # cs table
+    cs_txt2 <- glue::glue_collapse(
+      c(glue::glue("We use the following concept sets to characterize the number of occurrences for {dm_sent}:"),
+        "\n",
+        cs_txt
+      ),
+      sep = "\n"
+    )
+  } else{
+    cs_txt2 <- glue::glue("We use all concepts to characterize the number of occurrences for {dm_sent}.\n")
+  }
+
+
+  # create section header
+  txt1 <- glue::glue_collapse(
+    c(
+      glue::glue(
+        "### {dm_head}
+
+    We characterize the number of {dm_sent} during the following time windows relative to the index date:"
+
+      ),
+      "\n**Time Windows**\n",
+      tw_txt,
+      "\n**Concept Sets**\n",
+      cs_txt2),
+    sep = "\n"
+  )
+
+  return(txt1)
+})
+
+
+## countChar ----------------
+
+setMethod("report_it", "costChar", function(x){
+
+  dm_head <- snakecase::to_title_case(x@domain) # header domain
+  dm_sent <- tolower(snakecase::to_sentence_case(x@domain)) # sentence domain
+  tw_txt <- report_time(x) # time windows
+  if (!is.null(x@conceptSets)) {
+    cs_txt <- report_concepts(x) # cs table
+    cs_txt2 <- glue::glue_collapse(
+      c(glue::glue("We use the following concept sets to characterize the cost attributed to {dm_sent}:"),
+        "\n",
+        cs_txt
+      ),
+      sep = "\n"
+    )
+  } else{
+    cs_txt2 <- glue::glue("We use all concepts to characterize the cost attributed to {dm_sent}.\n")
+  }
+
+
+  # create section header
+  txt1 <- glue::glue_collapse(
+    c(
+      glue::glue(
+        "### {dm_head}
+
+    We characterize the cost of {dm_sent} during the following time windows relative to the index date:"
+
+      ),
+      "\n**Time Windows**\n",
+      tw_txt,
+      "\n**Concept Sets**\n",
+      cs_txt2),
+    sep = "\n"
+  )
+
+  return(txt1)
 })
