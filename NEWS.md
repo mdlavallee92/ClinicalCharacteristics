@@ -1,3 +1,19 @@
+# ClinicalCharacteristics 0.2.5
+
+* conceptType improvements #15
+    - add conceptType toggle to presenceChar
+    - add findConceptType function to help determine type concepts in domain
+    - add sql function for generalizing conceptType Where statement
+* tempEmulationSchema fix #16
+    - add tempEmulationSchema for snowflake
+    - drops all temp tables upon disconnect
+* clean-up runClinicalCharacteristics #13
+    - separate out score, categorize and summarize fns 
+    - additional code clean-up
+* Early reporting function createReport #14
+    - able to make report md from certain chars not all
+
+
 # ClinicalCharacteristics 0.2.4
 
 * add databaseId column

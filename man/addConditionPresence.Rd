@@ -9,6 +9,7 @@ addConditionPresence(
   conceptSets,
   timeWindows,
   limit = c("first", "last", "all"),
+  conceptType = NULL,
   score = NULL
 )
 }
@@ -23,6 +24,8 @@ on when to search for the presence of a value. use \code{makeTimeTable} function
 \item{limit}{specify which values to use in the characteristic. The last variable will pull the last value in the
 time window, the first variable will pull the first value in the time window and the
 all vairable will pull all values in the time window}
+
+\item{conceptType}{the type concept ids to use to limit the query}
 
 \item{score}{describes how the categorical value should be converted to a continuous score.
 This function takes a scoreStrategy object to describe the scoring ow it is left NULL.

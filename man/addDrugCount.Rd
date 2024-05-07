@@ -9,7 +9,7 @@ addDrugCount(
   timeWindows,
   conceptSets = NULL,
   categorize = NULL,
-  conceptType = c(32810, 32869)
+  conceptType = NULL
 )
 }
 \arguments{
