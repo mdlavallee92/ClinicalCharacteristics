@@ -1,3 +1,7 @@
+# ClinicalCharacteristics 0.2.7
+
+* add conceptType for timeTo char
+
 # ClinicalCharacteristics 0.2.6
 
 * bug fix multi-cohort count #20

@@ -1020,12 +1020,15 @@ addTimeInInpatient <- function(clinChar, categorize = NULL) {
 #' @param limit specify which values to use in the characteristic. The last variable will pull the last value in the
 #' time window, the first variable will pull the first value in the time window and the
 #' all vairable will pull all values in the time window
+#' @param conceptType the type concept ids to use to limit the query
 #' @param categorize describes how the continuous value should be categorized.
 #' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
 #' If the parameter is NULL then no categorization summary is done
 #' @return adds a timeToChar object of drug exposure into the clinChar extractSettings slot
 #' @export
-addTimeToDrug <- function(clinChar, conceptSets, timeWindows, limit = c("first", "last", "all"),
+addTimeToDrug <- function(clinChar, conceptSets,
+                          timeWindows, limit = c("first", "last", "all"),
+                          conceptType = NULL,
                           categorize = NULL) {
 
   limit <- match.arg(limit)
@@ -1040,6 +1043,11 @@ addTimeToDrug <- function(clinChar, conceptSets, timeWindows, limit = c("first",
     'duration' = "#drug_duration",
     'codeset' = c()
   )
+
+  # handle conceptType
+  if (!is.null(conceptType)) {
+    drugChar@conceptType <- as.integer(conceptType)
+  }
 
   if (!is.null(categorize)) {
     if (!methods::is(categorize, "breaksStrategy")) {
@@ -1068,12 +1076,15 @@ addTimeToDrug <- function(clinChar, conceptSets, timeWindows, limit = c("first",
 #' @param limit specify which values to use in the characteristic. The last variable will pull the last value in the
 #' time window, the first variable will pull the first value in the time window and the
 #' all vairable will pull all values in the time window
+#' @param conceptType the type concept ids to use to limit the query
 #' @param categorize describes how the continuous value should be categorized.
 #' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
 #' If the parameter is NULL then no categorization summary is done
 #' @return adds a timeToChar object of condition into the clinChar extractSettings slot
 #' @export
-addTimeToCondition <- function(clinChar, conceptSets, timeWindows, limit = c("first", "last", "all"),
+addTimeToCondition <- function(clinChar, conceptSets,
+                               timeWindows, limit = c("first", "last", "all"),
+                               conceptType = NULL,
                           categorize = NULL) {
 
   limit <- match.arg(limit)
@@ -1087,6 +1098,11 @@ addTimeToCondition <- function(clinChar, conceptSets, timeWindows, limit = c("fi
     'duration' = "#cond_duration",
     'codeset' = c()
   )
+
+  # handle conceptType
+  if (!is.null(conceptType)) {
+    condChar@conceptType <- as.integer(conceptType)
+  }
 
   if (!is.null(categorize)) {
     if (!methods::is(categorize, "breaksStrategy")) {
@@ -1114,12 +1130,15 @@ addTimeToCondition <- function(clinChar, conceptSets, timeWindows, limit = c("fi
 #' @param limit specify which values to use in the characteristic. The last variable will pull the last value in the
 #' time window, the first variable will pull the first value in the time window and the
 #' all vairable will pull all values in the time window
+#' @param conceptType the type concept ids to use to limit the query
 #' @param categorize describes how the continuous value should be categorized.
 #' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
 #' If the parameter is NULL then no categorization summary is done
 #' @return adds a timeToChar object of procedure into the clinChar extractSettings slot
 #' @export
-addTimeToProcedure <- function(clinChar, conceptSets, timeWindows, limit = c("first", "last", "all"),
+addTimeToProcedure <- function(clinChar, conceptSets,
+                               timeWindows, limit = c("first", "last", "all"),
+                               conceptType = NULL,
                                categorize = NULL) {
 
   limit <- match.arg(limit)
@@ -1134,6 +1153,11 @@ addTimeToProcedure <- function(clinChar, conceptSets, timeWindows, limit = c("fi
     'duration' = "#proc_duration",
     'codeset' = c()
   )
+
+  # handle conceptType
+  if (!is.null(conceptType)) {
+    procChar@conceptType <- as.integer(conceptType)
+  }
 
   if (!is.null(categorize)) {
     if (!methods::is(categorize, "breaksStrategy")) {
@@ -1162,13 +1186,16 @@ addTimeToProcedure <- function(clinChar, conceptSets, timeWindows, limit = c("fi
 #' @param limit specify which values to use in the characteristic. The last variable will pull the last value in the
 #' time window, the first variable will pull the first value in the time window and the
 #' all vairable will pull all values in the time window
+#' @param conceptType the type concept ids to use to limit the query
 #' @param categorize describes how the continuous value should be categorized.
 #' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
 #' If the parameter is NULL then no categorization summary is done
 #' @return adds a timeToChar object of measurement into the clinChar extractSettings slot
 #' @export
-addTimeToMeasurement <- function(clinChar, conceptSets, timeWindows, limit = c("first", "last", "all"),
-                               categorize = NULL) {
+addTimeToMeasurement <- function(clinChar, conceptSets,
+                                 timeWindows, limit = c("first", "last", "all"),
+                                 conceptType = NULL,
+                                 categorize = NULL) {
 
   limit <- match.arg(limit)
 
@@ -1181,6 +1208,11 @@ addTimeToMeasurement <- function(clinChar, conceptSets, timeWindows, limit = c("
     'duration' = "#meas_duration",
     'codeset' = c()
   )
+
+  # handle conceptType
+  if (!is.null(conceptType)) {
+    measChar@conceptType <- as.integer(conceptType)
+  }
 
   if (!is.null(categorize)) {
     if (!methods::is(categorize, "breaksStrategy")) {
@@ -1209,12 +1241,15 @@ addTimeToMeasurement <- function(clinChar, conceptSets, timeWindows, limit = c("
 #' @param limit specify which values to use in the characteristic. The last variable will pull the last value in the
 #' time window, the first variable will pull the first value in the time window and the
 #' all vairable will pull all values in the time window
+#' @param conceptType the type concept ids to use to limit the query
 #' @param categorize describes how the continuous value should be categorized.
 #' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
 #' If the parameter is NULL then no categorization summary is done
 #' @return adds a timeToChar object of observation into the clinChar extractSettings slot
 #' @export
-addTimeToObservation <- function(clinChar, conceptSets, timeWindows, limit = c("first", "last", "all"),
+addTimeToObservation <- function(clinChar, conceptSets,
+                                 timeWindows, limit = c("first", "last", "all"),
+                                 conceptType = NULL,
                                  categorize = NULL) {
 
   limit <- match.arg(limit)
@@ -1228,6 +1263,11 @@ addTimeToObservation <- function(clinChar, conceptSets, timeWindows, limit = c("
     'duration' = "#obs_duration",
     'codeset' = c()
   )
+
+  # handle conceptType
+  if (!is.null(conceptType)) {
+    obsChar@conceptType <- as.integer(conceptType)
+  }
 
   if (!is.null(categorize)) {
     if (!methods::is(categorize, "breaksStrategy")) {
@@ -1255,12 +1295,15 @@ addTimeToObservation <- function(clinChar, conceptSets, timeWindows, limit = c("
 #' @param limit specify which values to use in the characteristic. The last variable will pull the last value in the
 #' time window, the first variable will pull the first value in the time window and the
 #' all vairable will pull all values in the time window
+#' @param conceptType the type concept ids to use to limit the query
 #' @param categorize describes how the continuous value should be categorized.
 #' This function takes a breaksStrategy object to describe the categories ow it is left NULL.
 #' If the parameter is NULL then no categorization summary is done
 #' @return adds a timeToChar object of visit into the clinChar extractSettings slot
 #' @export
-addTimeToVisit <- function(clinChar, conceptSets, timeWindows, limit = c("first", "last", "all"),
+addTimeToVisit <- function(clinChar, conceptSets,
+                           timeWindows, limit = c("first", "last", "all"),
+                           conceptType = NULL,
                           categorize = NULL) {
 
   limit <- match.arg(limit)
@@ -1274,6 +1317,11 @@ addTimeToVisit <- function(clinChar, conceptSets, timeWindows, limit = c("first"
     'duration' = "#visit_duration",
     'codeset' = c()
   )
+
+  # handle conceptType
+  if (!is.null(conceptType)) {
+    visitChar@conceptType <- as.integer(conceptType)
+  }
 
   if (!is.null(categorize)) {
     if (!methods::is(categorize, "breaksStrategy")) {

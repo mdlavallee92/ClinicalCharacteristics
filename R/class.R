@@ -301,6 +301,7 @@ setClass("timeToChar",
            orderId = "integer",
            categoryId = "integer",
            conceptSets = "list",
+           conceptType = "integer",
            limit = "character",
            time = "data.frame",
            tempTables = "list",
@@ -311,6 +312,7 @@ setClass("timeToChar",
            orderId = NA_integer_,
            categoryId = NA_integer_,
            conceptSets = list(),
+           conceptType = NA_integer_,
            limit = "first",
            time = data.frame('time_id' = 1, 'time_a' = -365, 'time_b' = -1),
            tempTables = list(),
@@ -1023,6 +1025,9 @@ setMethod("as_sql", "timeToChar", function(x){
   time_a <- paste(x@time$time_a, collapse = ", ")
   time_b <- paste(x@time$time_b, collapse = ", ")
   codesetIds <- paste(x@tempTables$codeset, collapse = ", ")
+  conceptTypeSql <- concept_type_sql(domain = x@domain,
+                                     conceptType = x@conceptType)
+  conceptTypeSql <- gsub("AND", "WHERE", conceptTypeSql)
 
   querySql <- glue::glue(
     "
@@ -1049,6 +1054,7 @@ setMethod("as_sql", "timeToChar", function(x){
      INNER JOIN T1 tw
           ON DATEADD(day, tw.time_a, t.cohort_start_date) <= d.{domain_trans$event_date}
           AND DATEADD(day, tw.time_b, t.cohort_start_date) >= d.{domain_trans$event_date}
+    {conceptTypeSql}
      ;")
 
   insertSql <- glue::glue(
