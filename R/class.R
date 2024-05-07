@@ -381,7 +381,7 @@ setMethod("limit_sql", "labChar", function(x) {
       "SELECT a.cohort_id, a.subject_id, a.time_id, a.value_id, a.value
       FROM (
         SELECT l.*,
-        ROW_NUMBER() OVER (PARTITION BY l.subject_id, l.time_id, l.value_id order by l.measurement_date DESC) as ordinal
+        ROW_NUMBER() OVER (PARTITION BY l.cohort_id, l.subject_id, l.time_id, l.value_id order by l.measurement_date DESC) as ordinal
         FROM {x@tempTables$lab} l
       ) a
       WHERE ordinal = 1
@@ -393,7 +393,7 @@ setMethod("limit_sql", "labChar", function(x) {
       "SELECT a.cohort_id, a.subject_id, a.time_id, a.value_id, a.value
       FROM (
         SELECT l.*,
-        ROW_NUMBER() OVER (PARTITION BY l.subject_id, l.time_id, l.value_id order by l.measurement_date ASC) as ordinal
+        ROW_NUMBER() OVER (PARTITION BY l.cohort_id, l.subject_id, l.time_id, l.value_id order by l.measurement_date ASC) as ordinal
         FROM {x@tempTables$lab} l
       ) a
       WHERE ordinal = 1
@@ -420,7 +420,7 @@ setMethod("limit_sql", "presenceChar", function(x) {
       "SELECT a.cohort_id, a.subject_id, a.time_id, a.value_id
       FROM (
         SELECT l.*,
-        ROW_NUMBER() OVER (PARTITION BY l.subject_id, l.time_id, l.value_id order by l.{domain_trans$event_date} DESC) as ordinal
+        ROW_NUMBER() OVER (PARTITION BY l.cohort_id, l.subject_id, l.time_id, l.value_id order by l.{domain_trans$event_date} DESC) as ordinal
         FROM {x@tempTables$domain} l
       ) a
       WHERE ordinal = 1
@@ -432,7 +432,7 @@ setMethod("limit_sql", "presenceChar", function(x) {
       "SELECT a.cohort_id, a.subject_id, a.time_id, a.value_id
       FROM (
         SELECT l.*,
-        ROW_NUMBER() OVER (PARTITION BY l.subject_id, l.time_id, l.value_id order by l.{domain_trans$event_date} ASC) as ordinal
+        ROW_NUMBER() OVER (PARTITION BY l.cohort_id, l.subject_id, l.time_id, l.value_id order by l.{domain_trans$event_date} ASC) as ordinal
         FROM {x@tempTables$domain} l
       ) a
       WHERE ordinal = 1
@@ -459,7 +459,7 @@ setMethod("limit_sql", "timeToChar", function(x) {
       "SELECT a.cohort_id, a.subject_id, a.time_id, a.value_id, a.value
       FROM (
         SELECT l.*,
-        ROW_NUMBER() OVER (PARTITION BY l.subject_id, l.time_id, l.value_id order by l.{domain_trans$event_date} DESC) as ordinal
+        ROW_NUMBER() OVER (PARTITION BY l.cohort_id, l.subject_id, l.time_id, l.value_id order by l.{domain_trans$event_date} DESC) as ordinal
         FROM {x@tempTables$duration} l
       ) a
       WHERE ordinal = 1
@@ -471,7 +471,7 @@ setMethod("limit_sql", "timeToChar", function(x) {
       "SELECT a.cohort_id, a.subject_id, a.time_id, a.value_id, a.value
       FROM (
         SELECT l.*,
-        ROW_NUMBER() OVER (PARTITION BY l.subject_id, l.time_id, l.value_id order by l.{domain_trans$event_date} ASC) as ordinal
+        ROW_NUMBER() OVER (PARTITION BY l.cohort_id, l.subject_id, l.time_id, l.value_id order by l.{domain_trans$event_date} ASC) as ordinal
         FROM {x@tempTables$duration} l
       ) a
       WHERE ordinal = 1
