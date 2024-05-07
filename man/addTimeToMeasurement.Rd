@@ -9,6 +9,7 @@ addTimeToMeasurement(
   conceptSets,
   timeWindows,
   limit = c("first", "last", "all"),
+  conceptType = NULL,
   categorize = NULL
 )
 }
@@ -23,6 +24,8 @@ on when to search for the presence of a value. use \code{makeTimeTable} function
 \item{limit}{specify which values to use in the characteristic. The last variable will pull the last value in the
 time window, the first variable will pull the first value in the time window and the
 all vairable will pull all values in the time window}
+
+\item{conceptType}{the type concept ids to use to limit the query}
 
 \item{categorize}{describes how the continuous value should be categorized.
 This function takes a breaksStrategy object to describe the categories ow it is left NULL.
