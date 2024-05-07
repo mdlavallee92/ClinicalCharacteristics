@@ -374,54 +374,12 @@ check_and_drop_dat <- function(connection, clinChar) {
 
 }
 
-# UI ---------------------------
+# Summarize steps -----------------
 
-#' Runs the characterization and extracts data into an arrow object
-#' @description
-#' This runs the characterization specified by the clinChar object
-#' @param connection the DatabaseConnector connection linking to the dbms with OMOP data
-#' @param clinChar the clinChar object describing the study
-#' @param dropDat toggle option to drop temporary data table with clinChar results in the dbms
-#' @param saveName a labelling name to distinguish the characterization
-#' @param savePath the folder path to save the csv, defaults to current directory
-#' @return runs database query described in extractSettings and uploads them to the stow object
-#' @export
-runClinicalCharacteristics <- function(connection,
-                                       clinChar,
-                                       dropDat = TRUE,
-                                       saveName = NULL,
-                                       savePath = here::here()) {
+score_them <- function(clinChar, connection) {
 
-  cli::cat_boxx(
-    "Run Clinical Characteristics Job"
-  )
-  clinCharJobDetails(clinChar)
-  cli::cat_line()
-
-  # build sql
-  sql <- build_query(clinChar)
-
-  # check and drop data
-  check_and_drop_dat(connection, clinChar)
-
-  # add time table
-  insert_time_table(connection = connection, clinChar = clinChar)
-
-
-  # Run queries
-
-  cli::cat_bullet(
-    "Run ClinChar Queries....",
-    bullet = "pointer",
-    bullet_col = "yellow"
-  )
-  ## execute on db
-  DatabaseConnector::executeSql(connection = connection, sql = sql)
-
-  # Next look for scoring and categories
   es <- clinChar@extractSettings
   to_cts <- purrr::map_lgl(es, ~check_score(.x)) |> which()
-  to_cat <- purrr::map_lgl(es, ~check_categorize(.x)) |> which()
 
   ## Do score First
   if (length(to_cts) > 0) {
@@ -474,6 +432,13 @@ runClinicalCharacteristics <- function(connection,
     }
     #end all scores
   }
+  invisible(to_cts)
+}
+
+categorize_them <- function(clinChar, connection) {
+
+  es <- clinChar@extractSettings
+  to_cat <- purrr::map_lgl(es, ~check_categorize(.x)) |> which()
 
   ## Do Categories Second
   if (length(to_cat) > 0) {
@@ -529,8 +494,13 @@ runClinicalCharacteristics <- function(connection,
     }
     #end all categorize
   }
+  invisible(to_cat)
 
-  # Continuous Summary
+}
+
+
+summarize_them_cts <- function(clinChar, connection) {
+
   cts_ids <- get_cts_ids(clinChar)
   if (length(cts_ids) > 0) {
     cli::cat_bullet("Summarize Continuous Variables",
@@ -541,7 +511,7 @@ runClinicalCharacteristics <- function(connection,
       connection = connection,
       dataTable = clinChar@executionSettings@dataTable,
       cts_ids = cts_ids
-      ) |>
+    ) |>
       dplyr::mutate(
         mean = occ_cnt / n # do outside ow it rounds
       ) |>
@@ -569,6 +539,11 @@ runClinicalCharacteristics <- function(connection,
     cts_sum <- tibble::tibble()
   }
 
+  return(cts_sum)
+}
+
+
+summarize_them_cat <- function(clinChar, connection) {
 
   # Cat Summary
   cat_ids <- get_cat_ids(clinChar)
@@ -608,6 +583,84 @@ runClinicalCharacteristics <- function(connection,
   } else {
     cat_sum <- tibble::tibble()
   }
+  return(cat_sum)
+}
+
+save_summaries <- function(dat,
+                           type = c("categorical", "continuous"),
+                           savePath,
+                           saveName) {
+
+  type_pr <- snakecase::to_title_case(type)
+
+  cli::cat_bullet(
+    glue::glue("Saving {type_pr} Characteristics as csv"),
+    bullet = "pointer",
+    bullet_col = "yellow"
+  )
+  saveName <- glue::glue("{saveName}_{type}")
+  filePath <- fs::path(savePath, saveName, ext = "csv")
+  readr::write_csv(dat, file = filePath)
+  cli::cat_line(
+    glue::glue("   Saving to {crayon::cyan(filePath)}")
+  )
+  invisible(dat)
+}
+
+# UI ---------------------------
+
+#' Runs the characterization and extracts data into an arrow object
+#' @description
+#' This runs the characterization specified by the clinChar object
+#' @param connection the DatabaseConnector connection linking to the dbms with OMOP data
+#' @param clinChar the clinChar object describing the study
+#' @param dropDat toggle option to drop temporary data table with clinChar results in the dbms
+#' @param saveName a labelling name to distinguish the characterization
+#' @param savePath the folder path to save the csv, defaults to current directory
+#' @return runs database query described in extractSettings and uploads them to the stow object
+#' @export
+runClinicalCharacteristics <- function(connection,
+                                       clinChar,
+                                       dropDat = TRUE,
+                                       saveName = NULL,
+                                       savePath = here::here()) {
+
+  cli::cat_boxx(
+    "Run Clinical Characteristics Job"
+  )
+  clinCharJobDetails(clinChar)
+  cli::cat_line()
+
+  # build sql
+  sql <- build_query(clinChar)
+
+  # check and drop data
+  check_and_drop_dat(connection, clinChar)
+
+  # add time table
+  insert_time_table(connection = connection, clinChar = clinChar)
+
+  # Run queries
+
+  cli::cat_bullet(
+    "Run ClinChar Queries....",
+    bullet = "pointer",
+    bullet_col = "yellow"
+  )
+  ## execute on db
+  DatabaseConnector::executeSql(connection = connection, sql = sql)
+
+  # Next look for scoring and categories
+  ## Do score First
+  score_them(clinChar, connection)
+  ## Do categoies second
+  categorize_them(clinChar, connection)
+
+  # Now summarize
+  ## Continuous summary first
+  cts_sum <- summarize_them_cts(clinChar, connection)
+  ## Categorical summary second
+  cat_sum <- summarize_them_cat(clinChar, connection)
 
   clin_char_res <- list(
     'continuous' = cts_sum,
@@ -622,31 +675,17 @@ runClinicalCharacteristics <- function(connection,
   }
 
   if (nrow(clin_char_res$categorical) > 0) {
-    cli::cat_bullet(
-      glue::glue("Saving Categorical Characteristics as csv"),
-      bullet = "pointer",
-      bullet_col = "yellow"
-    )
-    catSaveName <- glue::glue("{saveName}_categorical")
-    catFilePath <- fs::path(savePath, catSaveName, ext = "csv")
-    readr::write_csv(clin_char_res$categorical, file = catFilePath)
-    cli::cat_line(
-      glue::glue("   Saving to {crayon::cyan(catFilePath)}")
-    )
+    save_summaries(dat = clin_char_res$categorical,
+                   type = "categorical",
+                   saveName = saveName,
+                   savePath = savePath)
   }
 
   if (nrow(clin_char_res$continuous) > 0 ) {
-    cli::cat_bullet(
-      glue::glue("Saving Continuous Characteristics as csv"),
-      bullet = "pointer",
-      bullet_col = "yellow"
-    )
-    ctsSaveName <- glue::glue("{saveName}_continuous")
-    ctsFilePath <- fs::path(savePath, ctsSaveName, ext = "csv")
-    readr::write_csv(clin_char_res$continuous, file = ctsFilePath)
-    cli::cat_line(
-      glue::glue("   Saving to {crayon::cyan(ctsFilePath)}")
-    )
+    save_summaries(dat = clin_char_res$continuous,
+                   type = "continuous",
+                   saveName = saveName,
+                   savePath = savePath)
   }
 
 
