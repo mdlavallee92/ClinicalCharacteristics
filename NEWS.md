@@ -1,3 +1,8 @@
+# ClinicalCharacteristics 0.2.6
+
+* bug fix multi-cohort count #20
+
+
 # ClinicalCharacteristics 0.2.5
 
 * conceptType improvements #15
