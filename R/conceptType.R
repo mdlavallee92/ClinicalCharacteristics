@@ -52,3 +52,20 @@ findConceptType <- function(connection,
   return(type_tb)
 
 }
+
+
+concept_type_sql <- function(domain, conceptType) {
+
+  domain_trans <- domain_translate(domain)
+  if (!all(is.na(conceptType))) {
+    conceptType <- paste(conceptType, collapse = ", ")
+    conceptTypeSql <- glue::glue(
+      "AND {domain_trans$concept_type_id} IN ({conceptType})"
+    )
+  } else{
+    conceptTypeSql <- ""
+  }
+
+  return(conceptTypeSql)
+
+}

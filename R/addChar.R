@@ -193,33 +193,32 @@ addLabChar <- function(clinChar, labUnitTable, timeWindows, limit = c("last", "f
 #' @param score describes how the categorical value should be converted to a continuous score.
 #' This function takes a scoreStrategy object to describe the scoring ow it is left NULL.
 #' If the parameter is NULL then no continuous summary is done
+#' @param conceptType the type concept ids to use to limit the query
 #' @return adds a presenceChar object of visit_occurrence into the clinChar extractSettings slot
 #' @export
 addVisitPresence <- function(clinChar, conceptSets, timeWindows,
                              limit = c("first", "last", "all"),
+                             conceptType = NULL,
                              score = NULL) {
 
   limit <- match.arg(limit)
 
-  # check if clinChar is snowflake and use temp schema
-  if (check_dbms(clinChar) == "snowflake") {
-    tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    #tbl_codeset <- glue::glue("{tempSchema}.condition_codeset_tmp")
-    tbl_domain <- glue::glue("{tempSchema}.condition_domain_tmp")
-  } else {
-    #tbl_codeset <- "#visit_codeset"
-    tbl_domain <- "#visit_domain"
-  }
 
-  visitChar <- new("presenceChar", domain = "visit_occurrence", orderId = set_order_id(clinChar),
+  visitChar <- new("presenceChar", domain = "visit_occurrence",
+                   orderId = set_order_id(clinChar),
                    categoryId = 8001L)
   visitChar@conceptSets <- conceptSets
   visitChar@time <- timeWindows
   visitChar@limit <- limit
   visitChar@tempTables <- list(
-    'domain' = tbl_domain,
+    'domain' = "#visit_domain",
     'codeset' = c()
   )
+
+  # handle conceptType
+  if (!is.null(conceptType)) {
+    visitChar@conceptType <- as.integer(conceptType)
+  }
 
   if (!is.null(score)) {
     if (!methods::is(score, "scoreStrategy")) {
@@ -249,6 +248,7 @@ addVisitPresence <- function(clinChar, conceptSets, timeWindows,
 #' @param limit specify which values to use in the characteristic. The last variable will pull the last value in the
 #' time window, the first variable will pull the first value in the time window and the
 #' all vairable will pull all values in the time window
+#' @param conceptType the type concept ids to use to limit the query
 #' @param score describes how the categorical value should be converted to a continuous score.
 #' This function takes a scoreStrategy object to describe the scoring ow it is left NULL.
 #' If the parameter is NULL then no continuous summary is done
@@ -256,19 +256,13 @@ addVisitPresence <- function(clinChar, conceptSets, timeWindows,
 #' @export
 addConditionPresence <- function(clinChar, conceptSets, timeWindows,
                                  limit = c("first", "last", "all"),
+                                 conceptType = NULL,
                                  score = NULL) {
 
   limit <- match.arg(limit)
 
-  # check if clinChar is snowflake and use temp schema
-  # if (check_dbms(clinChar) == "snowflake") {
-  #   tempSchema <-clinChar@executionSettings@workDatabaseSchema
-  #   #tbl_codeset <- glue::glue("{tempSchema}.condition_codeset_tmp")
-  #   tbl_domain <- glue::glue("{tempSchema}.condition_domain_tmp")
-  # } else {
-  #   #tbl_codeset <- "#condition_codeset"
-  #   tbl_domain <- "#condition_domain"
-  # }
+
+
 
   conditionChar <- new("presenceChar", domain = "condition_occurrence", orderId = set_order_id(clinChar),
                        categoryId = 2001L)
@@ -279,6 +273,10 @@ addConditionPresence <- function(clinChar, conceptSets, timeWindows,
     'domain' = "#condition_domain",
     'codeset' = c()
   )
+  # handle concept type
+  if (!is.null(conceptType)) {
+    conditionChar@conceptType <- as.integer(conceptType)
+  }
 
   if (!is.null(score)) {
     if (!methods::is(score, "scoreStrategy")) {
@@ -306,6 +304,7 @@ addConditionPresence <- function(clinChar, conceptSets, timeWindows,
 #' @param limit specify which values to use in the characteristic. The last variable will pull the last value in the
 #' time window, the first variable will pull the first value in the time window and the
 #' all vairable will pull all values in the time window
+#' @param conceptType the type concept ids to use to limit the query
 #' @param score describes how the categorical value should be converted to a continuous score.
 #' This function takes a scoreStrategy object to describe the scoring ow it is left NULL.
 #' If the parameter is NULL then no continuous summary is done
@@ -313,6 +312,7 @@ addConditionPresence <- function(clinChar, conceptSets, timeWindows,
 #' @export
 addDrugPresence <- function(clinChar, conceptSets, timeWindows,
                             limit = c("first", "last", "all"),
+                            conceptType = NULL,
                             score = NULL) {
 
   limit <- match.arg(limit)
@@ -327,6 +327,11 @@ addDrugPresence <- function(clinChar, conceptSets, timeWindows,
     'domain' = "#drug_domain",
     'codeset' =  c()
   )
+
+  # handle conceptType
+  if (!is.null(conceptType)) {
+    drugChar@conceptType <- as.integer(conceptType)
+  }
 
   if (!is.null(score)) {
     if (!methods::is(score, "scoreStrategy")) {
@@ -354,6 +359,7 @@ addDrugPresence <- function(clinChar, conceptSets, timeWindows,
 #' @param limit specify which values to use in the characteristic. The last variable will pull the last value in the
 #' time window, the first variable will pull the first value in the time window and the
 #' all vairable will pull all values in the time window
+#' @param conceptType the type concept ids to use to limit the query
 #' @param score describes how the categorical value should be converted to a continuous score.
 #' This function takes a scoreStrategy object to describe the scoring ow it is left NULL.
 #' If the parameter is NULL then no continuous summary is done
@@ -361,6 +367,7 @@ addDrugPresence <- function(clinChar, conceptSets, timeWindows,
 #' @export
 addObservationPresence <- function(clinChar, conceptSets, timeWindows,
                                    limit = c("first", "last", "all"),
+                                   conceptType = NULL,
                                    score = NULL) {
 
   limit <- match.arg(limit)
@@ -374,6 +381,11 @@ addObservationPresence <- function(clinChar, conceptSets, timeWindows,
     'domain' = "#obs_domain",
     'codeset' =  c()
   )
+
+  # handle conceptType
+  if (!is.null(conceptType)) {
+    obsChar@conceptType <- as.integer(conceptType)
+  }
 
   if (!is.null(score)) {
     if (!methods::is(score, "scoreStrategy")) {
@@ -402,6 +414,7 @@ addObservationPresence <- function(clinChar, conceptSets, timeWindows,
 #' @param limit specify which values to use in the characteristic. The last variable will pull the last value in the
 #' time window, the first variable will pull the first value in the time window and the
 #' all vairable will pull all values in the time window
+#' @param conceptType the type concept ids to use to limit the query
 #' @param score describes how the categorical value should be converted to a continuous score.
 #' This function takes a scoreStrategy object to describe the scoring ow it is left NULL.
 #' If the parameter is NULL then no continuous summary is done
@@ -409,12 +422,14 @@ addObservationPresence <- function(clinChar, conceptSets, timeWindows,
 #' @export
 addProcedurePresence <- function(clinChar, conceptSets, timeWindows,
                                  limit = c("first", "last", "all"),
+                                 conceptType = NULL,
                                  score = NULL) {
 
   limit <- match.arg(limit)
 
 
-  procChar <- new("presenceChar", domain = "procedure_occurrence", orderId = set_order_id(clinChar),
+  procChar <- new("presenceChar", domain = "procedure_occurrence",
+                  orderId = set_order_id(clinChar),
                   categoryId = 4001L)
   procChar@conceptSets <- conceptSets
   procChar@limit <- limit
@@ -423,6 +438,11 @@ addProcedurePresence <- function(clinChar, conceptSets, timeWindows,
     'domain' = "#proc_domain",
     'codeset' =  c()
   )
+
+  # handle conceptType
+  if (!is.null(conceptType)) {
+    procChar@conceptType <- as.integer(conceptType)
+  }
 
   if (!is.null(score)) {
     if (!methods::is(score, "scoreStrategy")) {
@@ -450,6 +470,7 @@ addProcedurePresence <- function(clinChar, conceptSets, timeWindows,
 #' @param limit specify which values to use in the characteristic. The last variable will pull the last value in the
 #' time window, the first variable will pull the first value in the time window and the
 #' all vairable will pull all values in the time window
+#' @param conceptType the type concept ids to use to limit the query
 #' @param score describes how the categorical value should be converted to a continuous score.
 #' This function takes a scoreStrategy object to describe the scoring ow it is left NULL.
 #' If the parameter is NULL then no continuous summary is done
@@ -457,12 +478,14 @@ addProcedurePresence <- function(clinChar, conceptSets, timeWindows,
 #' @export
 addMeasurementPresence <- function(clinChar, conceptSets, timeWindows,
                                    limit = c("first", "last", "all"),
+                                   conceptType = NULL,
                                    score = NULL) {
 
   limit <- match.arg(limit)
 
 
-  measChar <- new("presenceChar", domain = "measurement", orderId = set_order_id(clinChar),
+  measChar <- new("presenceChar", domain = "measurement",
+                  orderId = set_order_id(clinChar),
                   categoryId = 5001L)
   measChar@conceptSets <- conceptSets
   measChar@limit <- limit
@@ -471,6 +494,11 @@ addMeasurementPresence <- function(clinChar, conceptSets, timeWindows,
     'domain' = "#meas_domain",
     'codeset' =  c()
   )
+
+  # handle conceptType
+  if (!is.null(conceptType)) {
+    measChar@conceptType <- as.integer(conceptType)
+  }
 
   if (!is.null(score)) {
     if (!methods::is(score, "scoreStrategy")) {
@@ -499,6 +527,7 @@ addMeasurementPresence <- function(clinChar, conceptSets, timeWindows,
 #' @param limit specify which values to use in the characteristic. The last variable will pull the last value in the
 #' time window, the first variable will pull the first value in the time window and the
 #' all vairable will pull all values in the time window
+#' @param conceptType the type concept ids to use to limit the query
 #' @param score describes how the categorical value should be converted to a continuous score.
 #' This function takes a scoreStrategy object to describe the scoring ow it is left NULL.
 #' If the parameter is NULL then no continuous summary is done
@@ -506,12 +535,14 @@ addMeasurementPresence <- function(clinChar, conceptSets, timeWindows,
 #' @export
 addDevicePresence <- function(clinChar, conceptSets, timeWindows,
                               limit = c("first", "last", "all"),
+                              conceptType = NULL,
                               score = NULL) {
 
   limit <- match.arg(limit)
 
 
-  devChar <- new("presenceChar", domain = "device_exposure", orderId = set_order_id(clinChar),
+  devChar <- new("presenceChar", domain = "device_exposure",
+                 orderId = set_order_id(clinChar),
                  categoryId = 7001L)
   devChar@conceptSets <- conceptSets
   devChar@limit <- limit
@@ -520,6 +551,11 @@ addDevicePresence <- function(clinChar, conceptSets, timeWindows,
     'domain' = "#dev_domain",
     'codeset' =  c()
   )
+
+  # handle conceptType
+  if (!is.null(conceptType)) {
+    devChar@conceptType <- as.integer(conceptType)
+  }
 
   if (!is.null(score)) {
     if (!methods::is(score, "scoreStrategy")) {
@@ -549,9 +585,12 @@ addDevicePresence <- function(clinChar, conceptSets, timeWindows,
 #' @param conceptType the drug type concept ids to use to limit the count
 #' @return adds a countChar object of drug exposure into the clinChar extractSettings slot
 #' @export
-addDrugCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = c(32810, 32869)) {
+addDrugCount <- function(clinChar, timeWindows,
+                         conceptSets = NULL, categorize = NULL,
+                         conceptType = NULL) {
 
-  drugChar <- new("countChar", domain = "drug_exposure", orderId = set_order_id(clinChar),
+  drugChar <- new("countChar", domain = "drug_exposure",
+                  orderId = set_order_id(clinChar),
                   categoryId = 3002L)
   drugChar@time <- timeWindows
   drugChar@conceptSets <- conceptSets
@@ -590,7 +629,9 @@ addDrugCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize =
 #' @param conceptType the visit type concept ids to use to limit the count
 #' @return adds a countChar object of visit into the clinChar extractSettings slot
 #' @export
-addVisitCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = NULL) {
+addVisitCount <- function(clinChar, timeWindows,
+                          conceptSets = NULL, categorize = NULL,
+                          conceptType = NULL) {
 
 
   visitChar <- new("countChar", domain = "visit_occurrence", orderId = set_order_id(clinChar),
@@ -756,7 +797,9 @@ addMeasurementCount <- function(clinChar, timeWindows, conceptSets = NULL, categ
 #' @param conceptType the observation type concept ids to use to limit the count
 #' @return adds a countChar object of observation into the clinChar extractSettings slot
 #' @export
-addObservationCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = NULL) {
+addObservationCount <- function(clinChar, timeWindows,
+                                conceptSets = NULL, categorize = NULL,
+                                conceptType = NULL) {
 
 
   obsChar <- new("countChar", domain = "observation", orderId = set_order_id(clinChar),

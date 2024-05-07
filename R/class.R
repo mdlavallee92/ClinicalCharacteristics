@@ -257,6 +257,7 @@ setClass("presenceChar",
            orderId = "integer",
            categoryId = "integer",
            conceptSets = "list",
+           conceptType = "integer",
            limit = "character",
            time = "data.frame",
            tempTables = "list",
@@ -267,6 +268,7 @@ setClass("presenceChar",
            orderId = NA_integer_,
            categoryId = NA_integer_,
            conceptSets = list(),
+           conceptType = NA_integer_,
            limit = "last",
            time = data.frame('time_id' = 1, 'time_a' = -365, 'time_b' = -1),
            tempTables = list(),
@@ -707,6 +709,9 @@ setMethod("as_sql", "presenceChar", function(x){
   time_a <- paste(x@time$time_a, collapse = ", ")
   time_b <- paste(x@time$time_b, collapse = ", ")
   codesetIds <- paste(x@tempTables$codeset, collapse = ", ")
+  conceptTypeSql <- concept_type_sql(domain = x@domain,
+                                     conceptType = x@conceptType)
+  conceptTypeSql <- gsub("AND", "WHERE", conceptTypeSql)
 
   #codesetSql <- bind_codeset_queries(x@conceptSets, codesetTable = x@tempTables$codeset)
   querySql <- glue::glue(
@@ -732,6 +737,7 @@ setMethod("as_sql", "presenceChar", function(x){
      INNER JOIN T1 tw
           ON DATEADD(day, tw.time_a, t.cohort_start_date) <= d.{domain_trans$event_date}
           AND DATEADD(day, tw.time_b, t.cohort_start_date) >= d.{domain_trans$event_date}
+    {conceptTypeSql}
      ;")
 
   insertSql <- glue::glue(
@@ -761,15 +767,19 @@ setMethod("as_sql", "countChar", function(x){
   domain_trans <- domain_translate(domain)
   time_a <- paste(x@time$time_a, collapse = ", ")
   time_b <- paste(x@time$time_b, collapse = ", ")
-  if (!all(is.na(x@conceptType))) {
-    conceptType <- paste(x@conceptType, collapse = ", ")
-    conceptTypeSql <- glue::glue(
-      "AND {domain_trans$concept_type_id} IN ({conceptType})"
-    )
-  } else{
-    conceptTypeSql <- ""
-  }
-  conceptType <- paste(x@conceptType, collapse = ", ")
+
+  conceptTypeSql <- concept_type_sql(domain = x@domain,
+                                     conceptType = x@conceptType)
+
+  # if (!all(is.na(x@conceptType))) {
+  #   conceptType <- paste(x@conceptType, collapse = ", ")
+  #   conceptTypeSql <- glue::glue(
+  #     "AND {domain_trans$concept_type_id} IN ({conceptType})"
+  #   )
+  # } else{
+  #   conceptTypeSql <- ""
+  # }
+  # conceptType <- paste(x@conceptType, collapse = ", ")
 
   if (!is.null(x@conceptSets)) {
     codesetIds <- paste(x@tempTables$codeset, collapse = ", ")
@@ -833,7 +843,7 @@ setMethod("as_sql", "countChar", function(x){
           ON DATEADD(day, tw.time_a, a.cohort_start_date) <= d.{domain_trans$event_date}
           AND DATEADD(day, tw.time_b, a.cohort_start_date) >= d.{domain_trans$event_date}
     WHERE d.{domain_trans$concept_id} <> 0
-    AND {domain_trans$concept_type_id} IN ({conceptType})
+    {conceptTypeSql}
     )
     SELECT d.cohort_definition_id, d.subject_id, d.time_id, COUNT(d.{domain_trans$record_id}) AS value
     INTO {x@tempTables$count}
@@ -864,7 +874,10 @@ setMethod("as_sql", "costChar", function(x){
   domain_trans <- domain_translate(domain)
   time_a <- paste(x@time$time_a, collapse = ", ")
   time_b <- paste(x@time$time_b, collapse = ", ")
-  conceptType <- paste(x@conceptType, collapse = ", ")
+  conceptTypeSql <- concept_type_sql(domain = x@domain,
+                                     conceptType = x@conceptType)
+
+
 
   if (!is.null(x@conceptSets)) {
     codesetIds <- paste(x@tempTables$codeset, collapse = ", ")
@@ -893,7 +906,7 @@ setMethod("as_sql", "costChar", function(x){
           ON DATEADD(day, tw.time_a, a.cohort_start_date) <= d.{domain_trans$event_date}
           AND DATEADD(day, tw.time_b, a.cohort_start_date) >= d.{domain_trans$event_date}
     WHERE d.{domain_trans$concept_id} <> 0
-    AND {domain_trans$concept_type_id} IN ({conceptType})
+    {conceptTypeSql}
     AND {x@costType} >= 0
     )
     SELECT d.cohort_definition_id, d.subject_id, d.time_id, d.value_id, FLOOR(SUM(d.{x@costType})) AS value
@@ -933,7 +946,7 @@ setMethod("as_sql", "costChar", function(x){
           ON DATEADD(day, tw.time_a, a.cohort_start_date) <= d.{domain_trans$event_date}
           AND DATEADD(day, tw.time_b, a.cohort_start_date) >= d.{domain_trans$event_date}
     WHERE d.{domain_trans$concept_id} <> 0
-    AND {domain_trans$concept_type_id} IN ({conceptType})
+    {conceptTypeSql}
     AND {x@costType} >= 0
     )
     SELECT d.cohort_definition_id, d.subject_id, d.time_id, d.currency_concept_id, FLOOR(SUM(d.{x@costType})) AS value
