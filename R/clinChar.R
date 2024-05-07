@@ -28,6 +28,7 @@ setMethod("check_dbms", "ClinChar", function(x){
 #' @param cdmDatabaseSchema the database schema string specifying where the cdm sits
 #' @param vocabularyDatabaseSchema the database schema string specifying where the vocabulary sits
 #' @param workDatabaseSchema the database schema string specifying where the cohor table sits
+#' @param tempEmulationSchema schema to handle temp tables for oracle and snowflake
 #' @param cohortTable the table where the cohorts are
 #' @return makes a clinChar object
 #' @export
@@ -38,6 +39,7 @@ makeClinChar <- function(targetCohortIds,
                          cdmDatabaseSchema,
                          vocabularyDatabaseSchema = cdmDatabaseSchema,
                          workDatabaseSchema,
+                         tempEmulationSchema = workDatabaseSchema,
                          cohortTable,
                          datTableName = "dat") {
   # make new clin char object
@@ -53,11 +55,13 @@ makeClinChar <- function(targetCohortIds,
   }
 
   if (dbms == "snowflake") {
-    clinChar@targetCohort@tempTable <- glue::glue("{workDatabaseSchema}.target_tmp")
+    clinChar@executionSettings@tempEmulationSchema <- tempEmulationSchema
     clinChar@executionSettings@dataTable <- glue::glue("{workDatabaseSchema}.{datTableName}_tmp")
-    clinChar@executionSettings@timeWindowTable <- glue::glue("{workDatabaseSchema}.tw_tmp")
-    clinChar@executionSettings@codesetTable <- glue::glue("{workDatabaseSchema}.codeset_tmp")
+    # clinChar@targetCohort@tempTable <- glue::glue("{workDatabaseSchema}.target_tmp")
+    # clinChar@executionSettings@timeWindowTable <- glue::glue("{workDatabaseSchema}.tw_tmp")
+    # clinChar@executionSettings@codesetTable <- glue::glue("{workDatabaseSchema}.codeset_tmp")
   } else{
+    clinChar@executionSettings@tempEmulationSchema <- NULL
     clinChar@executionSettings@dataTable <- glue::glue("#{datTableName}")
   }
 
@@ -88,7 +92,7 @@ make_dat_table <- function() {
 return(sql)
 }
 
-
+# Build Query -----------------------
 setGeneric("build_query", function(x)  standardGeneric("build_query"))
 setMethod("build_query", "ClinChar", function(x){
 
@@ -122,10 +126,22 @@ setMethod("build_query", "ClinChar", function(x){
     drop_temp_tb_tw_cs,
     drop_domain_temp(x), # drop tables
     .sep = "\n\n"
-  ) |>
-    SqlRender::translate(
-      targetDialect = x@executionSettings@dbms
+  )
+
+  # translate if snowflake
+  dbms <- x@executionSettings@dbms
+  if (dbms == "snowflake") {
+    collect_sql <- SqlRender::translate(
+      sql = collect_sql,
+      targetDialect = dbms,
+      tempEmulationSchema = x@executionSettings@tempEmulationSchema
+      )
+  } else {
+    collect_sql <- SqlRender::translate(
+      sql = collect_sql,
+      targetDialect = dbms
     )
+  }
 
   return(collect_sql)
 
@@ -381,11 +397,14 @@ runClinicalCharacteristics <- function(connection,
   )
   clinCharJobDetails(clinChar)
   cli::cat_line()
+
   # build sql
   sql <- build_query(clinChar)
 
+  # check and drop data
   check_and_drop_dat(connection, clinChar)
 
+  # add time table
   insert_time_table(connection = connection, clinChar = clinChar)
 
 
