@@ -35,7 +35,7 @@ connectionDetails <- DatabaseConnector::createConnectionDetails(
 )
 
 executionSettings <- list(
-  database = "my_omop_data",
+  databaseName = "my_omop_data",
   cdmDatabaseSchema = "cdm",
   workDatabaseSchema = "scratch",
   cohortTable = "cohorts"
@@ -49,7 +49,7 @@ clinChar <- makeClinChar(
   targetCohortIds = 1,
   targetCohortNames = "Target",
   dbms = connection@dbms,
-  database = executionSettings$database
+  database = executionSettings$databaseName,
   cdmDatabaseSchema = executionSettings$cdmDatabaseSchema,
   workDatabaseSchema = executionSettings$workDatabaseSchema,
   cohortTable = executionSettings$cohortTable
@@ -58,7 +58,6 @@ clinChar <- makeClinChar(
   addGenderChar() |>
   addRaceChar() |>
   addYearChar(categorize = year5yrGrp()) |>
-  addLocationChar(locationTable = makeLocationTable(connection, cdmDatabaseSchema = executionSettings$cdmDatabaseSchema)) |>
   addConditionPresence(
     conceptSets = charlsonConcepts(),
     timeWindows = makeTimeTable(time_a = -365, time_b = -1),
@@ -88,17 +87,19 @@ clinChar <- makeClinChar(
   )
 
 
-res <- runClinicalCharacteristics(
-  connection = connection, 
-  clinChar = clinChar,
-  saveName = "my_table",
-  savePath = outputFolder,
-  dropDat = TRUE)
+# run the clinical characteristics
+dt <- runClinicalCharacteristics(connection = connection,
+                                      clinChar = clinChar,
+                                      saveName = "internals_test",
+                                      savePath = outputFolder,
+                                      dropDat = FALSE)
 
-previewClincalCharacteristics(res, type = "categorical")
-previewClincalCharacteristics(res, type = "continuous")
-
-DatabaseConnector::disconnect(con)
+# preview the categorical results
+previewClincalCharacteristics(dt, type = "categorical")
+# preview the continuous results
+previewClincalCharacteristics(dt, type = "continuous")
+#build a report
+createReport(clinChar, outputFolder = outputFolder)
 
 
 ```

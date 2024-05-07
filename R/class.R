@@ -57,6 +57,7 @@ setClass("executionSettings",
            cdmDatabaseSchema = "character",
            vocabularyDatabaseSchema = "character",
            workDatabaseSchema = "character",
+           tempEmulationSchema = "character",
            cohortTable = "character",
            timeWindowTable = "character",
            codesetTable = "character",
@@ -64,10 +65,11 @@ setClass("executionSettings",
          ),
          prototype = list(
            dbms = NA_character_,
-           database = "character",
+           database = NA_character_,
            cdmDatabaseSchema = NA_character_,
            vocabularyDatabaseSchema = NA_character_,
            workDatabaseSchema = NA_character_,
+           tempEmulationSchema = NA_character_,
            cohortTable = NA_character_,
            timeWindowTable = "#tw",
            codesetTable = "#Codesets",
@@ -178,6 +180,7 @@ setClass("visitDetailChar",
          slots = c(
            domain = "character",
            orderId = "integer",
+           categoryId = "integer",
            visitDetailTable = "visitDetailTable",
            time = "data.frame",
            tempTables = "list"
@@ -185,6 +188,7 @@ setClass("visitDetailChar",
          prototype = list(
            domain = NA_character_,
            orderId = NA_integer_,
+           categoryId = NA_integer_,
            visitDetailTable = new("visitDetailTable"),
            time = data.frame('time_id' = 1, 'time_a' = -365, 'time_b' = -1),
            tempTables = list()
@@ -253,6 +257,7 @@ setClass("presenceChar",
            orderId = "integer",
            categoryId = "integer",
            conceptSets = "list",
+           conceptType = "integer",
            limit = "character",
            time = "data.frame",
            tempTables = "list",
@@ -263,6 +268,7 @@ setClass("presenceChar",
            orderId = NA_integer_,
            categoryId = NA_integer_,
            conceptSets = list(),
+           conceptType = NA_integer_,
            limit = "last",
            time = data.frame('time_id' = 1, 'time_a' = -365, 'time_b' = -1),
            tempTables = list(),
@@ -703,6 +709,9 @@ setMethod("as_sql", "presenceChar", function(x){
   time_a <- paste(x@time$time_a, collapse = ", ")
   time_b <- paste(x@time$time_b, collapse = ", ")
   codesetIds <- paste(x@tempTables$codeset, collapse = ", ")
+  conceptTypeSql <- concept_type_sql(domain = x@domain,
+                                     conceptType = x@conceptType)
+  conceptTypeSql <- gsub("AND", "WHERE", conceptTypeSql)
 
   #codesetSql <- bind_codeset_queries(x@conceptSets, codesetTable = x@tempTables$codeset)
   querySql <- glue::glue(
@@ -728,6 +737,7 @@ setMethod("as_sql", "presenceChar", function(x){
      INNER JOIN T1 tw
           ON DATEADD(day, tw.time_a, t.cohort_start_date) <= d.{domain_trans$event_date}
           AND DATEADD(day, tw.time_b, t.cohort_start_date) >= d.{domain_trans$event_date}
+    {conceptTypeSql}
      ;")
 
   insertSql <- glue::glue(
@@ -757,15 +767,19 @@ setMethod("as_sql", "countChar", function(x){
   domain_trans <- domain_translate(domain)
   time_a <- paste(x@time$time_a, collapse = ", ")
   time_b <- paste(x@time$time_b, collapse = ", ")
-  if (!all(is.na(x@conceptType))) {
-    conceptType <- paste(x@conceptType, collapse = ", ")
-    conceptTypeSql <- glue::glue(
-      "AND {domain_trans$concept_type_id} IN ({conceptType})"
-    )
-  } else{
-    conceptTypeSql <- ""
-  }
-  conceptType <- paste(x@conceptType, collapse = ", ")
+
+  conceptTypeSql <- concept_type_sql(domain = x@domain,
+                                     conceptType = x@conceptType)
+
+  # if (!all(is.na(x@conceptType))) {
+  #   conceptType <- paste(x@conceptType, collapse = ", ")
+  #   conceptTypeSql <- glue::glue(
+  #     "AND {domain_trans$concept_type_id} IN ({conceptType})"
+  #   )
+  # } else{
+  #   conceptTypeSql <- ""
+  # }
+  # conceptType <- paste(x@conceptType, collapse = ", ")
 
   if (!is.null(x@conceptSets)) {
     codesetIds <- paste(x@tempTables$codeset, collapse = ", ")
@@ -829,7 +843,7 @@ setMethod("as_sql", "countChar", function(x){
           ON DATEADD(day, tw.time_a, a.cohort_start_date) <= d.{domain_trans$event_date}
           AND DATEADD(day, tw.time_b, a.cohort_start_date) >= d.{domain_trans$event_date}
     WHERE d.{domain_trans$concept_id} <> 0
-    AND {domain_trans$concept_type_id} IN ({conceptType})
+    {conceptTypeSql}
     )
     SELECT d.cohort_definition_id, d.subject_id, d.time_id, COUNT(d.{domain_trans$record_id}) AS value
     INTO {x@tempTables$count}
@@ -860,7 +874,10 @@ setMethod("as_sql", "costChar", function(x){
   domain_trans <- domain_translate(domain)
   time_a <- paste(x@time$time_a, collapse = ", ")
   time_b <- paste(x@time$time_b, collapse = ", ")
-  conceptType <- paste(x@conceptType, collapse = ", ")
+  conceptTypeSql <- concept_type_sql(domain = x@domain,
+                                     conceptType = x@conceptType)
+
+
 
   if (!is.null(x@conceptSets)) {
     codesetIds <- paste(x@tempTables$codeset, collapse = ", ")
@@ -889,7 +906,7 @@ setMethod("as_sql", "costChar", function(x){
           ON DATEADD(day, tw.time_a, a.cohort_start_date) <= d.{domain_trans$event_date}
           AND DATEADD(day, tw.time_b, a.cohort_start_date) >= d.{domain_trans$event_date}
     WHERE d.{domain_trans$concept_id} <> 0
-    AND {domain_trans$concept_type_id} IN ({conceptType})
+    {conceptTypeSql}
     AND {x@costType} >= 0
     )
     SELECT d.cohort_definition_id, d.subject_id, d.time_id, d.value_id, FLOOR(SUM(d.{x@costType})) AS value
@@ -929,7 +946,7 @@ setMethod("as_sql", "costChar", function(x){
           ON DATEADD(day, tw.time_a, a.cohort_start_date) <= d.{domain_trans$event_date}
           AND DATEADD(day, tw.time_b, a.cohort_start_date) >= d.{domain_trans$event_date}
     WHERE d.{domain_trans$concept_id} <> 0
-    AND {domain_trans$concept_type_id} IN ({conceptType})
+    {conceptTypeSql}
     AND {x@costType} >= 0
     )
     SELECT d.cohort_definition_id, d.subject_id, d.time_id, d.currency_concept_id, FLOOR(SUM(d.{x@costType})) AS value
@@ -1684,4 +1701,173 @@ setMethod("get_labels", "visitDetailChar", function(x){
     )
 
   return(lbl_tbl)
+})
+
+
+# report it ------------------
+
+setGeneric("report_it", function(x)  standardGeneric("report_it"))
+
+
+## Age Char ----------
+age_report_labels <- function(lbl) {
+  lbl <- switch(lbl,
+                'age5yrGrp' = "Age Group (5 year)",
+                'age10yrGrp' = "Age Group (10 year)")
+  return(lbl)
+}
+
+setMethod("report_it", "ageChar", function(x){
+  txt1 <- glue::glue("- Age Continuous")
+  if (!is.null(x@categorize)) {
+    txt_lbl <- age_report_labels(x@categorize@name)
+    txt_cat <- glue::glue("- {txt_lbl}")
+    txt1 <- c(txt1, txt_cat)
+  }
+  return(txt1)
+})
+
+
+## DemoChar --------
+
+setMethod("report_it", "demoConceptChar", function(x){
+  dm <- snakecase::to_title_case(x@domain)
+  txt1 <- glue::glue("- {dm}")
+  return(txt1)
+})
+
+
+## yearChar --------
+
+
+year_report_labels <- function(lbl) {
+  lbl <- switch(lbl,
+                'year5yrGrp' = "Year Group (5 year)",
+                'year10yrGrp' = "Year Group (10 year)")
+  return(lbl)
+}
+
+setMethod("report_it", "yearChar", function(x){
+  txt1 <- glue::glue("- Year")
+  if (!is.null(x@categorize)) {
+    txt_lbl <- year_report_labels(x@categorize@name)
+    txt_cat <- glue::glue("- {txt_lbl}")
+    txt1 <- c(txt1, txt_cat)
+  }
+  return(txt1)
+})
+
+
+## presenceChar ----------------
+
+setMethod("report_it", "presenceChar", function(x){
+
+  dm_head <- snakecase::to_title_case(x@domain) # header domain
+  dm_sent <- tolower(snakecase::to_sentence_case(x@domain)) # sentence domain
+  lm_txt <- x@limit # limit
+  tw_txt <- report_time(x) # time windows
+  cs_txt <- report_concepts(x) # cs table
+
+  # create section header
+  txt1 <- glue::glue_collapse(
+    c(
+    glue::glue(
+    "### {dm_head}
+
+    We characterize the {lm_txt} {dm_sent} during the following time windows relative to the index date:"
+
+    ),
+    "\n**Time Windows**\n",
+    tw_txt,
+    "\n",
+    glue::glue("We use the following concept sets to characterize the presence of {dm_sent}:"),
+    "\n**Concept Sets**\n",
+    cs_txt),
+    sep = "\n"
+  )
+
+  return(txt1)
+})
+
+
+
+## countChar ----------------
+
+setMethod("report_it", "countChar", function(x){
+
+  dm_head <- snakecase::to_title_case(x@domain) # header domain
+  dm_sent <- tolower(snakecase::to_sentence_case(x@domain)) # sentence domain
+  tw_txt <- report_time(x) # time windows
+  if (!is.null(x@conceptSets)) {
+    cs_txt <- report_concepts(x) # cs table
+    cs_txt2 <- glue::glue_collapse(
+      c(glue::glue("We use the following concept sets to characterize the number of occurrences for {dm_sent}:"),
+        "\n",
+        cs_txt
+      ),
+      sep = "\n"
+    )
+  } else{
+    cs_txt2 <- glue::glue("We use all concepts to characterize the number of occurrences for {dm_sent}.\n")
+  }
+
+
+  # create section header
+  txt1 <- glue::glue_collapse(
+    c(
+      glue::glue(
+        "### {dm_head}
+
+    We characterize the number of {dm_sent} during the following time windows relative to the index date:"
+
+      ),
+      "\n**Time Windows**\n",
+      tw_txt,
+      "\n**Concept Sets**\n",
+      cs_txt2),
+    sep = "\n"
+  )
+
+  return(txt1)
+})
+
+
+## countChar ----------------
+
+setMethod("report_it", "costChar", function(x){
+
+  dm_head <- snakecase::to_title_case(x@domain) # header domain
+  dm_sent <- tolower(snakecase::to_sentence_case(x@domain)) # sentence domain
+  tw_txt <- report_time(x) # time windows
+  if (!is.null(x@conceptSets)) {
+    cs_txt <- report_concepts(x) # cs table
+    cs_txt2 <- glue::glue_collapse(
+      c(glue::glue("We use the following concept sets to characterize the cost attributed to {dm_sent}:"),
+        "\n",
+        cs_txt
+      ),
+      sep = "\n"
+    )
+  } else{
+    cs_txt2 <- glue::glue("We use all concepts to characterize the cost attributed to {dm_sent}.\n")
+  }
+
+
+  # create section header
+  txt1 <- glue::glue_collapse(
+    c(
+      glue::glue(
+        "### {dm_head}
+
+    We characterize the cost of {dm_sent} during the following time windows relative to the index date:"
+
+      ),
+      "\n**Time Windows**\n",
+      tw_txt,
+      "\n**Concept Sets**\n",
+      cs_txt2),
+    sep = "\n"
+  )
+
+  return(txt1)
 })
