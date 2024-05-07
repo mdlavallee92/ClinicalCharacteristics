@@ -115,17 +115,9 @@ addSpecialtyChar <- function(clinChar, visitDetailTable, timeWindows) {
               visitDetailTable = visitDetailTable,
               categoryId = 9001L)
 
-  # check if clinChar is snowflake and use temp schema
-  if (check_dbms(clinChar) == "snowflake") {
-    tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    tbl_detail <- glue::glue("{tempSchema}.vd_tmp")
-  } else {
-    tbl_detail <- "#vd"
-  }
-
   specChar@time <- timeWindows
   specChar@tempTables <- list(
-    'detail' = tbl_detail
+    'detail' = "#vd"
   )
 
   clinChar@extractSettings <- append(clinChar@extractSettings, specChar)
@@ -155,12 +147,12 @@ addLabChar <- function(clinChar, labUnitTable, timeWindows, limit = c("last", "f
   limit <- match.arg(limit)
 
   # check if clinChar is snowflake and use temp schema
-  if (check_dbms(clinChar) == "snowflake") {
-    tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    tbl_lab <- glue::glue("{tempSchema}.lab_domain_tmp")
-  } else {
-    tbl_lab <- "#lab_domain"
-  }
+  # if (check_dbms(clinChar) == "snowflake") {
+  #   tempSchema <-clinChar@executionSettings@workDatabaseSchema
+  #   tbl_lab <- glue::glue("{tempSchema}.lab_domain_tmp")
+  # } else {
+  #   tbl_lab <- "#lab_domain"
+  # }
 
   labChar <- new("labChar", orderId = set_order_id(clinChar),
                  categoryId = 5005L)
@@ -168,7 +160,7 @@ addLabChar <- function(clinChar, labUnitTable, timeWindows, limit = c("last", "f
   labChar@time <- timeWindows
   labChar@limit <- limit
   labChar@tempTables <- list(
-    'lab' = tbl_lab
+    'lab' = "#lab_domain"
   )
 
   if (!is.null(categorize)) {
@@ -269,14 +261,14 @@ addConditionPresence <- function(clinChar, conceptSets, timeWindows,
   limit <- match.arg(limit)
 
   # check if clinChar is snowflake and use temp schema
-  if (check_dbms(clinChar) == "snowflake") {
-    tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    #tbl_codeset <- glue::glue("{tempSchema}.condition_codeset_tmp")
-    tbl_domain <- glue::glue("{tempSchema}.condition_domain_tmp")
-  } else {
-    #tbl_codeset <- "#condition_codeset"
-    tbl_domain <- "#condition_domain"
-  }
+  # if (check_dbms(clinChar) == "snowflake") {
+  #   tempSchema <-clinChar@executionSettings@workDatabaseSchema
+  #   #tbl_codeset <- glue::glue("{tempSchema}.condition_codeset_tmp")
+  #   tbl_domain <- glue::glue("{tempSchema}.condition_domain_tmp")
+  # } else {
+  #   #tbl_codeset <- "#condition_codeset"
+  #   tbl_domain <- "#condition_domain"
+  # }
 
   conditionChar <- new("presenceChar", domain = "condition_occurrence", orderId = set_order_id(clinChar),
                        categoryId = 2001L)
@@ -284,7 +276,7 @@ addConditionPresence <- function(clinChar, conceptSets, timeWindows,
   conditionChar@time <- timeWindows
   conditionChar@limit <- limit
   conditionChar@tempTables <- list(
-    'domain' = tbl_domain,
+    'domain' = "#condition_domain",
     'codeset' = c()
   )
 
@@ -325,14 +317,6 @@ addDrugPresence <- function(clinChar, conceptSets, timeWindows,
 
   limit <- match.arg(limit)
 
-  # check if clinChar is snowflake and use temp schema
-  if (check_dbms(clinChar) == "snowflake") {
-    tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    #tbl_codeset <- glue::glue("{tempSchema}.drug_codeset_tmp")
-    tbl_domain <- glue::glue("{tempSchema}.drug_domain_tmp")
-  } else {
-    tbl_domain <- "#drug_domain"
-  }
 
   drugChar <- new("presenceChar", domain = "drug_exposure", orderId = set_order_id(clinChar),
                   categoryId = 3001L)
@@ -340,7 +324,7 @@ addDrugPresence <- function(clinChar, conceptSets, timeWindows,
   drugChar@limit <- limit
   drugChar@time <- timeWindows
   drugChar@tempTables <- list(
-    'domain' = tbl_domain,
+    'domain' = "#drug_domain",
     'codeset' =  c()
   )
 
@@ -381,22 +365,13 @@ addObservationPresence <- function(clinChar, conceptSets, timeWindows,
 
   limit <- match.arg(limit)
 
-  # check if clinChar is snowflake and use temp schema
-  if (check_dbms(clinChar) == "snowflake") {
-    tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    #tbl_codeset <- glue::glue("{tempSchema}.drug_codeset_tmp")
-    tbl_domain <- glue::glue("{tempSchema}.obs_domain_tmp")
-  } else {
-    tbl_domain <- "#obs_domain"
-  }
-
   obsChar <- new("presenceChar", domain = "observation", orderId = set_order_id(clinChar),
                  categoryId = 6001L)
   obsChar@conceptSets <- conceptSets
   obsChar@limit <- limit
   obsChar@time <- timeWindows
   obsChar@tempTables <- list(
-    'domain' = tbl_domain,
+    'domain' = "#obs_domain",
     'codeset' =  c()
   )
 
@@ -438,14 +413,6 @@ addProcedurePresence <- function(clinChar, conceptSets, timeWindows,
 
   limit <- match.arg(limit)
 
-  # check if clinChar is snowflake and use temp schema
-  if (check_dbms(clinChar) == "snowflake") {
-    tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    #tbl_codeset <- glue::glue("{tempSchema}.drug_codeset_tmp")
-    tbl_domain <- glue::glue("{tempSchema}.proc_domain_tmp")
-  } else {
-    tbl_domain <- "#proc_domain"
-  }
 
   procChar <- new("presenceChar", domain = "procedure_occurrence", orderId = set_order_id(clinChar),
                   categoryId = 4001L)
@@ -453,7 +420,7 @@ addProcedurePresence <- function(clinChar, conceptSets, timeWindows,
   procChar@limit <- limit
   procChar@time <- timeWindows
   procChar@tempTables <- list(
-    'domain' = tbl_domain,
+    'domain' = "#proc_domain",
     'codeset' =  c()
   )
 
@@ -494,14 +461,6 @@ addMeasurementPresence <- function(clinChar, conceptSets, timeWindows,
 
   limit <- match.arg(limit)
 
-  # check if clinChar is snowflake and use temp schema
-  if (check_dbms(clinChar) == "snowflake") {
-    tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    #tbl_codeset <- glue::glue("{tempSchema}.drug_codeset_tmp")
-    tbl_domain <- glue::glue("{tempSchema}.meas_domain_tmp")
-  } else {
-    tbl_domain <- "#meas_domain"
-  }
 
   measChar <- new("presenceChar", domain = "measurement", orderId = set_order_id(clinChar),
                   categoryId = 5001L)
@@ -509,7 +468,7 @@ addMeasurementPresence <- function(clinChar, conceptSets, timeWindows,
   measChar@limit <- limit
   measChar@time <- timeWindows
   measChar@tempTables <- list(
-    'domain' = tbl_domain,
+    'domain' = "#meas_domain",
     'codeset' =  c()
   )
 
@@ -551,13 +510,6 @@ addDevicePresence <- function(clinChar, conceptSets, timeWindows,
 
   limit <- match.arg(limit)
 
-  # check if clinChar is snowflake and use temp schema
-  if (check_dbms(clinChar) == "snowflake") {
-    tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    tbl_domain <- glue::glue("{tempSchema}.dev_domain_tmp")
-  } else {
-    tbl_domain <- "#dev_domain"
-  }
 
   devChar <- new("presenceChar", domain = "device_exposure", orderId = set_order_id(clinChar),
                  categoryId = 7001L)
@@ -565,7 +517,7 @@ addDevicePresence <- function(clinChar, conceptSets, timeWindows,
   devChar@limit <- limit
   devChar@time <- timeWindows
   devChar@tempTables <- list(
-    'domain' = tbl_domain,
+    'domain' = "#dev_domain",
     'codeset' =  c()
   )
 
@@ -599,16 +551,6 @@ addDevicePresence <- function(clinChar, conceptSets, timeWindows,
 #' @export
 addDrugCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = c(32810, 32869)) {
 
-  # check if clinChar is snowflake and use temp schema
-  if (check_dbms(clinChar) == "snowflake") {
-    tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    tbl_count <- glue::glue("{tempSchema}.drug_count_tmp")
-    #tbl_codeset <- glue::glue("{tempSchema}.drug_codeset_tmp")
-  } else {
-    #tbl_codeset <- "#drug_codeset"
-    tbl_count <- "#drug_count"
-  }
-
   drugChar <- new("countChar", domain = "drug_exposure", orderId = set_order_id(clinChar),
                   categoryId = 3002L)
   drugChar@time <- timeWindows
@@ -617,7 +559,7 @@ addDrugCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize =
     drugChar@conceptType <- as.integer(conceptType)
   }
   drugChar@tempTables <- list(
-    'count' = tbl_count,
+    'count' = "#drug_count",
     'codeset' = c()
   )
 
@@ -650,15 +592,6 @@ addDrugCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize =
 #' @export
 addVisitCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = NULL) {
 
-  # check if clinChar is snowflake and use temp schema
-  if (check_dbms(clinChar) == "snowflake") {
-    tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    tbl_count <- glue::glue("{tempSchema}.visit_count_tmp")
-    #tbl_codeset <- glue::glue("{tempSchema}.visit_codeset_tmp")
-  } else {
-    #tbl_codeset <- "#visit_codeset"
-    tbl_count <- "#visit_count"
-  }
 
   visitChar <- new("countChar", domain = "visit_occurrence", orderId = set_order_id(clinChar),
                    categoryId = 8002L)
@@ -668,7 +601,7 @@ addVisitCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize 
   }
   visitChar@time <- timeWindows
   visitChar@tempTables <- list(
-    'count' = tbl_count,
+    'count' = "#visit_count",
     'codeset' = c()
   )
 
@@ -701,13 +634,6 @@ addVisitCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize 
 #' @export
 addConditionCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = NULL) {
 
-  # check if clinChar is snowflake and use temp schema
-  if (check_dbms(clinChar) == "snowflake") {
-    tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    tbl_count <- glue::glue("{tempSchema}.cond_count_tmp")
-  } else {
-    tbl_count <- "#cond_count"
-  }
 
   condChar <- new("countChar", domain = "condition_occurrence", orderId = set_order_id(clinChar),
                   categoryId = 2002L)
@@ -717,7 +643,7 @@ addConditionCount <- function(clinChar, timeWindows, conceptSets = NULL, categor
     condChar@conceptType <- as.integer(conceptType)
   }
   condChar@tempTables <- list(
-    'count' = tbl_count,
+    'count' = "#cond_count",
     'codeset' = c()
   )
 
@@ -750,13 +676,6 @@ addConditionCount <- function(clinChar, timeWindows, conceptSets = NULL, categor
 #' @export
 addProcedureCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = NULL) {
 
-  # check if clinChar is snowflake and use temp schema
-  if (check_dbms(clinChar) == "snowflake") {
-    tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    tbl_count <- glue::glue("{tempSchema}.proc_count_tmp")
-  } else {
-    tbl_count <- "#proc_count"
-  }
 
   procChar <- new("countChar", domain = "procedure_occurrence", orderId = set_order_id(clinChar),
                   categoryId = 4002L)
@@ -766,7 +685,7 @@ addProcedureCount <- function(clinChar, timeWindows, conceptSets = NULL, categor
   }
   procChar@time <- timeWindows
   procChar@tempTables <- list(
-    'count' = tbl_count,
+    'count' = "#proc_count",
     'codeset' = c()
   )
 
@@ -798,14 +717,6 @@ addProcedureCount <- function(clinChar, timeWindows, conceptSets = NULL, categor
 #' @export
 addMeasurementCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = NULL) {
 
-  # check if clinChar is snowflake and use temp schema
-  if (check_dbms(clinChar) == "snowflake") {
-    tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    tbl_count <- glue::glue("{tempSchema}.meas_count_tmp")
-  } else {
-    tbl_count <- "#meas_count"
-  }
-
   measChar <- new("countChar", domain = "measurement", orderId = set_order_id(clinChar),
                   categoryId = 5002L)
   measChar@time <- timeWindows
@@ -814,7 +725,7 @@ addMeasurementCount <- function(clinChar, timeWindows, conceptSets = NULL, categ
     measChar@conceptType <- as.integer(conceptType)
   }
   measChar@tempTables <- list(
-    'count' = tbl_count,
+    'count' = "#meas_count",
     'codeset' = c()
   )
 
@@ -847,13 +758,6 @@ addMeasurementCount <- function(clinChar, timeWindows, conceptSets = NULL, categ
 #' @export
 addObservationCount <- function(clinChar, timeWindows, conceptSets = NULL, categorize = NULL, conceptType = NULL) {
 
-  # check if clinChar is snowflake and use temp schema
-  if (check_dbms(clinChar) == "snowflake") {
-    tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    tbl_count <- glue::glue("{tempSchema}.obs_count_tmp")
-  } else {
-    tbl_count <- "#obs_count"
-  }
 
   obsChar <- new("countChar", domain = "observation", orderId = set_order_id(clinChar),
                  categoryId = 6002L)
@@ -863,7 +767,7 @@ addObservationCount <- function(clinChar, timeWindows, conceptSets = NULL, categ
   }
   obsChar@time <- timeWindows
   obsChar@tempTables <- list(
-    'count' = tbl_count,
+    'count' = "#obs_count",
     'codeset' = c()
   )
 
@@ -898,13 +802,6 @@ addDrugCost <- function(clinChar, timeWindows, conceptSets = NULL,
                         costType = "amount_allowed", categorize = NULL,
                         conceptType = c(32810, 32869)) {
 
-  # check if clinChar is snowflake and use temp schema
-  if (check_dbms(clinChar) == "snowflake") {
-    tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    tbl_cost <- glue::glue("{tempSchema}.drug_cost_tmp")
-  } else {
-    tbl_cost <- "#drug_cost"
-  }
 
   drugChar <- new("costChar", domain = "drug_exposure", orderId = set_order_id(clinChar),
                   categoryId = 3003L)
@@ -913,7 +810,7 @@ addDrugCost <- function(clinChar, timeWindows, conceptSets = NULL,
   drugChar@conceptType <- as.integer(conceptType)
   drugChar@time <- timeWindows
   drugChar@tempTables <- list(
-    'cost' = tbl_cost,
+    'cost' = "#drug_cost",
     'codeset' = c()
   )
   if (!is.null(categorize)) {
@@ -945,13 +842,6 @@ addProcedureCost <- function(clinChar, timeWindows, conceptSets = NULL,
                         costType = "amount_allowed", categorize = NULL,
                         conceptType = c(32810, 32869)) {
 
-  # check if clinChar is snowflake and use temp schema
-  if (check_dbms(clinChar) == "snowflake") {
-    tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    tbl_cost <- glue::glue("{tempSchema}.proc_cost_tmp")
-  } else {
-    tbl_cost <- "#drug_cost"
-  }
 
   procChar <- new("costChar", domain = "procedure_occurrence", orderId = set_order_id(clinChar),
                   categoryId = 4003L)
@@ -960,7 +850,7 @@ addProcedureCost <- function(clinChar, timeWindows, conceptSets = NULL,
   procChar@conceptType <- as.integer(conceptType)
   procChar@time <- timeWindows
   procChar@tempTables <- list(
-    'cost' = tbl_cost,
+    'cost' = "#drug_cost",
     'codeset' = c()
   )
   if (!is.null(categorize)) {
@@ -995,14 +885,6 @@ addVisitCost <- function(clinChar, timeWindows,
                          categorize = NULL,
                          conceptType = c(32810, 32869)) {
 
-  # check if clinChar is snowflake and use temp schema
-  if (check_dbms(clinChar) == "snowflake") {
-    tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    tbl_cost <- glue::glue("{tempSchema}.visit_cost_tmp")
-  } else {
-    tbl_cost <- "#visit_cost"
-  }
-
   visitChar <- new("costChar", domain = "visit_occurrence", orderId = set_order_id(clinChar),
                    categoryId = 8003L)
   visitChar@costType <- costType
@@ -1010,7 +892,7 @@ addVisitCost <- function(clinChar, timeWindows,
   visitChar@conceptType <- as.integer(conceptType)
   visitChar@time <- timeWindows
   visitChar@tempTables <- list(
-    'cost' = tbl_cost,
+    'cost' = "#visit_cost",
     'codeset' = c()
   )
   if (!is.null(categorize)) {
@@ -1105,15 +987,6 @@ addTimeToDrug <- function(clinChar, conceptSets, timeWindows, limit = c("first",
 
   limit <- match.arg(limit)
 
-  # check if clinChar is snowflake and use temp schema
-  if (check_dbms(clinChar) == "snowflake") {
-    tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    #tbl_codeset <- glue::glue("{tempSchema}.drug_codeset_tmp")
-    tbl_duration <- glue::glue("{tempSchema}.drug_duration_tmp")
-  } else {
-    #tbl_codeset <- "#drug_codeset"
-    tbl_duration <- "#drug_duration"
-  }
 
   drugChar <- new("timeToChar", domain = "drug_exposure", orderId = set_order_id(clinChar),
                   categoryId = 3004L)
@@ -1121,7 +994,7 @@ addTimeToDrug <- function(clinChar, conceptSets, timeWindows, limit = c("first",
   drugChar@time <- timeWindows
   drugChar@limit <- limit
   drugChar@tempTables <- list(
-    'duration' = tbl_duration,
+    'duration' = "#drug_duration",
     'codeset' = c()
   )
 
@@ -1162,23 +1035,13 @@ addTimeToCondition <- function(clinChar, conceptSets, timeWindows, limit = c("fi
 
   limit <- match.arg(limit)
 
-  # check if clinChar is snowflake and use temp schema
-  if (check_dbms(clinChar) == "snowflake") {
-    tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    #tbl_codeset <- glue::glue("{tempSchema}.drug_codeset_tmp")
-    tbl_duration <- glue::glue("{tempSchema}.cond_duration_tmp")
-  } else {
-    #tbl_codeset <- "#drug_codeset"
-    tbl_duration <- "#cond_duration"
-  }
-
   condChar <- new("timeToChar", domain = "condition_occurrence", orderId = set_order_id(clinChar),
                   categoryId = 2004L)
   condChar@conceptSets <- conceptSets
   condChar@time <- timeWindows
   condChar@limit <- limit
   condChar@tempTables <- list(
-    'duration' = tbl_duration,
+    'duration' = "#cond_duration",
     'codeset' = c()
   )
 
@@ -1218,13 +1081,6 @@ addTimeToProcedure <- function(clinChar, conceptSets, timeWindows, limit = c("fi
 
   limit <- match.arg(limit)
 
-  # check if clinChar is snowflake and use temp schema
-  if (check_dbms(clinChar) == "snowflake") {
-    tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    tbl_duration <- glue::glue("{tempSchema}.proc_duration_tmp")
-  } else {
-    tbl_duration <- "#proc_duration"
-  }
 
   procChar <- new("timeToChar", domain = "procedure_occurrence", orderId = set_order_id(clinChar),
                   categoryId = 4004L)
@@ -1232,7 +1088,7 @@ addTimeToProcedure <- function(clinChar, conceptSets, timeWindows, limit = c("fi
   procChar@time <- timeWindows
   procChar@limit <- limit
   procChar@tempTables <- list(
-    'duration' = tbl_duration,
+    'duration' = "#proc_duration",
     'codeset' = c()
   )
 
@@ -1273,21 +1129,13 @@ addTimeToMeasurement <- function(clinChar, conceptSets, timeWindows, limit = c("
 
   limit <- match.arg(limit)
 
-  # check if clinChar is snowflake and use temp schema
-  if (check_dbms(clinChar) == "snowflake") {
-    tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    tbl_duration <- glue::glue("{tempSchema}.meas_duration_tmp")
-  } else {
-    tbl_duration <- "#meas_duration"
-  }
-
   measChar <- new("timeToChar", domain = "measurement", orderId = set_order_id(clinChar),
                   categoryId = 5004L)
   measChar@conceptSets <- conceptSets
   measChar@time <- timeWindows
   measChar@limit <- limit
   measChar@tempTables <- list(
-    'duration' = tbl_duration,
+    'duration' = "#meas_duration",
     'codeset' = c()
   )
 
@@ -1328,21 +1176,13 @@ addTimeToObservation <- function(clinChar, conceptSets, timeWindows, limit = c("
 
   limit <- match.arg(limit)
 
-  # check if clinChar is snowflake and use temp schema
-  if (check_dbms(clinChar) == "snowflake") {
-    tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    tbl_duration <- glue::glue("{tempSchema}.obs_duration_tmp")
-  } else {
-    tbl_duration <- "#obs_duration"
-  }
-
   obsChar <- new("timeToChar", domain = "observation", orderId = set_order_id(clinChar),
                  categoryId = 6004L)
   obsChar@conceptSets <- conceptSets
   obsChar@time <- timeWindows
   obsChar@limit <- limit
   obsChar@tempTables <- list(
-    'duration' = tbl_duration,
+    'duration' = "#obs_duration",
     'codeset' = c()
   )
 
@@ -1382,23 +1222,13 @@ addTimeToVisit <- function(clinChar, conceptSets, timeWindows, limit = c("first"
 
   limit <- match.arg(limit)
 
-  # check if clinChar is snowflake and use temp schema
-  if (check_dbms(clinChar) == "snowflake") {
-    tempSchema <-clinChar@executionSettings@workDatabaseSchema
-    #tbl_codeset <- glue::glue("{tempSchema}.visit_codeset_tmp")
-    tbl_duration <- glue::glue("{tempSchema}.visit_duration_tmp")
-  } else {
-    #tbl_codeset <- "#visit_codeset"
-    tbl_duration <- "#visit_duration"
-  }
-
   visitChar <- new("timeToChar", domain = "visit_occurrence", orderId = set_order_id(clinChar),
                    categoryId = 8004L)
   visitChar@conceptSets <- conceptSets
   visitChar@time <- timeWindows
   visitChar@limit <- limit
   visitChar@tempTables <- list(
-    'duration' = tbl_duration,
+    'duration' = "#visit_duration",
     'codeset' = c()
   )
 

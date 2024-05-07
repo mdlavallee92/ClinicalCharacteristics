@@ -37,18 +37,21 @@ insert_time_table <- function(connection, clinChar) {
   )
 
   if(connection@dbms == "snowflake") {
-    tempTabToggle <- FALSE
+    DatabaseConnector::insertTable(
+      connection = connection,
+      tableName = clinChar@executionSettings@timeWindowTable,
+      tempEmulationSchema = clinChar@executionSettings@tempEmulationSchema,
+      data = time_tbl,
+      tempTable = TRUE
+    )
   } else{
-    tempTabToggle <- TRUE
+    DatabaseConnector::insertTable(
+      connection = connection,
+      tableName = clinChar@executionSettings@timeWindowTable,
+      data = time_tbl,
+      tempTable = TRUE
+    )
   }
-
-  DatabaseConnector::insertTable(
-    connection = connection,
-    tableName = clinChar@executionSettings@timeWindowTable,
-    data = time_tbl,
-    tempTable = tempTabToggle
-  )
-
 
   invisible(time_tbl)
 }

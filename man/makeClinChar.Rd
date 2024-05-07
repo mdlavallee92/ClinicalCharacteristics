@@ -12,6 +12,7 @@ makeClinChar(
   cdmDatabaseSchema,
   vocabularyDatabaseSchema = cdmDatabaseSchema,
   workDatabaseSchema,
+  tempEmulationSchema = workDatabaseSchema,
   cohortTable,
   datTableName = "dat"
 )
@@ -28,6 +29,8 @@ makeClinChar(
 \item{vocabularyDatabaseSchema}{the database schema string specifying where the vocabulary sits}
 
 \item{workDatabaseSchema}{the database schema string specifying where the cohor table sits}
+
+\item{tempEmulationSchema}{schema to handle temp tables for oracle and snowflake}
 
 \item{cohortTable}{the table where the cohorts are}
 }
