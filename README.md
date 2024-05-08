@@ -1,4 +1,3 @@
-
 # ClinicalCharacteristics
 
 <!-- badges: start -->
