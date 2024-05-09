@@ -183,7 +183,8 @@ setClass("visitDetailChar",
            categoryId = "integer",
            visitDetailTable = "visitDetailTable",
            time = "data.frame",
-           tempTables = "list"
+           tempTables = "list",
+           count = "logical"
          ),
          prototype = list(
            domain = NA_character_,
@@ -191,7 +192,8 @@ setClass("visitDetailChar",
            categoryId = NA_integer_,
            visitDetailTable = new("visitDetailTable"),
            time = data.frame('time_id' = 1, 'time_a' = -365, 'time_b' = -1),
-           tempTables = list()
+           tempTables = list(),
+           count = FALSE
          )
 )
 
@@ -607,8 +609,54 @@ setMethod("as_sql", "visitDetailChar", function(x){
   detailIds <- unique(x@visitDetailTable@key$concept_id) |>
     paste(collapse = ", ")
 
-  querySql <- glue::glue(
-    "
+  if (x@count) {
+    querySql <- glue::glue(
+      "
+    WITH T1 AS (
+      SELECT * FROM {{timeWindowTable}} tw
+      WHERE time_a IN ({time_a}) AND time_b IN ({time_b})
+    ),
+    T2 As (
+    -- Find matching {domain} covariates
+    SELECT
+      t.cohort_definition_id AS cohort_id,
+      t.subject_id, t.cohort_start_date,
+      tw.time_id,
+      d.visit_detail_start_date,
+      b.{domain_trans$concept_id} AS value_id,
+      1 AS value
+     FROM {{targetTable}} t
+     JOIN {{cdmDatabaseSchema}}.visit_detail d ON t.subject_id = d.person_id
+     JOIN {{cdmDatabaseSchema}}.{domain} b on d.{domain_trans$merge_key} = b.{domain_trans$merge_key}
+     INNER JOIN T1 tw
+          ON DATEADD(day, tw.time_a, t.cohort_start_date) <= d.visit_detail_start_date
+          AND DATEADD(day, tw.time_b, t.cohort_start_date) >= d.visit_detail_start_date
+     WHERE b.{domain_trans$concept_id} IN ({detailIds})
+    )
+    -- Count occurrences
+    SELECT d.cohort_id, d.subject_id, d.time_id, d.value_id, COUNT(d.value) AS value
+    INTO {x@tempTables$detail}
+    FROM T2 d
+    GROUP BY d.cohort_id, d.subject_id, d.time_id, d.value_id
+     ;")
+
+    insertSql <- glue::glue(
+      " -- Insert into data table
+    INSERT INTO {{dataTable}} (cohort_id, subject_id, category_id, time_id, value_id, value)
+    SELECT i.cohort_id, i.subject_id,
+    {x@orderId} AS category_id,
+    i.time_id,
+    i.value_id,
+    i.value
+    FROM {x@tempTables$detail} i
+    ;
+    ")
+
+    sql <- paste(querySql, insertSql, sep = "\n\n")
+
+  } else {
+    querySql <- glue::glue(
+      "
     WITH T1 AS (
       SELECT * FROM {{timeWindowTable}} tw
       WHERE time_a IN ({time_a}) AND time_b IN ({time_b})
@@ -630,8 +678,8 @@ setMethod("as_sql", "visitDetailChar", function(x){
      WHERE b.{domain_trans$concept_id} IN ({detailIds})
      ;")
 
-  insertSql <- glue::glue(
-    " -- Insert into data table
+    insertSql <- glue::glue(
+      " -- Insert into data table
     INSERT INTO {{dataTable}} (cohort_id, subject_id, category_id, time_id, value_id, value)
     SELECT i.cohort_id, i.subject_id,
     {x@orderId} AS category_id,
@@ -642,7 +690,9 @@ setMethod("as_sql", "visitDetailChar", function(x){
     ;
     ")
 
-  sql <- paste(querySql, insertSql, sep = "\n\n")
+    sql <- paste(querySql, insertSql, sep = "\n\n")
+  }
+
   return(sql)
 
 })
@@ -1509,22 +1559,26 @@ setMethod("get_labels", "costChar", function(x){
 
 ## timeInChar ----------------
 setMethod("get_labels", "timeInChar", function(x){
-  time_tbl <- x@time |>
-    dplyr::mutate(
-      time_name = glue::glue("{time_a}d:{time_b}d")
-    ) |>
-    dplyr::select(
-      -c(time_a, time_b)
-    )
 
-  lbl_tbl <- tibble::tibble(
-    value_id = -999,
-    value_name = glue::glue("timeIn_{x@domain}")
-  )
+  if (x@domain == "inpatient") {
+    lbl_tbl <- tibble::tibble(
+      value_id = 9201000262,
+      value_name = glue::glue("Inpatient Length of Stay"),
+
+    )
+  } else {
+    lbl_tbl <- tibble::tibble(
+      value_id = 1001,
+      value_name = glue::glue("Time in Cohort"),
+
+    )
+  }
 
   # get base ids
   lbl_tbl <- lbl_tbl |>
-    tidyr::expand_grid(time_tbl) |>
+    dplyr::mutate(
+      time_name = "Static from Index"
+    ) |>
     dplyr::mutate(
       order_id = x@orderId,
       category_id = x@categoryId,
@@ -1546,9 +1600,9 @@ setMethod("get_labels", "timeInChar", function(x){
         order_id = (x@orderId * 1000) + 1,
         category_id = x@categoryId,
         category_name = glue::glue("timeIn_{x@categorize@name}"),
+        time_name = "Static from Index",
         .before = 1
-      ) |>
-      tidyr::expand_grid(time_tbl)
+      )
 
     #bind with base table
     lbl_tbl <- dplyr::bind_rows(

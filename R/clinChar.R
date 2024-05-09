@@ -182,10 +182,24 @@ check_score <- function(x) {
   return(check)
 }
 
+
+is_vd_cts <- function(clinChar) {
+  es <- clinChar@extractSettings
+  cln <- purrr::map_chr(es, ~methods::is(.x))
+  vd_char <- c("visitDetailChar")
+  ids <- which(cln %in% vd_char)
+  es[[ids]]@count
+
+}
+
 get_cts_ids <- function(clinChar) {
   es <- clinChar@extractSettings
   cln <- purrr::map_chr(es, ~methods::is(.x))
-  cts_char <- c("ageChar", "countChar", "costChar", "timeToChar", "timeInChar", "labChar")
+  cts_char <- c("ageChar", "countChar", "costChar", "timeToChar",
+                "timeInChar", "labChar")
+  if (is_vd_cts(clinChar)) {
+    cts_char <- c(cts_char, "visitDetailChar")
+  }
   ids <- which(cln %in% cts_char)
 
   #add cat that are scored
@@ -212,7 +226,11 @@ check_categorize <- function(x) {
 get_cat_ids <- function(clinChar) {
   es <- clinChar@extractSettings
   cln <- purrr::map_chr(es, ~methods::is(.x))
-  cat_char <- c("demoConceptChar", "presenceChar", "visitDetailChar", "locationChar", "yearChar")
+  cat_char <- c("demoConceptChar", "presenceChar", "locationChar", "yearChar")
+  if (!is_vd_cts(clinChar)) {
+    cat_char <- c(cat_char, "visitDetailChar")
+  }
+
   ids <- which(cln %in% cat_char)
 
   #add cts that are categorized

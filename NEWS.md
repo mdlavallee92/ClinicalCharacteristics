@@ -1,3 +1,8 @@
+# ClinicalCharacteristics 0.2.8
+
+* summarize specialty by count
+* fix summary of timeIN (inpatient and cohort)
+
 # ClinicalCharacteristics 0.2.7
 
 * add conceptType for timeTo char

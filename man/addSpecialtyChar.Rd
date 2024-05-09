@@ -4,7 +4,7 @@
 \alias{addSpecialtyChar}
 \title{Add a specialty characteristic}
 \usage{
-addSpecialtyChar(clinChar, visitDetailTable, timeWindows)
+addSpecialtyChar(clinChar, visitDetailTable, timeWindows, asCount)
 }
 \arguments{
 \item{clinChar}{a clinChar object maintaining the components of the characterization}
@@ -13,6 +13,8 @@ addSpecialtyChar(clinChar, visitDetailTable, timeWindows)
 
 \item{timeWindows}{a timeWindow object that specifies the boundaries relative to the target start date
 on when to search for the presence of a value. use \code{makeTimeTable} function}
+
+\item{asCount}{a toggle to determine whether to summarize as a count or presence}
 }
 \value{
 adds a visitDetailChar object into the clinChar extractSettings slot
