@@ -188,8 +188,12 @@ is_vd_cts <- function(clinChar) {
   cln <- purrr::map_chr(es, ~methods::is(.x))
   vd_char <- c("visitDetailChar")
   ids <- which(cln %in% vd_char)
-  es[[ids]]@count
-
+  if (length(ids) == 0) {
+    check <- FALSE
+  } else {
+    check <- es[[ids]]@count
+  }
+  return(check)
 }
 
 get_cts_ids <- function(clinChar) {
