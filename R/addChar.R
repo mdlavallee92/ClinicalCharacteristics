@@ -106,10 +106,10 @@ addLocationChar <- function(clinChar, locationTable) {
 #' @param visitDetailTable a visitDetailTable object set using the the makeLocTable fn
 #' @param timeWindows a timeWindow object that specifies the boundaries relative to the target start date
 #' on when to search for the presence of a value. use `makeTimeTable` function
-#' @param asCount a toggle to determine whether to summarize as a count or presence
+#' @param asCount a toggle to determine whether to summarize as a count or presence. Defaults as false
 #' @return adds a visitDetailChar object into the clinChar extractSettings slot
 #' @export
-addSpecialtyChar <- function(clinChar, visitDetailTable, timeWindows, asCount) {
+addSpecialtyChar <- function(clinChar, visitDetailTable, timeWindows, asCount = FALSE) {
 
   specChar <- new("visitDetailChar", orderId = set_order_id(clinChar),
                   domain = "provider",

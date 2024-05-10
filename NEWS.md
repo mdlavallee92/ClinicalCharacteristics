@@ -1,3 +1,7 @@
+# ClinicalCharacteristics 0.2.9
+
+* hot fix asCount param in specialty Char 
+
 # ClinicalCharacteristics 0.2.8
 
 * summarize specialty by count
