@@ -260,6 +260,7 @@ addVisitPresence <- function(clinChar, conceptSets, timeWindows,
 #' @param score describes how the categorical value should be converted to a continuous score.
 #' This function takes a scoreStrategy object to describe the scoring ow it is left NULL.
 #' If the parameter is NULL then no continuous summary is done
+#' @param sourceConcepts the source concept ids to use to limit the query
 #' @return adds a presenceChar object of condition_occurrence into the clinChar extractSettings slot
 #' @export
 addConditionPresence <- function(clinChar, conceptSets, timeWindows,
