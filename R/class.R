@@ -17,6 +17,20 @@ setClass("breaksStrategy",
          )
 )
 
+setClass("breaksStrategy2",
+         slots = c(
+           name = "character",
+           breaks = "numeric",
+           labels = "character"
+         ),
+         prototype = list(
+           name = NA_character_,
+           breaks = NA_real_,
+           labels = "character"
+         )
+)
+
+
 setClass("scoreStrategy",
          slots = c(
            name = "character",
@@ -1255,6 +1269,10 @@ setMethod("get_labels", "ageChar", function(x){
         value_id = grp_id,
         value_name = grp
       ) |>
+      dplyr::add_row(
+        value_id = -999,
+        value_name = "other"
+      ) |>
       dplyr::mutate(# add category name for breaks
         order_id = (x@orderId * 1000) + 1,
         category_id = x@categoryId,
@@ -1314,6 +1332,10 @@ setMethod("get_labels", "yearChar", function(x){
       dplyr::rename(
         value_id = grp_id,
         value_name = grp
+      ) |>
+      dplyr::add_row(
+        value_id = -999,
+        value_name = "other"
       ) |>
       dplyr::mutate(# add category name for breaks
         order_id = (x@orderId * 1000) + 1,
@@ -1505,6 +1527,10 @@ setMethod("get_labels", "countChar", function(x){
         value_id = grp_id,
         value_name = grp
       ) |>
+      dplyr::add_row(
+        value_id = -999,
+        value_name = "other"
+      ) |>
       dplyr::mutate(# add category name for breaks
         order_id = (x@orderId * 1000) + 1,
         category_id = x@categoryId,
@@ -1564,6 +1590,10 @@ setMethod("get_labels", "costChar", function(x){
         value_id = grp_id,
         value_name = grp
       ) |>
+      dplyr::add_row(
+        value_id = -999,
+        value_name = "other"
+      ) |>
       dplyr::mutate(# add category name for breaks
         order_id = (x@orderId * 1000) + 1,
         category_id = x@categoryId,
@@ -1619,6 +1649,10 @@ setMethod("get_labels", "timeInChar", function(x){
       dplyr::rename(
         value_id = grp_id,
         value_name = grp
+      ) |>
+      dplyr::add_row(
+        value_id = -999,
+        value_name = "other"
       ) |>
       dplyr::mutate(# add category name for breaks
         order_id = (x@orderId * 1000) + 1,
@@ -1681,6 +1715,10 @@ setMethod("get_labels", "timeToChar", function(x){
         value_id = grp_id,
         value_name = grp
       ) |>
+      dplyr::add_row(
+        value_id = -999,
+        value_name = "other"
+      ) |>
       dplyr::mutate(# add category name for breaks
         order_id = (x@orderId * 1000) + 1,
         category_id = x@categoryId,
@@ -1732,6 +1770,34 @@ setMethod("get_labels", "labChar", function(x){
       category_name = glue::glue("labs"),
       .before = 1
     )
+
+  # check if categorized
+  if (!is.null(x@categorize)) {
+    # get value names for  breaks
+    lbl_tbl_cat <- tibble::tibble(
+      value_name = x@categorize@labels
+      )|>
+      dplyr::mutate(
+        value_id = dplyr::row_number(), .before = 1
+      ) |>
+      dplyr::add_row(
+        value_id = -999,
+        value_name = "other"
+      ) |>
+      dplyr::mutate(# add category name for breaks
+        order_id = (x@orderId * 1000) + 1,
+        category_id = x@categoryId,
+        category_name = glue::glue("timeTo_{x@categorize@name}"),
+        .before = 1
+      ) |>
+      tidyr::expand_grid(time_tbl)
+
+    #bind with base table
+    lbl_tbl <- dplyr::bind_rows(
+      lbl_tbl, lbl_tbl_cat
+    )
+  }
+
 
   return(lbl_tbl)
 })
