@@ -222,6 +222,16 @@ yearCovid <- function() {
 }
 
 
+## Measurement breaks --------------------
+
+bmiGroups <- function() {
+  br <- new("breaksStrategy2", name = "bmiBreaks",
+            breaks = c(0, 18.5, 25, 30),
+            labels = c("underweight", "normal", "overweight", "obese")
+  )
+  return(br)
+}
+
 ## Custom breaks --------------------------
 
 #' Function to make custom categorical breaks
@@ -242,31 +252,77 @@ customBreaks <- function(x, breaks, labels) {
   return(br)
 }
 
+## sql helper ---------------
+
+make_case_when_sql <- function(breaksStrategy) {
+  x <- breaksStrategy@breaks
+
+  sql_when <- tibble::tibble(
+    lhs = x,
+    rhs = dplyr::lead(x) - 0.01
+  ) |>
+    dplyr::mutate(
+      ord = dplyr::row_number(),
+      expr_left = glue::glue("{lhs} <= a.value"),
+      expr_right = dplyr::if_else(!is.na(rhs), glue::glue("a.value <= {rhs}"), ""),
+      expr_both = glue::glue("WHEN ({expr_left} AND {expr_right}) THEN {ord}"),
+      expr_both = dplyr::if_else(is.na(rhs), gsub(" AND ", "", expr_both), expr_both)
+    ) |>
+    dplyr::pull(expr_both) |>
+    glue::glue_collapse(sep = "\n")
+
+  case_when_sql <- c(
+    "CASE ",
+    glue::glue_collapse(sql_when, sep = "\n\t"),
+    "\nELSE -999 END AS value_id"
+  ) |>
+    glue::glue_collapse()
+
+  return(case_when_sql)
+}
+
+
 ## sql runner -----------
 
-categorize_sql <- function(catId) {
+# Old version with merge key
+# categorize_sql <- function(catId) {
+#   newId <- (catId * 1000) + 1
+#   sql <- glue::glue("
+#   WITH T1 AS (
+#       -- Get covariate to categorize
+#       SELECT * FROM {{dataTable}} WHERE category_id = {catId}
+#     ),
+#     T2 AS (
+#     SELECT a.cohort_id, a.subject_id, a.category_id, a.time_id, b.grp_id AS value_id,
+#       1 AS value
+#     FROM T1 a
+#     LEFT JOIN {{breaksTable}} b ON a.value = b.value
+#     )
+#     SELECT dd.cohort_id, dd.subject_id,
+#       {newId} AS category_id,
+#       dd.time_id,
+#       value_id, value
+#     INTO {{breaks_dat_tmp}}
+#     FROM T2 dd
+#     ;")
+#
+#   return(sql)
+#
+# }
+
+categorize_sql <- function(catId, breaksStrategy) {
   newId <- (catId * 1000) + 1
+  case_when_sql <- make_case_when_sql(breaksStrategy)
   sql <- glue::glue("
-  WITH T1 AS (
-      -- Get covariate to categorize
-      SELECT * FROM {{dataTable}} WHERE category_id = {catId}
-    ),
-    T2 AS (
-    SELECT a.cohort_id, a.subject_id, a.category_id, a.time_id, b.grp_id AS value_id,
+    SELECT a.cohort_id, a.subject_id,
+      {newId} AS category_id, a.time_id,
+      {case_when_sql},
       1 AS value
-    FROM T1 a
-    LEFT JOIN {{breaksTable}} b ON a.value = b.value
-    )
-    SELECT dd.cohort_id, dd.subject_id,
-      {newId} AS category_id,
-      dd.time_id,
-      value_id, value
-    INTO {{breaks_dat_tmp}}
-    FROM T2 dd
-    ;")
+    FROM (
+      SELECT * FROM {{dataTable}} WHERE category_id = {catId}
+      ) a")
 
   return(sql)
-
 }
 
 year_sql <- function(catId) {
@@ -294,8 +350,12 @@ year_sql <- function(catId) {
 
 }
 
-categorize_value <- function(connection, dataTable, breaksTable,
-                             workDatabaseSchema, catId, year) {
+categorize_value <- function(connection,
+                             dataTable,
+                             breaksStrategy,
+                             workDatabaseSchema,
+                             catId,
+                             year) {
 
   dbms <- connection@dbms
 
@@ -304,20 +364,13 @@ categorize_value <- function(connection, dataTable, breaksTable,
   if (year) {
     cat_sql <- year_sql(catId) |> glue::glue()
   } else {
-    cat_sql <- categorize_sql(catId) |> glue::glue()
+    cat_sql <- categorize_sql(catId, breaksStrategy) |> glue::glue()
   }
 
   sql <- glue::glue("
-    /* Step 1: Make Score Values */
-    {cat_sql}
-
-    /* Step 2: Insert into data table */
+    /* Insert categories into data table */
     INSERT INTO {dataTable} (cohort_id, subject_id, category_id, time_id, value_id, value)
-    SELECT * FROM {breaks_dat_tmp};
-
-    /* Step 3: Drop temp score tables */
-    TRUNCATE TABLE {breaks_dat_tmp}; DROP TABLE {breaks_dat_tmp};
-    TRUNCATE TABLE {breaksTable}; DROP TABLE {breaksTable};") |>
+    {cat_sql};") |>
     SqlRender::translate(targetDialect = dbms,
                          tempEmulationSchema = workDatabaseSchema)
 
