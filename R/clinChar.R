@@ -86,7 +86,7 @@ make_dat_table <- function() {
   category_id int NOT NULL,
   time_id int NOT NULL,
   value_id bigint NOT NULL,
-  value int NOT NULL
+  value float NOT NULL
 )
 ;")
 return(sql)
@@ -477,36 +477,36 @@ categorize_them <- function(clinChar, connection) {
         bullet = "pointer",
         bullet_col = "yellow"
       )
-      breaksKey <- breaksObj@breaks |>
-        dplyr::select(-c(grp))
+      # breaksKey <- breaksObj@breaks |>
+      #   dplyr::select(-c(grp))
 
       # Step 1: insert breaks temp table
 
-      ## deal with temp tables if in snowflake
-      if(connection@dbms == "snowflake") {
-        scratchSchema <- clinChar@executionSettings@workDatabaseSchema
-        breaksTbl <- glue::glue("{scratchSchema}.{breaksObj@name}")
-        tempTabToggle <- FALSE
-      } else{
-        breaksTbl <- glue::glue("#{breaksObj@name}")
-        tempTabToggle <- TRUE
-      }
-      cli::cat_line(glue::glue("\t - Insert breaksKey to dbms as {crayon::green(breaksTbl)}"))
-      ## insert temp weights table
-      DatabaseConnector::insertTable(
-        connection = connection,
-        tableName = breaksTbl,
-        data = breaksKey,
-        tempTable = tempTabToggle
-      )
+      # ## deal with temp tables if in snowflake
+      # if(connection@dbms == "snowflake") {
+      #   scratchSchema <- clinChar@executionSettings@workDatabaseSchema
+      #   breaksTbl <- glue::glue("{scratchSchema}.{breaksObj@name}")
+      #   tempTabToggle <- FALSE
+      # } else{
+      #   breaksTbl <- glue::glue("#{breaksObj@name}")
+      #   tempTabToggle <- TRUE
+      # }
+      # cli::cat_line(glue::glue("\t - Insert breaksKey to dbms as {crayon::green(breaksTbl)}"))
+      # ## insert temp weights table
+      # DatabaseConnector::insertTable(
+      #   connection = connection,
+      #   tableName = breaksTbl,
+      #   data = breaksKey,
+      #   tempTable = tempTabToggle
+      # )
 
-      # Step 2: Make score cov and add back to dataTable
+      # Step 1: Make cat cov and add back to dataTable
       cli::cat_line(glue::glue("\t - Categorize and add to {crayon::green(clinChar@executionSettings@dataTable)}"))
       year <- grepl("year", breaksObj@name)
       categorize_value(
         connection = connection,
         dataTable = clinChar@executionSettings@dataTable,
-        breaksTable = breaksTbl,
+        breaksStrategy = breaksObj,
         workDatabaseSchema = clinChar@executionSettings@workDatabaseSchema,
         catId = i,
         year = year
