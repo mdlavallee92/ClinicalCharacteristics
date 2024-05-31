@@ -1787,7 +1787,7 @@ setMethod("get_labels", "labChar", function(x){
       dplyr::mutate(# add category name for breaks
         order_id = (x@orderId * 1000) + 1,
         category_id = x@categoryId,
-        category_name = glue::glue("timeTo_{x@categorize@name}"),
+        category_name = glue::glue("labs_{x@categorize@name}"),
         .before = 1
       ) |>
       tidyr::expand_grid(time_tbl)

@@ -166,10 +166,10 @@ addLabChar <- function(clinChar, labUnitTable, timeWindows, limit = c("last", "f
   )
 
   if (!is.null(categorize)) {
-    if (!methods::is(categorize, "breaksStrategy")) {
+    if (!methods::is(categorize, "breaksStrategy2")) {
       stop("categorize needs to be a breaksStrategy object")
     }
-    char@categorize <- categorize
+    labChar@categorize <- categorize
   }
 
   clinChar@extractSettings <- append(clinChar@extractSettings, labChar)
