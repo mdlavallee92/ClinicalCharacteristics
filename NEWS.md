@@ -1,3 +1,9 @@
+# ClinicalCharacteristics 0.3.0
+
+* change categorization to case_when statements
+* improve lab char summaries
+* separate run clinChar and save
+
 # ClinicalCharacteristics 0.2.10
 
 * add source concepts as option to chars
