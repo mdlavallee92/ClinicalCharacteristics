@@ -14,7 +14,7 @@ age5yrGrp <- function() {
   a <- dplyr::lead(x) - 1
   lab <- glue::glue("{x}-{a}")[-length(x)]
   lab <- c(lab, paste0(dplyr::last(x), "+"))
-  br <- new("breaksStrategy2", name = "age5yrGrp",
+  br <- new("breaksStrategy", name = "age5yrGrp",
             breaks = x,
             labels = lab
   )
@@ -33,7 +33,7 @@ age10yrGrp <- function() {
   a <- dplyr::lead(x) - 1
   lab <- glue::glue("{x}-{a}")[-length(x)]
   lab <- c(lab, paste0(dplyr::last(x), "+"))
-  br <- new("breaksStrategy2", name = "age10yrGrp",
+  br <- new("breaksStrategy", name = "age10yrGrp",
             breaks = x,
             labels = lab
   )
@@ -100,7 +100,7 @@ age10yrGrp <- function() {
 age65 <- function() {
   x <- c(0,65)
   lab <- c(">65", "<=65")
-  br <- new("breaksStrategy2", name = "age65Grp",
+  br <- new("breaksStrategy", name = "age65Grp",
             breaks = x,
             labels = lab
   )
@@ -116,7 +116,7 @@ age65 <- function() {
 age18 <- function() {
   x <- c(0,18)
   lab <- c(">18", "<=18")
-  br <- new("breaksStrategy2", name = "age18Grp",
+  br <- new("breaksStrategy", name = "age18Grp",
             breaks = x,
             labels = lab
   )
@@ -196,7 +196,7 @@ yearCovid <- function() {
 ## Measurement breaks --------------------
 
 bmiGroups <- function() {
-  br <- new("breaksStrategy2", name = "bmiBreaks",
+  br <- new("breaksStrategy", name = "bmiBreaks",
             breaks = c(0, 18.5, 25, 30),
             labels = c("underweight", "normal", "overweight", "obese")
   )

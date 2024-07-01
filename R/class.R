@@ -3,21 +3,8 @@
 
 # Classes --------------------
 
-setClass("breaksStrategy",
-         slots = c(
-           name = "character",
-           breaks = "data.frame"
-         ),
-         prototype = list(
-           name = NA_character_,
-           breaks = data.frame(
-             value = c(),
-             grp = c()
-           )
-         )
-)
 
-setClass("breaksStrategy2",
+setClass("breaksStrategy",
          slots = c(
            name = "character",
            breaks = "numeric",

@@ -166,7 +166,7 @@ addLabChar <- function(clinChar, labUnitTable, timeWindows, limit = c("last", "f
   )
 
   if (!is.null(categorize)) {
-    if (!methods::is(categorize, "breaksStrategy2")) {
+    if (!methods::is(categorize, "breaksStrategy")) {
       stop("categorize needs to be a breaksStrategy object")
     }
     labChar@categorize <- categorize
