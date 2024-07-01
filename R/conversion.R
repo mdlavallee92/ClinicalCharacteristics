@@ -129,21 +129,19 @@ age18 <- function() {
 #' @description
 #' Helper function for year characteristic to make year breaks categorizing persons
 #' per 5 year groups
+#' @param startYear the start year of the sequence, defaults to 2000
 #' @return Creates a breaksStrategy object holding the labels for categorization
 #' @export
-year5yrGrp <- function() {
+year5yrGrp <- function(startYear = 2000) {
   this_year <- as.integer(lubridate::year(lubridate::today()))
-  x <- seq(1987, (this_year + 5), by = 5)
+  x <- seq(startYear, (this_year + 5), by = 5)
   a <- dplyr::lead(x) - 1
   lab <- glue::glue("{x}-{a}")[-length(x)]
-  ll <- tibble::tibble(
-    value = as.numeric(1987:(this_year + 1)),
-    grp = cut(as.numeric(1987:(this_year + 1)), breaks = x, labels = lab, right = FALSE)
-  ) |>
-    dplyr::mutate(
-      grp_id = as.numeric(grp)
-    )
-  br <- new("breaksStrategy", name = "year5yrGrp", breaks = ll)
+  x2 <- x[-length(x)]
+  br <- new("breaksStrategy", name = "year5yrGrp",
+            breaks = x2,
+            labels = lab
+  )
   return(br)
 }
 
@@ -152,22 +150,22 @@ year5yrGrp <- function() {
 #' @description
 #' Helper function for year characteristic to make year breaks categorizing persons
 #' per 10 year groups
+#' @param startYear the start year of the sequence, defaults to 2000
 #' @return Creates a breaksStrategy object holding the labels for categorization
 #' @export
-year10yrGrp <- function() {
+year10yrGrp <- function(startYear = 2000) {
+
   this_year <- as.integer(lubridate::year(lubridate::today()))
-  x <- seq(1987, (this_year + 10), by = 10)
+  x <- seq(startYear, (this_year + 10), by = 10)
   a <- dplyr::lead(x) - 1
   lab <- glue::glue("{x}-{a}")[-length(x)]
-  ll <- tibble::tibble(
-    value = as.numeric(1987:(this_year + 1)),
-    grp = cut(as.numeric(1987:(this_year + 1)), breaks = x, labels = lab, right = FALSE)
-  ) |>
-    dplyr::mutate(
-      grp_id = as.numeric(grp)
-    )
-  br <- new("breaksStrategy", name = "year10yrGrp", breaks = ll)
+  x2 <- x[-length(x)]
+  br <- new("breaksStrategy", name = "year10yrGrp",
+            breaks = x2,
+            labels = lab
+  )
   return(br)
+
 }
 
 #' Make year group by covid time
@@ -176,20 +174,15 @@ year10yrGrp <- function() {
 #' by covid time where 1987-2019 is pre-covid, 2020-2022 is covid and 2023+ is post-covid
 #' @return Creates a breaksStrategy object holding the labels for categorization
 #' @export
-yearCovid <- function() {
-  this_year <- as.integer(lubridate::year(lubridate::today()))
-  x <- c(1987,2020, 2023, (this_year + 1))
-  a <- dplyr::lead(x) - 1
+yearCovid <- function(startYear = 2000) {
+  x <- c(startYear, 2020, 2023)
   lab <- c("pre-covid", "covid", "post-covid")
-  ll <- tibble::tibble(
-    value = as.numeric(1987:(this_year + 1)),
-    grp = cut(as.numeric(1987:(this_year + 1)), breaks = x, labels = lab, right = FALSE)
-  ) |>
-    dplyr::mutate(
-      grp_id = as.numeric(grp)
-    )
-  br <- new("breaksStrategy", name = "yearCovid", breaks = ll)
+  br <- new("breaksStrategy", name = "yearCovid",
+            breaks = x,
+            labels = lab
+  )
   return(br)
+
 }
 
 
