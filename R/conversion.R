@@ -9,18 +9,17 @@
 #' @return Creates a breaksStrategy object holding the labels for categorization
 #' @export
 age5yrGrp <- function() {
+
   x <- seq(0,130, by = 5)
   a <- dplyr::lead(x) - 1
   lab <- glue::glue("{x}-{a}")[-length(x)]
-  ll <- tibble::tibble(
-    value = as.numeric(0:129),
-    grp = cut(0:129, breaks = x, labels = lab, right = FALSE)
-  ) |>
-    dplyr::mutate(
-      grp_id = as.numeric(grp)
-    )
-  br <- new("breaksStrategy", name = "age5yrGrp", breaks = ll)
+  lab <- c(lab, paste0(dplyr::last(x), "+"))
+  br <- new("breaksStrategy2", name = "age5yrGrp",
+            breaks = x,
+            labels = lab
+  )
   return(br)
+
 }
 
 #' Make 10 yr age group
@@ -29,86 +28,68 @@ age5yrGrp <- function() {
 #' @return Creates a breaksStrategy object holding the labels for categorization
 #' @export
 age10yrGrp <- function() {
+
   x <- seq(0,130, by = 10)
   a <- dplyr::lead(x) - 1
   lab <- glue::glue("{x}-{a}")[-length(x)]
-  ll <- tibble::tibble(
-    value = as.numeric(0:129),
-    grp = cut(0:129, breaks = x, labels = lab, right = FALSE)
-  ) |>
-    dplyr::mutate(
-      grp_id = as.numeric(grp)
-    )
-  br <- new("breaksStrategy", name = "age10yrGrp", breaks = ll)
+  lab <- c(lab, paste0(dplyr::last(x), "+"))
+  br <- new("breaksStrategy2", name = "age10yrGrp",
+            breaks = x,
+            labels = lab
+  )
   return(br)
 }
 
-#' Make age group using American Community Survey style
-#' @description
-#' Helper function for age characteristic to make age breaks following the break
-#' style of the American Community Survey (acs)
-#' @return Creates a breaksStrategy object holding the labels for categorization
-#' @export
-ageAcs <- function() {
-  x <- c(0,5,10,15,18,20,21,22,25,30,35,40,45,50,55,
-         60,62,65,67,70, 75, 80, 85, 130)
-  a <- dplyr::lead(x) - 1
-  lab <- glue::glue("{x}-{a}")[-length(x)]
-  ll <- tibble::tibble(
-    value = as.numeric(0:129),
-    grp = cut(0:129, breaks = x, labels = lab, right = FALSE)
-  ) |>
-    dplyr::mutate(
-      grp_id = as.numeric(grp)
-    )
-  br <- new("breaksStrategy", name = "ageAcs", breaks = ll)
-  return(br)
-}
 
-#' Make age groups for common workforce lifespan
-#' @description
-#' Helper function for age characteristic to make age breaks following lifespan
-#' of a working human. 0-14 is child, 15-64 is working age, 65+ is retirement
-#' @return Creates a breaksStrategy object holding the labels for categorization
-#' @export
-ageChildWorkRetire <- function() {
-  x <- c(0,15,65, 130)
-  a <- dplyr::lead(x) - 1
-  lab <- glue::glue("{x}-{a}")[-length(x)]
-  ll <- tibble::tibble(
-    value = as.numeric(0:129),
-    grp = cut(0:129, breaks = x, labels = lab, right = FALSE)
-  ) |>
-    dplyr::mutate(
-      grp_id = as.numeric(grp)
-    )
-  br <- new("breaksStrategy", name = "ageChildWorkRetire", breaks = ll)
-  return(br)
-}
-
-#' Make 19 age groups
-#' @description
-#' Helper function for age characteristic to make 19 age groups where
-#' every 5 years are categorized up to age 85. 85+ is a single group
-#' @return Creates a breaksStrategy object holding the labels for categorization
-#' @export
-age19Grps <- function() {
-  x <- c(seq(0,85, by = 5), 130)
-  x[1] <- 1
-  a <- dplyr::lead(x) - 1
-  lab <- c("0", glue::glue("{x}-{a}"))[-20]
-  x <- c(0,x)
-
-  ll <- tibble::tibble(
-    value = as.numeric(0:129),
-    grp = cut(0:129, breaks = x, labels = lab, right = FALSE)
-  ) |>
-    dplyr::mutate(
-      grp_id = as.numeric(grp)
-    )
-  br <- new("breaksStrategy", name = "age19Grps", breaks = ll)
-  return(br)
-}
+# ageAcs <- function() {
+#   x <- c(0,5,10,15,18,20,21,22,25,30,35,40,45,50,55,
+#          60,62,65,67,70, 75, 80, 85, 130)
+#   a <- dplyr::lead(x) - 1
+#   lab <- glue::glue("{x}-{a}")[-length(x)]
+#   ll <- tibble::tibble(
+#     value = as.numeric(0:129),
+#     grp = cut(0:129, breaks = x, labels = lab, right = FALSE)
+#   ) |>
+#     dplyr::mutate(
+#       grp_id = as.numeric(grp)
+#     )
+#   br <- new("breaksStrategy", name = "ageAcs", breaks = ll)
+#   return(br)
+# }
+#
+# ageChildWorkRetire <- function() {
+#   x <- c(0,15,65, 130)
+#   a <- dplyr::lead(x) - 1
+#   lab <- glue::glue("{x}-{a}")[-length(x)]
+#   ll <- tibble::tibble(
+#     value = as.numeric(0:129),
+#     grp = cut(0:129, breaks = x, labels = lab, right = FALSE)
+#   ) |>
+#     dplyr::mutate(
+#       grp_id = as.numeric(grp)
+#     )
+#   br <- new("breaksStrategy", name = "ageChildWorkRetire", breaks = ll)
+#   return(br)
+# }
+#
+#
+# age19Grps <- function() {
+#   x <- c(seq(0,85, by = 5), 130)
+#   x[1] <- 1
+#   a <- dplyr::lead(x) - 1
+#   lab <- c("0", glue::glue("{x}-{a}"))[-20]
+#   x <- c(0,x)
+#
+#   ll <- tibble::tibble(
+#     value = as.numeric(0:129),
+#     grp = cut(0:129, breaks = x, labels = lab, right = FALSE)
+#   ) |>
+#     dplyr::mutate(
+#       grp_id = as.numeric(grp)
+#     )
+#   br <- new("breaksStrategy", name = "age19Grps", breaks = ll)
+#   return(br)
+# }
 
 #' Make age group using 65 threshold
 #' @description
@@ -117,17 +98,12 @@ age19Grps <- function() {
 #' @return Creates a breaksStrategy object holding the labels for categorization
 #' @export
 age65 <- function() {
-  x <- c(0,65, 130)
-  a <- dplyr::lead(x) - 1
+  x <- c(0,65)
   lab <- c(">65", "<=65")
-  ll <- tibble::tibble(
-    value = as.numeric(0:129),
-    grp = cut(0:129, breaks = x, labels = lab, right = FALSE)
-  ) |>
-    dplyr::mutate(
-      grp_id = as.numeric(grp)
-    )
-  br <- new("breaksStrategy", name = "age65", breaks = ll)
+  br <- new("breaksStrategy2", name = "age65Grp",
+            breaks = x,
+            labels = lab
+  )
   return(br)
 }
 
@@ -138,17 +114,12 @@ age65 <- function() {
 #' @return Creates a breaksStrategy object holding the labels for categorization
 #' @export
 age18 <- function() {
-  x <- c(0,18, 130)
-  a <- dplyr::lead(x) - 1
+  x <- c(0,18)
   lab <- c(">18", "<=18")
-  ll <- tibble::tibble(
-    value = as.numeric(0:129),
-    grp = cut(0:129, breaks = x, labels = lab, right = FALSE)
-  ) |>
-    dplyr::mutate(
-      grp_id = as.numeric(grp)
-    )
-  br <- new("breaksStrategy", name = "age18", breaks = ll)
+  br <- new("breaksStrategy2", name = "age18Grp",
+            breaks = x,
+            labels = lab
+  )
   return(br)
 }
 
