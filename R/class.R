@@ -3,19 +3,20 @@
 
 # Classes --------------------
 
+
 setClass("breaksStrategy",
          slots = c(
            name = "character",
-           breaks = "data.frame"
+           breaks = "numeric",
+           labels = "character"
          ),
          prototype = list(
            name = NA_character_,
-           breaks = data.frame(
-             value = c(),
-             grp = c()
-           )
+           breaks = NA_real_,
+           labels = "character"
          )
 )
+
 
 setClass("scoreStrategy",
          slots = c(
@@ -260,6 +261,7 @@ setClass("presenceChar",
            categoryId = "integer",
            conceptSets = "list",
            conceptType = "integer",
+           sourceConcepts = "integer",
            limit = "character",
            time = "data.frame",
            tempTables = "list",
@@ -271,6 +273,7 @@ setClass("presenceChar",
            categoryId = NA_integer_,
            conceptSets = list(),
            conceptType = NA_integer_,
+           sourceConcepts = NA_integer_,
            limit = "last",
            time = data.frame('time_id' = 1, 'time_a' = -365, 'time_b' = -1),
            tempTables = list(),
@@ -304,6 +307,7 @@ setClass("timeToChar",
            categoryId = "integer",
            conceptSets = "list",
            conceptType = "integer",
+           sourceConcepts = "integer",
            limit = "character",
            time = "data.frame",
            tempTables = "list",
@@ -315,6 +319,7 @@ setClass("timeToChar",
            categoryId = NA_integer_,
            conceptSets = list(),
            conceptType = NA_integer_,
+           sourceConcepts = NA_integer_,
            limit = "first",
            time = data.frame('time_id' = 1, 'time_a' = -365, 'time_b' = -1),
            tempTables = list(),
@@ -330,6 +335,7 @@ setClass("countChar",
            categoryId = "integer",
            conceptSets = "ANY",
            conceptType = "integer",
+           sourceConcepts = "integer",
            time = "data.frame",
            tempTables = "list",
            categorize = "ANY"
@@ -339,6 +345,7 @@ setClass("countChar",
            orderId = NA_integer_,
            categoryId = NA_integer_,
            conceptType = NA_integer_,
+           sourceConcepts = NA_integer_,
            conceptSets = NULL,
            time = data.frame('time_id' = 1, 'time_a' = -365, 'time_b' = -1),
            tempTables = list(),
@@ -765,6 +772,12 @@ setMethod("as_sql", "presenceChar", function(x){
                                      conceptType = x@conceptType)
   conceptTypeSql <- gsub("AND", "WHERE", conceptTypeSql)
 
+  sourceConceptSql <- source_concept_sql(domain = x@domain,
+                                         sourceConcepts = x@sourceConcepts)
+  if (conceptTypeSql == "") {
+    sourceConceptSql <- gsub("AND", "WHERE", sourceConceptSql)
+  }
+
   #codesetSql <- bind_codeset_queries(x@conceptSets, codesetTable = x@tempTables$codeset)
   querySql <- glue::glue(
     "
@@ -790,6 +803,7 @@ setMethod("as_sql", "presenceChar", function(x){
           ON DATEADD(day, tw.time_a, t.cohort_start_date) <= d.{domain_trans$event_date}
           AND DATEADD(day, tw.time_b, t.cohort_start_date) >= d.{domain_trans$event_date}
     {conceptTypeSql}
+    {sourceConceptSql}
      ;")
 
   insertSql <- glue::glue(
@@ -822,6 +836,9 @@ setMethod("as_sql", "countChar", function(x){
 
   conceptTypeSql <- concept_type_sql(domain = x@domain,
                                      conceptType = x@conceptType)
+
+  sourceConceptSql <- source_concept_sql(domain = x@domain,
+                                         sourceConcepts = x@sourceConcepts)
 
   # if (!all(is.na(x@conceptType))) {
   #   conceptType <- paste(x@conceptType, collapse = ", ")
@@ -858,7 +875,8 @@ setMethod("as_sql", "countChar", function(x){
           ON DATEADD(day, tw.time_a, a.cohort_start_date) <= d.{domain_trans$event_date}
           AND DATEADD(day, tw.time_b, a.cohort_start_date) >= d.{domain_trans$event_date}
     WHERE d.{domain_trans$concept_id} <> 0
-    {conceptTypeSql}
+      {conceptTypeSql}
+      {sourceConceptSql}
     )
     SELECT d.cohort_definition_id, d.subject_id, d.time_id, d.value_id, COUNT(d.{domain_trans$record_id}) AS value
     INTO {x@tempTables$count}
@@ -895,7 +913,8 @@ setMethod("as_sql", "countChar", function(x){
           ON DATEADD(day, tw.time_a, a.cohort_start_date) <= d.{domain_trans$event_date}
           AND DATEADD(day, tw.time_b, a.cohort_start_date) >= d.{domain_trans$event_date}
     WHERE d.{domain_trans$concept_id} <> 0
-    {conceptTypeSql}
+      {conceptTypeSql}
+      {sourceConceptSql}
     )
     SELECT d.cohort_definition_id, d.subject_id, d.time_id, COUNT(d.{domain_trans$record_id}) AS value
     INTO {x@tempTables$count}
@@ -929,8 +948,6 @@ setMethod("as_sql", "costChar", function(x){
   conceptTypeSql <- concept_type_sql(domain = x@domain,
                                      conceptType = x@conceptType)
 
-
-
   if (!is.null(x@conceptSets)) {
     codesetIds <- paste(x@tempTables$codeset, collapse = ", ")
     querySql <- glue::glue(
@@ -958,7 +975,7 @@ setMethod("as_sql", "costChar", function(x){
           ON DATEADD(day, tw.time_a, a.cohort_start_date) <= d.{domain_trans$event_date}
           AND DATEADD(day, tw.time_b, a.cohort_start_date) >= d.{domain_trans$event_date}
     WHERE d.{domain_trans$concept_id} <> 0
-    {conceptTypeSql}
+      {conceptTypeSql}
     AND {x@costType} >= 0
     )
     SELECT d.cohort_definition_id, d.subject_id, d.time_id, d.value_id, FLOOR(SUM(d.{x@costType})) AS value
@@ -1079,6 +1096,12 @@ setMethod("as_sql", "timeToChar", function(x){
                                      conceptType = x@conceptType)
   conceptTypeSql <- gsub("AND", "WHERE", conceptTypeSql)
 
+  sourceConceptSql <- source_concept_sql(domain = x@domain,
+                                         sourceConcepts = x@sourceConcepts)
+  if (conceptTypeSql == "") {
+    sourceConceptSql <- gsub("AND", "WHERE", sourceConceptSql)
+  }
+
   querySql <- glue::glue(
     "
     WITH T1 AS (
@@ -1105,6 +1128,8 @@ setMethod("as_sql", "timeToChar", function(x){
           ON DATEADD(day, tw.time_a, t.cohort_start_date) <= d.{domain_trans$event_date}
           AND DATEADD(day, tw.time_b, t.cohort_start_date) >= d.{domain_trans$event_date}
     {conceptTypeSql}
+    {sourceConceptSql}
+
      ;")
 
   insertSql <- glue::glue(
@@ -1223,23 +1248,27 @@ setMethod("get_labels", "ageChar", function(x){
 
   # check if categorized
   if (!is.null(x@categorize)) {
-    # get value names for  breaks
-    lbl_tbl_cat <- x@categorize@breaks |>
-      dplyr::select(grp_id, grp) |>
-      dplyr::distinct() |>
-      dplyr::rename(
-        value_id = grp_id,
-        value_name = grp
+
+    lbl_tbl_cat <- tibble::tibble(
+      value_name = x@categorize@labels
+    )|>
+      dplyr::mutate(
+        value_id = dplyr::row_number(), .before = 1
+      ) |>
+      dplyr::add_row(
+        value_id = -999,
+        value_name = "other"
       ) |>
       dplyr::mutate(# add category name for breaks
         order_id = (x@orderId * 1000) + 1,
         category_id = x@categoryId,
-        category_name = x@categorize@name,
+        category_name = glue::glue("{x@categorize@name}"),
         .before = 1
       ) |>
       dplyr::mutate(
         time_name = "Static from Index"
       )
+
     #bind with base table
     lbl_tbl <- dplyr::bind_rows(
       lbl_tbl, lbl_tbl_cat
@@ -1262,13 +1291,13 @@ setMethod("get_labels", "yearChar", function(x){
   #   value_name = x@domain,
   #   time_name = "Static from Index"
   # )
-
+  this_year <- as.integer(lubridate::year(lubridate::today()))
   # get value names for  breaks
-  lbl_tbl <- year10yrGrp()@breaks |>
-    dplyr::select(value) |>
+  lbl_tbl <- tibble::tibble(
+    value_id = 1960:this_year
+  ) |>
     dplyr::mutate(
-      value_id = value,
-      value_name = glue::glue("Y{value}")
+      value_name = value_id
     ) |>
     dplyr::mutate(# add category name for breaks
       order_id = x@orderId,
@@ -1277,31 +1306,32 @@ setMethod("get_labels", "yearChar", function(x){
       .before = 1
     ) |>
     dplyr::mutate(
-      time_name = "Static from Index"
-    ) |>
-    dplyr::select(-c(value))
+      time_name = "Static from Index",
+      value_name = as.character(value_name)
+    )
+
 
   # check if categorized
   if (!is.null(x@categorize)) {
     # get value names for  breaks
-    lbl_tbl_cat <- x@categorize@breaks |>
-      dplyr::select(grp_id, grp) |>
-      dplyr::distinct() |>
-      dplyr::rename(
-        value_id = grp_id,
-        value_name = grp
+    lbl_tbl_cat <- tibble::tibble(
+      value_name = x@categorize@labels
+    )|>
+      dplyr::mutate(
+        value_id = dplyr::row_number(), .before = 1
+      ) |>
+      dplyr::add_row(
+        value_id = -999,
+        value_name = "other"
       ) |>
       dplyr::mutate(# add category name for breaks
         order_id = (x@orderId * 1000) + 1,
         category_id = x@categoryId,
-        category_name = x@categorize@name,
+        category_name = glue::glue("{x@categorize@name}"),
         .before = 1
       ) |>
       dplyr::mutate(
         time_name = "Static from Index"
-      ) |>
-      dplyr::mutate(
-        value_name = as.character(value_name)
       )
 
     lbl_tbl <- dplyr::bind_rows(lbl_tbl, lbl_tbl_cat)
@@ -1481,6 +1511,10 @@ setMethod("get_labels", "countChar", function(x){
         value_id = grp_id,
         value_name = grp
       ) |>
+      dplyr::add_row(
+        value_id = -999,
+        value_name = "other"
+      ) |>
       dplyr::mutate(# add category name for breaks
         order_id = (x@orderId * 1000) + 1,
         category_id = x@categoryId,
@@ -1540,6 +1574,10 @@ setMethod("get_labels", "costChar", function(x){
         value_id = grp_id,
         value_name = grp
       ) |>
+      dplyr::add_row(
+        value_id = -999,
+        value_name = "other"
+      ) |>
       dplyr::mutate(# add category name for breaks
         order_id = (x@orderId * 1000) + 1,
         category_id = x@categoryId,
@@ -1595,6 +1633,10 @@ setMethod("get_labels", "timeInChar", function(x){
       dplyr::rename(
         value_id = grp_id,
         value_name = grp
+      ) |>
+      dplyr::add_row(
+        value_id = -999,
+        value_name = "other"
       ) |>
       dplyr::mutate(# add category name for breaks
         order_id = (x@orderId * 1000) + 1,
@@ -1657,6 +1699,10 @@ setMethod("get_labels", "timeToChar", function(x){
         value_id = grp_id,
         value_name = grp
       ) |>
+      dplyr::add_row(
+        value_id = -999,
+        value_name = "other"
+      ) |>
       dplyr::mutate(# add category name for breaks
         order_id = (x@orderId * 1000) + 1,
         category_id = x@categoryId,
@@ -1708,6 +1754,34 @@ setMethod("get_labels", "labChar", function(x){
       category_name = glue::glue("labs"),
       .before = 1
     )
+
+  # check if categorized
+  if (!is.null(x@categorize)) {
+    # get value names for  breaks
+    lbl_tbl_cat <- tibble::tibble(
+      value_name = x@categorize@labels
+      )|>
+      dplyr::mutate(
+        value_id = dplyr::row_number(), .before = 1
+      ) |>
+      dplyr::add_row(
+        value_id = -999,
+        value_name = "other"
+      ) |>
+      dplyr::mutate(# add category name for breaks
+        order_id = (x@orderId * 1000) + 1,
+        category_id = x@categoryId,
+        category_name = glue::glue("labs_{x@categorize@name}"),
+        .before = 1
+      ) |>
+      tidyr::expand_grid(time_tbl)
+
+    #bind with base table
+    lbl_tbl <- dplyr::bind_rows(
+      lbl_tbl, lbl_tbl_cat
+    )
+  }
+
 
   return(lbl_tbl)
 })

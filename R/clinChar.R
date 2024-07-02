@@ -61,7 +61,7 @@ makeClinChar <- function(targetCohortIds,
     # clinChar@executionSettings@timeWindowTable <- glue::glue("{workDatabaseSchema}.tw_tmp")
     # clinChar@executionSettings@codesetTable <- glue::glue("{workDatabaseSchema}.codeset_tmp")
   } else{
-    clinChar@executionSettings@tempEmulationSchema <- NULL
+    clinChar@executionSettings@tempEmulationSchema <- NA_character_
     clinChar@executionSettings@dataTable <- glue::glue("#{datTableName}")
   }
 
@@ -86,7 +86,7 @@ make_dat_table <- function() {
   category_id int NOT NULL,
   time_id int NOT NULL,
   value_id bigint NOT NULL,
-  value int NOT NULL
+  value float NOT NULL
 )
 ;")
 return(sql)
@@ -477,36 +477,36 @@ categorize_them <- function(clinChar, connection) {
         bullet = "pointer",
         bullet_col = "yellow"
       )
-      breaksKey <- breaksObj@breaks |>
-        dplyr::select(-c(grp))
+      # breaksKey <- breaksObj@breaks |>
+      #   dplyr::select(-c(grp))
 
       # Step 1: insert breaks temp table
 
-      ## deal with temp tables if in snowflake
-      if(connection@dbms == "snowflake") {
-        scratchSchema <- clinChar@executionSettings@workDatabaseSchema
-        breaksTbl <- glue::glue("{scratchSchema}.{breaksObj@name}")
-        tempTabToggle <- FALSE
-      } else{
-        breaksTbl <- glue::glue("#{breaksObj@name}")
-        tempTabToggle <- TRUE
-      }
-      cli::cat_line(glue::glue("\t - Insert breaksKey to dbms as {crayon::green(breaksTbl)}"))
-      ## insert temp weights table
-      DatabaseConnector::insertTable(
-        connection = connection,
-        tableName = breaksTbl,
-        data = breaksKey,
-        tempTable = tempTabToggle
-      )
+      # ## deal with temp tables if in snowflake
+      # if(connection@dbms == "snowflake") {
+      #   scratchSchema <- clinChar@executionSettings@workDatabaseSchema
+      #   breaksTbl <- glue::glue("{scratchSchema}.{breaksObj@name}")
+      #   tempTabToggle <- FALSE
+      # } else{
+      #   breaksTbl <- glue::glue("#{breaksObj@name}")
+      #   tempTabToggle <- TRUE
+      # }
+      # cli::cat_line(glue::glue("\t - Insert breaksKey to dbms as {crayon::green(breaksTbl)}"))
+      # ## insert temp weights table
+      # DatabaseConnector::insertTable(
+      #   connection = connection,
+      #   tableName = breaksTbl,
+      #   data = breaksKey,
+      #   tempTable = tempTabToggle
+      # )
 
-      # Step 2: Make score cov and add back to dataTable
+      # Step 1: Make cat cov and add back to dataTable
       cli::cat_line(glue::glue("\t - Categorize and add to {crayon::green(clinChar@executionSettings@dataTable)}"))
       year <- grepl("year", breaksObj@name)
       categorize_value(
         connection = connection,
         dataTable = clinChar@executionSettings@dataTable,
-        breaksTable = breaksTbl,
+        breaksStrategy = breaksObj,
         workDatabaseSchema = clinChar@executionSettings@workDatabaseSchema,
         catId = i,
         year = year
@@ -631,21 +631,19 @@ save_summaries <- function(dat,
 
 # UI ---------------------------
 
-#' Runs the characterization and extracts data into an arrow object
+#' Runs the characterization
 #' @description
-#' This runs the characterization specified by the clinChar object
+#' This runs the characterization specified by the clinChar object. The output of the command
+#' is a list containing a tibble of the continuous and categorical output.
 #' @param connection the DatabaseConnector connection linking to the dbms with OMOP data
 #' @param clinChar the clinChar object describing the study
 #' @param dropDat toggle option to drop temporary data table with clinChar results in the dbms
-#' @param saveName a labelling name to distinguish the characterization
-#' @param savePath the folder path to save the csv, defaults to current directory
-#' @return runs database query described in extractSettings and uploads them to the stow object
+#' @return list of 2 tibbles for continuous and categorical tables
 #' @export
 runClinicalCharacteristics <- function(connection,
                                        clinChar,
-                                       dropDat = TRUE,
-                                       saveName = NULL,
-                                       savePath = here::here()) {
+                                       dropDat = TRUE
+                                       ) {
 
   cli::cat_boxx(
     "Run Clinical Characteristics Job"
@@ -689,28 +687,6 @@ runClinicalCharacteristics <- function(connection,
     'categorical' = cat_sum
   )
 
-  # save as csv
-  if(is.null(saveName)) {
-    saveName <- "clin_char_res"
-  } else {
-    saveName <- snakecase::to_snake_case(saveName)
-  }
-
-  if (nrow(clin_char_res$categorical) > 0) {
-    save_summaries(dat = clin_char_res$categorical,
-                   type = "categorical",
-                   saveName = saveName,
-                   savePath = savePath)
-  }
-
-  if (nrow(clin_char_res$continuous) > 0 ) {
-    save_summaries(dat = clin_char_res$continuous,
-                   type = "continuous",
-                   saveName = saveName,
-                   savePath = savePath)
-  }
-
-
   #drop #dat option
   if (dropDat) {
     cli::cat_bullet(
@@ -726,7 +702,46 @@ runClinicalCharacteristics <- function(connection,
     )
   }
 
-  invisible(clin_char_res)
+  return(clin_char_res)
+}
+
+#' Saves the characterization
+#' @description
+#' This saves the characterization tables from runClinicalCharacteristics
+#' The output is to 2 files one for continuous and other for categorical
+#' @param clinCharResults the output from runClinicalCharacteristics
+#' @param saveName a labelling name to distinguish the characterization
+#' @param savePath the folder path to save the csv, defaults to current directory
+#' @return runs database query described in extractSettings and uploads them to the stow object
+#' @export
+saveClinicalCharacteristics <- function(
+  clinCharResults,
+  saveName = NULL,
+  savePath = here::here()
+  ) {
+
+  # save as csv
+  if(is.null(saveName)) {
+    saveName <- "clinCharResults"
+  } else {
+    saveName <- snakecase::to_snake_case(saveName)
+  }
+
+  if (nrow(clinCharResults$categorical) > 0) {
+    save_summaries(dat = clinCharResults$categorical,
+                   type = "categorical",
+                   saveName = saveName,
+                   savePath = savePath)
+  }
+
+  if (nrow(clinCharResults$continuous) > 0 ) {
+    save_summaries(dat = clinCharResults$continuous,
+                   type = "continuous",
+                   saveName = saveName,
+                   savePath = savePath)
+  }
+
+  invisible(clinCharResults)
 }
 
 

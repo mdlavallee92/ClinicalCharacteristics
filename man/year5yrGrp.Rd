@@ -4,7 +4,10 @@
 \alias{year5yrGrp}
 \title{Make year group using 5 yr threshold}
 \usage{
-year5yrGrp()
+year5yrGrp(startYear = 2000)
+}
+\arguments{
+\item{startYear}{the start year of the sequence, defaults to 2000}
 }
 \value{
 Creates a breaksStrategy object holding the labels for categorization

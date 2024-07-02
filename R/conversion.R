@@ -9,18 +9,17 @@
 #' @return Creates a breaksStrategy object holding the labels for categorization
 #' @export
 age5yrGrp <- function() {
+
   x <- seq(0,130, by = 5)
   a <- dplyr::lead(x) - 1
   lab <- glue::glue("{x}-{a}")[-length(x)]
-  ll <- tibble::tibble(
-    value = as.numeric(0:129),
-    grp = cut(0:129, breaks = x, labels = lab, right = FALSE)
-  ) |>
-    dplyr::mutate(
-      grp_id = as.numeric(grp)
-    )
-  br <- new("breaksStrategy", name = "age5yrGrp", breaks = ll)
+  lab <- c(lab, paste0(dplyr::last(x), "+"))
+  br <- new("breaksStrategy", name = "age5yrGrp",
+            breaks = x,
+            labels = lab
+  )
   return(br)
+
 }
 
 #' Make 10 yr age group
@@ -29,86 +28,68 @@ age5yrGrp <- function() {
 #' @return Creates a breaksStrategy object holding the labels for categorization
 #' @export
 age10yrGrp <- function() {
+
   x <- seq(0,130, by = 10)
   a <- dplyr::lead(x) - 1
   lab <- glue::glue("{x}-{a}")[-length(x)]
-  ll <- tibble::tibble(
-    value = as.numeric(0:129),
-    grp = cut(0:129, breaks = x, labels = lab, right = FALSE)
-  ) |>
-    dplyr::mutate(
-      grp_id = as.numeric(grp)
-    )
-  br <- new("breaksStrategy", name = "age10yrGrp", breaks = ll)
+  lab <- c(lab, paste0(dplyr::last(x), "+"))
+  br <- new("breaksStrategy", name = "age10yrGrp",
+            breaks = x,
+            labels = lab
+  )
   return(br)
 }
 
-#' Make age group using American Community Survey style
-#' @description
-#' Helper function for age characteristic to make age breaks following the break
-#' style of the American Community Survey (acs)
-#' @return Creates a breaksStrategy object holding the labels for categorization
-#' @export
-ageAcs <- function() {
-  x <- c(0,5,10,15,18,20,21,22,25,30,35,40,45,50,55,
-         60,62,65,67,70, 75, 80, 85, 130)
-  a <- dplyr::lead(x) - 1
-  lab <- glue::glue("{x}-{a}")[-length(x)]
-  ll <- tibble::tibble(
-    value = as.numeric(0:129),
-    grp = cut(0:129, breaks = x, labels = lab, right = FALSE)
-  ) |>
-    dplyr::mutate(
-      grp_id = as.numeric(grp)
-    )
-  br <- new("breaksStrategy", name = "ageAcs", breaks = ll)
-  return(br)
-}
 
-#' Make age groups for common workforce lifespan
-#' @description
-#' Helper function for age characteristic to make age breaks following lifespan
-#' of a working human. 0-14 is child, 15-64 is working age, 65+ is retirement
-#' @return Creates a breaksStrategy object holding the labels for categorization
-#' @export
-ageChildWorkRetire <- function() {
-  x <- c(0,15,65, 130)
-  a <- dplyr::lead(x) - 1
-  lab <- glue::glue("{x}-{a}")[-length(x)]
-  ll <- tibble::tibble(
-    value = as.numeric(0:129),
-    grp = cut(0:129, breaks = x, labels = lab, right = FALSE)
-  ) |>
-    dplyr::mutate(
-      grp_id = as.numeric(grp)
-    )
-  br <- new("breaksStrategy", name = "ageChildWorkRetire", breaks = ll)
-  return(br)
-}
-
-#' Make 19 age groups
-#' @description
-#' Helper function for age characteristic to make 19 age groups where
-#' every 5 years are categorized up to age 85. 85+ is a single group
-#' @return Creates a breaksStrategy object holding the labels for categorization
-#' @export
-age19Grps <- function() {
-  x <- c(seq(0,85, by = 5), 130)
-  x[1] <- 1
-  a <- dplyr::lead(x) - 1
-  lab <- c("0", glue::glue("{x}-{a}"))[-20]
-  x <- c(0,x)
-
-  ll <- tibble::tibble(
-    value = as.numeric(0:129),
-    grp = cut(0:129, breaks = x, labels = lab, right = FALSE)
-  ) |>
-    dplyr::mutate(
-      grp_id = as.numeric(grp)
-    )
-  br <- new("breaksStrategy", name = "age19Grps", breaks = ll)
-  return(br)
-}
+# ageAcs <- function() {
+#   x <- c(0,5,10,15,18,20,21,22,25,30,35,40,45,50,55,
+#          60,62,65,67,70, 75, 80, 85, 130)
+#   a <- dplyr::lead(x) - 1
+#   lab <- glue::glue("{x}-{a}")[-length(x)]
+#   ll <- tibble::tibble(
+#     value = as.numeric(0:129),
+#     grp = cut(0:129, breaks = x, labels = lab, right = FALSE)
+#   ) |>
+#     dplyr::mutate(
+#       grp_id = as.numeric(grp)
+#     )
+#   br <- new("breaksStrategy", name = "ageAcs", breaks = ll)
+#   return(br)
+# }
+#
+# ageChildWorkRetire <- function() {
+#   x <- c(0,15,65, 130)
+#   a <- dplyr::lead(x) - 1
+#   lab <- glue::glue("{x}-{a}")[-length(x)]
+#   ll <- tibble::tibble(
+#     value = as.numeric(0:129),
+#     grp = cut(0:129, breaks = x, labels = lab, right = FALSE)
+#   ) |>
+#     dplyr::mutate(
+#       grp_id = as.numeric(grp)
+#     )
+#   br <- new("breaksStrategy", name = "ageChildWorkRetire", breaks = ll)
+#   return(br)
+# }
+#
+#
+# age19Grps <- function() {
+#   x <- c(seq(0,85, by = 5), 130)
+#   x[1] <- 1
+#   a <- dplyr::lead(x) - 1
+#   lab <- c("0", glue::glue("{x}-{a}"))[-20]
+#   x <- c(0,x)
+#
+#   ll <- tibble::tibble(
+#     value = as.numeric(0:129),
+#     grp = cut(0:129, breaks = x, labels = lab, right = FALSE)
+#   ) |>
+#     dplyr::mutate(
+#       grp_id = as.numeric(grp)
+#     )
+#   br <- new("breaksStrategy", name = "age19Grps", breaks = ll)
+#   return(br)
+# }
 
 #' Make age group using 65 threshold
 #' @description
@@ -117,17 +98,12 @@ age19Grps <- function() {
 #' @return Creates a breaksStrategy object holding the labels for categorization
 #' @export
 age65 <- function() {
-  x <- c(0,65, 130)
-  a <- dplyr::lead(x) - 1
+  x <- c(0,65)
   lab <- c(">65", "<=65")
-  ll <- tibble::tibble(
-    value = as.numeric(0:129),
-    grp = cut(0:129, breaks = x, labels = lab, right = FALSE)
-  ) |>
-    dplyr::mutate(
-      grp_id = as.numeric(grp)
-    )
-  br <- new("breaksStrategy", name = "age65", breaks = ll)
+  br <- new("breaksStrategy", name = "age65Grp",
+            breaks = x,
+            labels = lab
+  )
   return(br)
 }
 
@@ -138,17 +114,12 @@ age65 <- function() {
 #' @return Creates a breaksStrategy object holding the labels for categorization
 #' @export
 age18 <- function() {
-  x <- c(0,18, 130)
-  a <- dplyr::lead(x) - 1
+  x <- c(0,18)
   lab <- c(">18", "<=18")
-  ll <- tibble::tibble(
-    value = as.numeric(0:129),
-    grp = cut(0:129, breaks = x, labels = lab, right = FALSE)
-  ) |>
-    dplyr::mutate(
-      grp_id = as.numeric(grp)
-    )
-  br <- new("breaksStrategy", name = "age18", breaks = ll)
+  br <- new("breaksStrategy", name = "age18Grp",
+            breaks = x,
+            labels = lab
+  )
   return(br)
 }
 
@@ -158,21 +129,19 @@ age18 <- function() {
 #' @description
 #' Helper function for year characteristic to make year breaks categorizing persons
 #' per 5 year groups
+#' @param startYear the start year of the sequence, defaults to 2000
 #' @return Creates a breaksStrategy object holding the labels for categorization
 #' @export
-year5yrGrp <- function() {
+year5yrGrp <- function(startYear = 2000) {
   this_year <- as.integer(lubridate::year(lubridate::today()))
-  x <- seq(1987, (this_year + 5), by = 5)
+  x <- seq(startYear, (this_year + 5), by = 5)
   a <- dplyr::lead(x) - 1
   lab <- glue::glue("{x}-{a}")[-length(x)]
-  ll <- tibble::tibble(
-    value = as.numeric(1987:(this_year + 1)),
-    grp = cut(as.numeric(1987:(this_year + 1)), breaks = x, labels = lab, right = FALSE)
-  ) |>
-    dplyr::mutate(
-      grp_id = as.numeric(grp)
-    )
-  br <- new("breaksStrategy", name = "year5yrGrp", breaks = ll)
+  x2 <- x[-length(x)]
+  br <- new("breaksStrategy", name = "year5yrGrp",
+            breaks = x2,
+            labels = lab
+  )
   return(br)
 }
 
@@ -181,22 +150,22 @@ year5yrGrp <- function() {
 #' @description
 #' Helper function for year characteristic to make year breaks categorizing persons
 #' per 10 year groups
+#' @param startYear the start year of the sequence, defaults to 2000
 #' @return Creates a breaksStrategy object holding the labels for categorization
 #' @export
-year10yrGrp <- function() {
+year10yrGrp <- function(startYear = 2000) {
+
   this_year <- as.integer(lubridate::year(lubridate::today()))
-  x <- seq(1987, (this_year + 10), by = 10)
+  x <- seq(startYear, (this_year + 10), by = 10)
   a <- dplyr::lead(x) - 1
   lab <- glue::glue("{x}-{a}")[-length(x)]
-  ll <- tibble::tibble(
-    value = as.numeric(1987:(this_year + 1)),
-    grp = cut(as.numeric(1987:(this_year + 1)), breaks = x, labels = lab, right = FALSE)
-  ) |>
-    dplyr::mutate(
-      grp_id = as.numeric(grp)
-    )
-  br <- new("breaksStrategy", name = "year10yrGrp", breaks = ll)
+  x2 <- x[-length(x)]
+  br <- new("breaksStrategy", name = "year10yrGrp",
+            breaks = x2,
+            labels = lab
+  )
   return(br)
+
 }
 
 #' Make year group by covid time
@@ -205,22 +174,27 @@ year10yrGrp <- function() {
 #' by covid time where 1987-2019 is pre-covid, 2020-2022 is covid and 2023+ is post-covid
 #' @return Creates a breaksStrategy object holding the labels for categorization
 #' @export
-yearCovid <- function() {
-  this_year <- as.integer(lubridate::year(lubridate::today()))
-  x <- c(1987,2020, 2023, (this_year + 1))
-  a <- dplyr::lead(x) - 1
+yearCovid <- function(startYear = 2000) {
+  x <- c(startYear, 2020, 2023)
   lab <- c("pre-covid", "covid", "post-covid")
-  ll <- tibble::tibble(
-    value = as.numeric(1987:(this_year + 1)),
-    grp = cut(as.numeric(1987:(this_year + 1)), breaks = x, labels = lab, right = FALSE)
-  ) |>
-    dplyr::mutate(
-      grp_id = as.numeric(grp)
-    )
-  br <- new("breaksStrategy", name = "yearCovid", breaks = ll)
+  br <- new("breaksStrategy", name = "yearCovid",
+            breaks = x,
+            labels = lab
+  )
   return(br)
+
 }
 
+
+## Measurement breaks --------------------
+
+bmiGroups <- function() {
+  br <- new("breaksStrategy", name = "bmiBreaks",
+            breaks = c(0, 18.5, 25, 30),
+            labels = c("underweight", "normal", "overweight", "obese")
+  )
+  return(br)
+}
 
 ## Custom breaks --------------------------
 
@@ -242,85 +216,143 @@ customBreaks <- function(x, breaks, labels) {
   return(br)
 }
 
+## sql helper ---------------
+
+make_case_when_sql <- function(breaksStrategy, year = FALSE) {
+  x <- breaksStrategy@breaks
+
+  if (!year) {
+    sql_when <- tibble::tibble(
+      lhs = x,
+      rhs = dplyr::lead(x) - 0.01
+    ) |>
+      dplyr::mutate(
+        ord = dplyr::row_number(),
+        expr_left = glue::glue("{lhs} <= a.value"),
+        expr_right = dplyr::if_else(!is.na(rhs), glue::glue("a.value <= {rhs}"), ""),
+        expr_both = glue::glue("WHEN ({expr_left} AND {expr_right}) THEN {ord}"),
+        expr_both = dplyr::if_else(is.na(rhs), gsub(" AND ", "", expr_both), expr_both)
+      ) |>
+      dplyr::pull(expr_both) |>
+      glue::glue_collapse(sep = "\n")
+
+
+  } else {
+    sql_when <- tibble::tibble(
+      lhs = x,
+      rhs = dplyr::lead(x) - 0.01
+    ) |>
+      dplyr::mutate(
+        ord = dplyr::row_number(),
+        expr_left = glue::glue("{lhs} <= a.value_id"),
+        expr_right = dplyr::if_else(!is.na(rhs), glue::glue("a.value_id <= {rhs}"), ""),
+        expr_both = glue::glue("WHEN ({expr_left} AND {expr_right}) THEN {ord}"),
+        expr_both = dplyr::if_else(is.na(rhs), gsub(" AND ", "", expr_both), expr_both)
+      ) |>
+      dplyr::pull(expr_both) |>
+      glue::glue_collapse(sep = "\n")
+
+  }
+
+  case_when_sql <- c(
+    "CASE ",
+    glue::glue_collapse(sql_when, sep = "\n\t"),
+    "\nELSE -999 END AS value_id"
+  ) |>
+    glue::glue_collapse()
+
+  return(case_when_sql)
+}
+
+
 ## sql runner -----------
 
-categorize_sql <- function(catId) {
+# Old version with merge key
+# categorize_sql <- function(catId) {
+#   newId <- (catId * 1000) + 1
+#   sql <- glue::glue("
+#   WITH T1 AS (
+#       -- Get covariate to categorize
+#       SELECT * FROM {{dataTable}} WHERE category_id = {catId}
+#     ),
+#     T2 AS (
+#     SELECT a.cohort_id, a.subject_id, a.category_id, a.time_id, b.grp_id AS value_id,
+#       1 AS value
+#     FROM T1 a
+#     LEFT JOIN {{breaksTable}} b ON a.value = b.value
+#     )
+#     SELECT dd.cohort_id, dd.subject_id,
+#       {newId} AS category_id,
+#       dd.time_id,
+#       value_id, value
+#     INTO {{breaks_dat_tmp}}
+#     FROM T2 dd
+#     ;")
+#
+#   return(sql)
+#
+# }
+
+categorize_sql <- function(catId, breaksStrategy, year) {
   newId <- (catId * 1000) + 1
+  case_when_sql <- make_case_when_sql(breaksStrategy, year)
   sql <- glue::glue("
-  WITH T1 AS (
-      -- Get covariate to categorize
-      SELECT * FROM {{dataTable}} WHERE category_id = {catId}
-    ),
-    T2 AS (
-    SELECT a.cohort_id, a.subject_id, a.category_id, a.time_id, b.grp_id AS value_id,
+    SELECT a.cohort_id, a.subject_id,
+      {newId} AS category_id, a.time_id,
+      {case_when_sql},
       1 AS value
-    FROM T1 a
-    LEFT JOIN {{breaksTable}} b ON a.value = b.value
-    )
-    SELECT dd.cohort_id, dd.subject_id,
-      {newId} AS category_id,
-      dd.time_id,
-      value_id, value
-    INTO {{breaks_dat_tmp}}
-    FROM T2 dd
-    ;")
+    FROM (
+      SELECT * FROM {{dataTable}} WHERE category_id = {catId}
+      ) a")
 
   return(sql)
-
 }
 
-year_sql <- function(catId) {
-  newId <- (catId * 1000) + 1
-  sql <- glue::glue("
-  WITH T1 AS (
-      -- Get covariate to categorize
-      SELECT * FROM {{dataTable}} WHERE category_id = {catId}
-    ),
-    T2 AS (
-    SELECT a.cohort_id, a.subject_id, a.category_id, a.time_id, b.grp_id AS value_id,
-      1 AS value
-    FROM T1 a
-    LEFT JOIN {{breaksTable}} b ON a.value_id = b.value
-    )
-    SELECT dd.cohort_id, dd.subject_id,
-      {newId} AS category_id,
-      dd.time_id,
-      value_id, value
-    INTO {{breaks_dat_tmp}}
-    FROM T2 dd
-    ;")
+# year_sql <- function(catId) {
+#   newId <- (catId * 1000) + 1
+#   case_when_sql <- make_case_when_sql(breaksStrategy)
+#   sql <- glue::glue("
+#   WITH T1 AS (
+#       -- Get covariate to categorize
+#       SELECT * FROM {{dataTable}} WHERE category_id = {catId}
+#     ),
+#     T2 AS (
+#     SELECT a.cohort_id, a.subject_id, a.category_id, a.time_id, b.grp_id AS value_id,
+#       1 AS value
+#     FROM T1 a
+#     LEFT JOIN {{breaksTable}} b ON a.value_id = b.value
+#     )
+#     SELECT dd.cohort_id, dd.subject_id,
+#       {newId} AS category_id,
+#       dd.time_id,
+#       value_id, value
+#     INTO {{breaks_dat_tmp}}
+#     FROM T2 dd
+#     ;")
+#
+#   return(sql)
+#
+# }
 
-  return(sql)
-
-}
-
-categorize_value <- function(connection, dataTable, breaksTable, workDatabaseSchema, catId, year) {
+categorize_value <- function(connection,
+                             dataTable,
+                             breaksStrategy,
+                             workDatabaseSchema,
+                             catId,
+                             year) {
 
   dbms <- connection@dbms
 
-  if (dbms == "snowflake") {
-    breaks_dat_tmp <- glue::glue("{workDatabaseSchema}.breaks_tmp")
-  } else{
-    breaks_dat_tmp <- "#breaks"
-  }
-  if (year) {
-    cat_sql <- year_sql(catId) |> glue::glue()
-  } else {
-    cat_sql <- categorize_sql(catId) |> glue::glue()
-  }
+  breaks_dat_tmp <- "#breaks"
+
+  cat_sql <- categorize_sql(catId, breaksStrategy, year) |> glue::glue()
 
   sql <- glue::glue("
-    /* Step 1: Make Score Values */
-    {cat_sql}
-
-    /* Step 2: Insert into data table */
+    /* Insert categories into data table */
     INSERT INTO {dataTable} (cohort_id, subject_id, category_id, time_id, value_id, value)
-    SELECT * FROM {breaks_dat_tmp};
-
-    /* Step 3: Drop temp score tables */
-    TRUNCATE TABLE {breaks_dat_tmp}; DROP TABLE {breaks_dat_tmp};
-    TRUNCATE TABLE {breaksTable}; DROP TABLE {breaksTable};") |>
-    SqlRender::translate(targetDialect = dbms)
+    {cat_sql};") |>
+    SqlRender::translate(targetDialect = dbms,
+                         tempEmulationSchema = workDatabaseSchema)
 
   DatabaseConnector::executeSql(connection, sql)
   invisible(sql)
@@ -335,11 +367,7 @@ score_value <- function(connection, dataTable, scoreTable, workDatabaseSchema, s
 
   dbms <- connection@dbms
 
-  if (dbms == "snowflake") {
-    score_dat_tmp <- glue::glue("{workDatabaseSchema}.score_tmp")
-  } else{
-    score_dat_tmp <- "#score"
-  }
+  score_dat_tmp <- "#score"
 
   newId <- (scoreId * 1000) + 1
   scoreSql2 <- glue::glue(scoreSql)
@@ -354,7 +382,8 @@ score_value <- function(connection, dataTable, scoreTable, workDatabaseSchema, s
     /* Step 3: Drop temp score tables */
     TRUNCATE TABLE {score_dat_tmp}; DROP TABLE {score_dat_tmp};
     TRUNCATE TABLE {scoreTable}; DROP TABLE {scoreTable};") |>
-    SqlRender::translate(targetDialect = dbms)
+    SqlRender::translate(targetDialect = dbms,
+                         tempEmulationSchema = workDatabaseSchema)
 
   DatabaseConnector::executeSql(connection, sql)
   invisible(sql)
@@ -399,9 +428,11 @@ charlsonIndexScore <- function(ageId) {
                        )
                        )
 
-
+  ageTbl <- tibble::tibble(
+    value = 0:130
+  )
   # next add age scores
-  ageScore <- age10yrGrp()@breaks |>
+  ageScore <- ageTbl |>
     dplyr::filter(
       value >= 50
     ) |>

@@ -4,7 +4,7 @@
 \alias{yearCovid}
 \title{Make year group by covid time}
 \usage{
-yearCovid()
+yearCovid(startYear = 2000)
 }
 \value{
 Creates a breaksStrategy object holding the labels for categorization
