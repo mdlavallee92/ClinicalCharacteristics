@@ -1291,13 +1291,13 @@ setMethod("get_labels", "yearChar", function(x){
   #   value_name = x@domain,
   #   time_name = "Static from Index"
   # )
-
+  this_year <- as.integer(lubridate::year(lubridate::today()))
   # get value names for  breaks
-  lbl_tbl <- year10yrGrp()@breaks |>
-    dplyr::select(value) |>
+  lbl_tbl <- tibble::tibble(
+    value_id = 1960:this_year
+  ) |>
     dplyr::mutate(
-      value_id = value,
-      value_name = glue::glue("Y{value}")
+      value_name = value_id
     ) |>
     dplyr::mutate(# add category name for breaks
       order_id = x@orderId,
@@ -1306,19 +1306,19 @@ setMethod("get_labels", "yearChar", function(x){
       .before = 1
     ) |>
     dplyr::mutate(
-      time_name = "Static from Index"
-    ) |>
-    dplyr::select(-c(value))
+      time_name = "Static from Index",
+      value_name = as.character(value_name)
+    )
+
 
   # check if categorized
   if (!is.null(x@categorize)) {
     # get value names for  breaks
-    lbl_tbl_cat <- x@categorize@breaks |>
-      dplyr::select(grp_id, grp) |>
-      dplyr::distinct() |>
-      dplyr::rename(
-        value_id = grp_id,
-        value_name = grp
+    lbl_tbl_cat <- tibble::tibble(
+      value_name = x@categorize@labels
+    )|>
+      dplyr::mutate(
+        value_id = dplyr::row_number(), .before = 1
       ) |>
       dplyr::add_row(
         value_id = -999,
@@ -1327,14 +1327,11 @@ setMethod("get_labels", "yearChar", function(x){
       dplyr::mutate(# add category name for breaks
         order_id = (x@orderId * 1000) + 1,
         category_id = x@categoryId,
-        category_name = x@categorize@name,
+        category_name = glue::glue("{x@categorize@name}"),
         .before = 1
       ) |>
       dplyr::mutate(
         time_name = "Static from Index"
-      ) |>
-      dplyr::mutate(
-        value_name = as.character(value_name)
       )
 
     lbl_tbl <- dplyr::bind_rows(lbl_tbl, lbl_tbl_cat)

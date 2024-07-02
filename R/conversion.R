@@ -218,22 +218,41 @@ customBreaks <- function(x, breaks, labels) {
 
 ## sql helper ---------------
 
-make_case_when_sql <- function(breaksStrategy) {
+make_case_when_sql <- function(breaksStrategy, year = FALSE) {
   x <- breaksStrategy@breaks
 
-  sql_when <- tibble::tibble(
-    lhs = x,
-    rhs = dplyr::lead(x) - 0.01
-  ) |>
-    dplyr::mutate(
-      ord = dplyr::row_number(),
-      expr_left = glue::glue("{lhs} <= a.value"),
-      expr_right = dplyr::if_else(!is.na(rhs), glue::glue("a.value <= {rhs}"), ""),
-      expr_both = glue::glue("WHEN ({expr_left} AND {expr_right}) THEN {ord}"),
-      expr_both = dplyr::if_else(is.na(rhs), gsub(" AND ", "", expr_both), expr_both)
+  if (!year) {
+    sql_when <- tibble::tibble(
+      lhs = x,
+      rhs = dplyr::lead(x) - 0.01
     ) |>
-    dplyr::pull(expr_both) |>
-    glue::glue_collapse(sep = "\n")
+      dplyr::mutate(
+        ord = dplyr::row_number(),
+        expr_left = glue::glue("{lhs} <= a.value"),
+        expr_right = dplyr::if_else(!is.na(rhs), glue::glue("a.value <= {rhs}"), ""),
+        expr_both = glue::glue("WHEN ({expr_left} AND {expr_right}) THEN {ord}"),
+        expr_both = dplyr::if_else(is.na(rhs), gsub(" AND ", "", expr_both), expr_both)
+      ) |>
+      dplyr::pull(expr_both) |>
+      glue::glue_collapse(sep = "\n")
+
+
+  } else {
+    sql_when <- tibble::tibble(
+      lhs = x,
+      rhs = dplyr::lead(x) - 0.01
+    ) |>
+      dplyr::mutate(
+        ord = dplyr::row_number(),
+        expr_left = glue::glue("{lhs} <= a.value_id"),
+        expr_right = dplyr::if_else(!is.na(rhs), glue::glue("a.value_id <= {rhs}"), ""),
+        expr_both = glue::glue("WHEN ({expr_left} AND {expr_right}) THEN {ord}"),
+        expr_both = dplyr::if_else(is.na(rhs), gsub(" AND ", "", expr_both), expr_both)
+      ) |>
+      dplyr::pull(expr_both) |>
+      glue::glue_collapse(sep = "\n")
+
+  }
 
   case_when_sql <- c(
     "CASE ",
@@ -274,9 +293,9 @@ make_case_when_sql <- function(breaksStrategy) {
 #
 # }
 
-categorize_sql <- function(catId, breaksStrategy) {
+categorize_sql <- function(catId, breaksStrategy, year) {
   newId <- (catId * 1000) + 1
-  case_when_sql <- make_case_when_sql(breaksStrategy)
+  case_when_sql <- make_case_when_sql(breaksStrategy, year)
   sql <- glue::glue("
     SELECT a.cohort_id, a.subject_id,
       {newId} AS category_id, a.time_id,
@@ -289,30 +308,31 @@ categorize_sql <- function(catId, breaksStrategy) {
   return(sql)
 }
 
-year_sql <- function(catId) {
-  newId <- (catId * 1000) + 1
-  sql <- glue::glue("
-  WITH T1 AS (
-      -- Get covariate to categorize
-      SELECT * FROM {{dataTable}} WHERE category_id = {catId}
-    ),
-    T2 AS (
-    SELECT a.cohort_id, a.subject_id, a.category_id, a.time_id, b.grp_id AS value_id,
-      1 AS value
-    FROM T1 a
-    LEFT JOIN {{breaksTable}} b ON a.value_id = b.value
-    )
-    SELECT dd.cohort_id, dd.subject_id,
-      {newId} AS category_id,
-      dd.time_id,
-      value_id, value
-    INTO {{breaks_dat_tmp}}
-    FROM T2 dd
-    ;")
-
-  return(sql)
-
-}
+# year_sql <- function(catId) {
+#   newId <- (catId * 1000) + 1
+#   case_when_sql <- make_case_when_sql(breaksStrategy)
+#   sql <- glue::glue("
+#   WITH T1 AS (
+#       -- Get covariate to categorize
+#       SELECT * FROM {{dataTable}} WHERE category_id = {catId}
+#     ),
+#     T2 AS (
+#     SELECT a.cohort_id, a.subject_id, a.category_id, a.time_id, b.grp_id AS value_id,
+#       1 AS value
+#     FROM T1 a
+#     LEFT JOIN {{breaksTable}} b ON a.value_id = b.value
+#     )
+#     SELECT dd.cohort_id, dd.subject_id,
+#       {newId} AS category_id,
+#       dd.time_id,
+#       value_id, value
+#     INTO {{breaks_dat_tmp}}
+#     FROM T2 dd
+#     ;")
+#
+#   return(sql)
+#
+# }
 
 categorize_value <- function(connection,
                              dataTable,
@@ -325,11 +345,7 @@ categorize_value <- function(connection,
 
   breaks_dat_tmp <- "#breaks"
 
-  if (year) {
-    cat_sql <- year_sql(catId) |> glue::glue()
-  } else {
-    cat_sql <- categorize_sql(catId, breaksStrategy) |> glue::glue()
-  }
+  cat_sql <- categorize_sql(catId, breaksStrategy, year) |> glue::glue()
 
   sql <- glue::glue("
     /* Insert categories into data table */
