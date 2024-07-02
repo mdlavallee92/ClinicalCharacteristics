@@ -4,14 +4,17 @@
 \alias{customBreaks}
 \title{Function to make custom categorical breaks}
 \usage{
-customBreaks(x, breaks, labels)
+customBreaks(name, breaks, labels)
 }
 \arguments{
-\item{x}{a sequence of values to categorize}
+\item{name}{the name of the categorization, as single character string}
 
-\item{breaks}{the breaks to the x sequenece..see \code{cut}}
+\item{breaks}{a sequence of values to use as break points for categorization.
+The sequence corresponds to the left side of the bound. For example
+0, 2, 6, 12, 18 would represent age cuts of 0-1, 2-5, 6-11, 12-17 and 18+.}
 
-\item{labels}{the labels of the sequence}
+\item{labels}{a sequence of character strings labelling the break points for categorization.
+For example 0-1, 2-5, 6-11, 12-17 and 18+ would be labels to sequence 0, 2, 6, 12, 18.}
 }
 \value{
 Creates a breaksStrategy object holding the labels for categorization

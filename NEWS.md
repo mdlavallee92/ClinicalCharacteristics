@@ -1,3 +1,7 @@
+# ClinicalCharacteristics 0.3.1
+
+* hot fix add custom breaks function
+
 # ClinicalCharacteristics 0.3.0
 
 * change categorization to case_when statements
