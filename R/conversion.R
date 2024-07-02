@@ -428,9 +428,11 @@ charlsonIndexScore <- function(ageId) {
                        )
                        )
 
-
+  ageTbl <- tibble::tibble(
+    value = 0:130
+  )
   # next add age scores
-  ageScore <- age10yrGrp()@breaks |>
+  ageScore <- ageTbl |>
     dplyr::filter(
       value >= 50
     ) |>
