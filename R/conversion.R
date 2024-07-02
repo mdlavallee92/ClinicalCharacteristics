@@ -199,20 +199,20 @@ bmiGroups <- function() {
 ## Custom breaks --------------------------
 
 #' Function to make custom categorical breaks
-#' @param x a sequence of values to categorize
-#' @param breaks the breaks to the x sequenece..see `cut`
-#' @param labels the labels of the sequence
+#' @param name the name of the categorization, as single character string
+#' @param breaks a sequence of values to use as break points for categorization.
+#' The sequence corresponds to the left side of the bound. For example
+#' 0, 2, 6, 12, 18 would represent age cuts of 0-1, 2-5, 6-11, 12-17 and 18+.
+#' @param labels a sequence of character strings labelling the break points for categorization.
+#' For example 0-1, 2-5, 6-11, 12-17 and 18+ would be labels to sequence 0, 2, 6, 12, 18.
 #' @return Creates a breaksStrategy object holding the labels for categorization
 #' @export
-customBreaks <- function(x, breaks, labels) {
-  ll <- tibble::tibble(
-    value = x,
-    grp = cut(x, breaks = breaks, labels = labels, right = FALSE)
-  ) |>
-    dplyr::mutate(
-      grp_id = as.numeric(grp)
-    )
-  br <- new("breaksStrategy", name = "customBreaks", breaks = ll)
+customBreaks <- function(name, breaks, labels) {
+  br <- new("breaksStrategy",
+            name = name,
+            breaks = breaks,
+            labels = labels
+  )
   return(br)
 }
 
