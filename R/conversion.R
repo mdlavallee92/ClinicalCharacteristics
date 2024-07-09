@@ -307,7 +307,7 @@ make_case_when_sql <- function(breaksStrategy, type = c("default","year", "count
         ord = dplyr::row_number(),
         expr_left = glue::glue("{lhs} <= a.value"),
         expr_right = dplyr::if_else(!is.na(rhs), glue::glue("a.value <= {rhs}"), ""),
-        expr_both = glue::glue("WHEN ({expr_left} AND {expr_right}) THEN {ord}"),
+        expr_both = glue::glue("WHEN ({expr_left} AND {expr_right}) THEN CAST(((CAST(a.value_id AS INT) * 1000) + {ord}) AS INT)"),
         expr_both = dplyr::if_else(is.na(rhs), gsub(" AND ", "", expr_both), expr_both)
       ) |>
       dplyr::pull(expr_both) |>
@@ -316,7 +316,7 @@ make_case_when_sql <- function(breaksStrategy, type = c("default","year", "count
     case_when_sql <- c(
       "CASE ",
       glue::glue_collapse(sql_when, sep = "\n\t"),
-      "\nELSE -999 END AS value"
+      "\nELSE -999 END AS value_id"
     ) |>
       glue::glue_collapse()
   }
@@ -357,16 +357,6 @@ make_case_when_sql <- function(breaksStrategy, type = c("default","year", "count
 categorize_sql <- function(catId, breaksStrategy, type) {
   newId <- (catId * 1000) + 1
   case_when_sql <- make_case_when_sql(breaksStrategy, type)
-  if (type == "count") {
-    sql <- glue::glue("
-    SELECT a.cohort_id, a.subject_id,
-      {newId} AS category_id, a.time_id,
-      a.value_id,
-      {case_when_sql}
-    FROM (
-      SELECT * FROM {{dataTable}} WHERE category_id = {catId}
-      ) a")
-  } else {
     sql <- glue::glue("
     SELECT a.cohort_id, a.subject_id,
       {newId} AS category_id, a.time_id,
@@ -375,7 +365,6 @@ categorize_sql <- function(catId, breaksStrategy, type) {
     FROM (
       SELECT * FROM {{dataTable}} WHERE category_id = {catId}
       ) a")
-  }
 
   return(sql)
 }

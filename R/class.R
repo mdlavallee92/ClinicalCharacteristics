@@ -1251,7 +1251,7 @@ setMethod("get_labels", "ageChar", function(x){
 
     lbl_tbl_cat <- tibble::tibble(
       value_name = x@categorize@labels
-    )|>
+    ) |>
       dplyr::mutate(
         value_id = dplyr::row_number(), .before = 1
       ) |>
@@ -1503,14 +1503,23 @@ setMethod("get_labels", "countChar", function(x){
 
   # check if categorized
   if (!is.null(x@categorize)) {
-    # get value names for  breaks
-    lbl_tbl_cat <- x@categorize@breaks |>
-      dplyr::select(grp_id, grp) |>
-      dplyr::distinct() |>
-      dplyr::rename(
-        value_id = grp_id,
-        value_name = grp
+
+    # get labels for count categories
+    cat_lbl <- tibble::tibble(
+      value_name1 = glue::glue("count {x@categorize@labels}")
+    ) |>
+      dplyr::mutate(
+        value_id1 = dplyr::row_number(), .before = 1
+      )
+    # get cs lables
+    cs_lbl <- lbl_tbl |> dplyr::select(value_id, value_name)
+
+    lbl_tbl_cat <- tidyr::expand_grid(cat_lbl, cs_lbl) |>
+      dplyr::mutate(
+        value_id = (value_id * 1000) + value_id1,
+        value_name = glue::glue("{value_name} [{value_name1}]")
       ) |>
+      dplyr::select(value_id, value_name) |>
       dplyr::add_row(
         value_id = -999,
         value_name = "other"
@@ -1522,6 +1531,7 @@ setMethod("get_labels", "countChar", function(x){
         .before = 1
       ) |>
       tidyr::expand_grid(time_tbl)
+
 
     #bind with base table
     lbl_tbl <- dplyr::bind_rows(
