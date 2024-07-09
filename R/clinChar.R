@@ -477,39 +477,17 @@ categorize_them <- function(clinChar, connection) {
         bullet = "pointer",
         bullet_col = "yellow"
       )
-      # breaksKey <- breaksObj@breaks |>
-      #   dplyr::select(-c(grp))
-
-      # Step 1: insert breaks temp table
-
-      # ## deal with temp tables if in snowflake
-      # if(connection@dbms == "snowflake") {
-      #   scratchSchema <- clinChar@executionSettings@workDatabaseSchema
-      #   breaksTbl <- glue::glue("{scratchSchema}.{breaksObj@name}")
-      #   tempTabToggle <- FALSE
-      # } else{
-      #   breaksTbl <- glue::glue("#{breaksObj@name}")
-      #   tempTabToggle <- TRUE
-      # }
-      # cli::cat_line(glue::glue("\t - Insert breaksKey to dbms as {crayon::green(breaksTbl)}"))
-      # ## insert temp weights table
-      # DatabaseConnector::insertTable(
-      #   connection = connection,
-      #   tableName = breaksTbl,
-      #   data = breaksKey,
-      #   tempTable = tempTabToggle
-      # )
 
       # Step 1: Make cat cov and add back to dataTable
       cli::cat_line(glue::glue("\t - Categorize and add to {crayon::green(clinChar@executionSettings@dataTable)}"))
-      year <- grepl("year", breaksObj@name)
+      catType <- .catagorizeType(breaksObj@name)
       categorize_value(
         connection = connection,
         dataTable = clinChar@executionSettings@dataTable,
         breaksStrategy = breaksObj,
         workDatabaseSchema = clinChar@executionSettings@workDatabaseSchema,
         catId = i,
-        year = year
+        type = catType
       )
       cli::cat_line(glue::glue("\t - New category_id for categorized variable: {crayon::green((i * 1000) + 1)}"))
       # go to next categorize
