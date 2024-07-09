@@ -1,3 +1,8 @@
+# ClinicalCharacteristics 0.3.2
+
+* Add categorization for count char
+* export listLabUnitCombos
+
 # ClinicalCharacteristics 0.3.1
 
 * hot fix add custom breaks function
