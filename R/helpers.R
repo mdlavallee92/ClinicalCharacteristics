@@ -203,7 +203,14 @@ set_lab_unit_combos <- function(connection, vocabDatabaseSchema, labId, unitIds)
   return(final_tb)
 }
 
-
+#' Function to list labUnit combos
+#' @description
+#' This function lists all possible combinations of labs with units
+#' @param labIds a list of lab ids
+#' @param unitList a list of unit ids
+#' @param comboNames a list of combination names
+#' @return a list of lab unit combinations
+#' @export
 listLabUnitCombos <- function(labIds, unitList, comboNames = NULL) {
   check <- length(labIds) == length(unitList)
   ll <- purrr::map2(labIds, unitList,
