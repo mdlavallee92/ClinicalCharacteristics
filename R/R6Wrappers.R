@@ -1,4 +1,4 @@
-#' @description
+#' @title
 #' Create an empty TableShell object and set its title
 #'
 #' @param title The title of the TableShell
@@ -12,7 +12,7 @@ createTableShell <- function(title) {
     return(tableShell)
 }
 
-#' @description
+#' @title
 #' Add TargetCohorts to a TableShell object
 #'
 #' @param tableShell The TableShell object
@@ -26,7 +26,7 @@ addTargetCohorts <- function(tableShell, targetCohorts) {
     invisible(tableShell)
 }
 
-#' @description
+#' @title
 #' Add target cohorts from a data frame
 #'
 #' @param tableShell The table shell object to which the target cohorts will be added.
@@ -43,7 +43,7 @@ addTargetCohortsFromDf <- function(tableShell, df) {
     invisible(tableShell)
 }
 
-#' @description
+#' @title
 #' Add target cohorts from a CSV file
 #'
 #' @param tableShell The table shell object to which the target cohorts will be added.
@@ -58,7 +58,7 @@ addTargetCohortsFromCsv <- function(tableShell, file) {
     invisible(tableShell)
 }
 
-#' @description
+#' @title
 #' Add one or more Sections to a TableShell object
 #'
 #' @param tableShell The TableShell object
@@ -83,7 +83,7 @@ addSections <- function(tableShell, section, ...) {
     invisible(tableShell)
 }
 
-#' @description
+#' @title
 #' Set the ExecutionSettings of a TableShell object
 #'
 #' @param tableShell The TableShell object
@@ -97,7 +97,7 @@ setExecutionSettings <- function(tableShell, executionSettings) {
     return(tableShell)
 }
 
-#' @description
+#' @title
 #' Create a TargetCohort object and set its attributes
 #'
 #' @param id The ID of the TargetCohort
@@ -111,4 +111,99 @@ createTargetCohort <- function(id, name) {
   targetCohort$setId(id)
   targetCohort$setName(name)
   return(targetCohort)
+}
+
+#' @title
+#' Create an ExecutionSettings object and set its attributes
+#'
+#' @param connectionDetails A DatabaseConnector connectionDetails object (optional if connection is specified)
+#' @param connection A DatabaseConnector connection object (optional if connectionDetails is specified)
+#' @param cdmDatabaseSchema The schema of the OMOP CDM database
+#' @param workDatabaseSchema The schema to which results will be written
+#' @param tempEmulationSchema Some database platforms like Oracle and Snowflake do not truly support temp tables. To emulate temp tables, provide a schema with write privileges where temp tables can be created.
+#' @param targetCohortTable The name of the table where the target cohort(s) are stored
+#' @param cdmSourceName A human-readable name for the OMOP CDM source
+#' @param numThreads (OPTIONAL) The number of threads to use for parallel processing
+#'
+#' @return An ExecutionSettings object
+#' @export
+createExecutionSettings <- function(connectionDetails = NULL,
+                                    connection = NULL,
+                                    cdmDatabaseSchema = NULL,
+                                    workDatabaseSchema = NULL,
+                                    tempEmulationSchema = NULL,
+                                    targetCohortTable = NULL,
+                                    cdmSourceName = NULL,
+                                    numThreads = NULL) {
+  executionSettings <- ExecutionSettings$new(connectionDetails = connectionDetails,
+                                             connection = connection,
+                                             cdmDatabaseSchema = cdmDatabaseSchema,
+                                             workDatabaseSchema = workDatabaseSchema,
+                                             tempEmulationSchema = tempEmulationSchema,
+                                             targetCohortTable = targetCohortTable,
+                                             cdmSourceName = cdmSourceName,
+                                             numThreads = numThreads)
+  return(executionSettings)
+}
+
+#' @title
+#' Create a Section object and set its title and ordinal
+#' @param title The title of the Section
+#' @param ordinal The ordinal of the Section
+#'
+#' @return A Section object
+#'
+#' @export
+createSection <- function(title, ordinal) {
+  section <- Section$new()
+  section$setTitle(title)
+  section$setOrdinal(ordinal)
+  return(section)
+}
+
+#' @title
+#' Add one or more Line Items to a Section object
+#'
+#' @param section The Section object
+#' @param lineItem A LineItem object
+#' @param ... Additional LineItem objects to be added
+#'
+#' @return A Section object
+#'
+#' @export
+addLineItems <- function(section, lineItem, ...) {
+  if (!inherits(lineItem, "LineItem")) {
+    stop("lineItem must be a LineItem object")
+  }
+
+  additionalLineItems <- list(...)
+  if (!all(sapply(additionalLineItems, function(x) inherits(x, "LineItem")))) {
+    stop("All additional arguments must be LineItem objects")
+  }
+
+  allLineItems <- c(list(lineItem), additionalLineItems)
+  section$setLineItems(allLineItems)
+  invisible(section)
+}
+
+#' @title
+#' Create a LineItem object and set its attributes
+#'
+#' @param ordinal The ordinal of the LineItem
+#' @param label The label of the LineItem
+#' @param showMissing Whether to show missing values in the LineItem
+#' @param statisticType The statistic type of the LineItem
+#' @param limit The limit of the LineItem
+#'
+#' @return A LineItem object
+#'
+#' @export
+createLineItem <- function(label, ordinal, showMissing, statisticType, limit) {
+  lineItem <- LineItem$new()
+  lineItem$setOrdinal(ordinal)
+  lineItem$setLabel(label)
+  #lineItem$setShowMissing(showMissing)
+  #lineItem$setStatisticType(statisticType)
+  #lineItem$setLimit(limit)
+  return(lineItem)
 }

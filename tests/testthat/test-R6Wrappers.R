@@ -68,3 +68,48 @@ test_that("createTargetCohort returns a TargetCohort object with the correct att
   expect_equal(targetCohort$getId(), id)
   expect_equal(targetCohort$getName(), name)
 })
+
+test_that("createExecutionSettings returns an ExecutionSettings object", {
+  executionSettings <- createExecutionSettings(connectionDetails = "fake_connection_details",
+                                              connection = NULL,
+                                              cdmDatabaseSchema = "cdm_schema",
+                                              workDatabaseSchema = "work_schema",
+                                              tempEmulationSchema = "fake_temp_emulation_schema",
+                                              targetCohortTable = "fake_target_cohort_table",
+                                              cdmSourceName = "fake_cdm_source_name",
+                                              numThreads = 4)
+  expect_true(inherits(executionSettings, "ExecutionSettings"))
+})
+
+test_that("createSection returns a Section object with the correct attributes", {
+  section <- createSection("Test Section", 1)
+  expect_true(inherits(section, "Section"))
+  expect_equal(section$getTitle(), "Test Section")
+  expect_equal(section$getOrdinal(), 1)
+})
+
+test_that("addLineItems adds line items to a Section object", {
+  section <- createSection("Test Section", 1)
+  lineItem1 <- createLineItem("Line Item 1", 1)
+  lineItem2 <- createLineItem("Line Item 2", 2)
+  section <- addLineItems(section, lineItem1, lineItem2)
+  expect_equal(section$getLineItems(), list(lineItem1, lineItem2))
+})
+
+test_that("addLineItems adds 1 line item to a Section object", {
+  section <- createSection("Test Section", 1)
+  lineItem1 <- createLineItem("Line Item 1", 1)
+  section <- addLineItems(section, lineItem1)
+  expect_equal(section$getLineItems(), list(lineItem1))
+})
+
+test_that("createLineItem returns a LineItem object with the correct attributes", {
+  ordinal <- 1
+  label <- "Test LineItem"
+
+  lineItem <- createLineItem(label, ordinal)
+
+  expect_true(inherits(lineItem, "LineItem"))
+  expect_equal(lineItem$getOrdinal(), ordinal)
+  expect_equal(lineItem$getLabel(), label)
+})

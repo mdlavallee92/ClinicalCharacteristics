@@ -127,14 +127,6 @@ Section <- R6::R6Class("Section",
 #' @export
 LineItem <- R6::R6Class("LineItem",
   public = list(
-    setOrdinal = function(ordinal) {
-      .setNumber(private = private, key = "ordinal", value = ordinal)
-      invisible(self)
-    },
-    getOrdinal = function() {
-      liOrdinal <- private$ordinal
-      return(liOrdinal)
-    },
     setLabel = function(label) {
       .setString(private = private, key = "label", value = label)
       invisible(self)
@@ -142,6 +134,14 @@ LineItem <- R6::R6Class("LineItem",
     getLabel = function() {
       liLabel <- private$label
       return(liLabel)
+    },
+    setOrdinal = function(ordinal) {
+      .setNumber(private = private, key = "ordinal", value = ordinal)
+      invisible(self)
+    },
+    getOrdinal = function() {
+      liOrdinal <- private$ordinal
+      return(liOrdinal)
     },
     setShowMissing = function(showMissing) {
       .setLogical(private = private, key = "showMissing", value = showMissing)
@@ -208,15 +208,15 @@ LineItem <- R6::R6Class("LineItem",
     # }
   ),
   private = list(
-    ordinal = NA,
     label = NULL,
+    ordinal = NA,
     showMissing = NULL,
     statisticType = NULL,
     #domain = NULL,
     #definition = NULL,
     #sql = NULL,
-    limit = NULL,
-    definition = NULL#,
+    limit = NULL#,
+    #definition = NULL,
     #timeWindows = NULL
   )
 )
