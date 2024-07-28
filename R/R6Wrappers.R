@@ -127,14 +127,14 @@ createTargetCohort <- function(id, name) {
 #'
 #' @return An ExecutionSettings object
 #' @export
-createExecutionSettings <- function(connectionDetails = NULL,
-                                    connection = NULL,
-                                    cdmDatabaseSchema = NULL,
-                                    workDatabaseSchema = NULL,
-                                    tempEmulationSchema = NULL,
-                                    targetCohortTable = NULL,
-                                    cdmSourceName = NULL,
-                                    numThreads = NULL) {
+createExecutionSettings <- function(connectionDetails,
+                                    connection,
+                                    cdmDatabaseSchema,
+                                    workDatabaseSchema,
+                                    tempEmulationSchema,
+                                    targetCohortTable,
+                                    cdmSourceName,
+                                    numThreads) {
   executionSettings <- ExecutionSettings$new(connectionDetails = connectionDetails,
                                              connection = connection,
                                              cdmDatabaseSchema = cdmDatabaseSchema,
@@ -198,7 +198,7 @@ addLineItems <- function(section, lineItem, ...) {
 #' @return A LineItem object
 #'
 #' @export
-createLineItem <- function(label, ordinal, showMissing, statisticType, limit) {
+createLineItem <- function(label, ordinal) {
   lineItem <- LineItem$new()
   lineItem$setOrdinal(ordinal)
   lineItem$setLabel(label)
