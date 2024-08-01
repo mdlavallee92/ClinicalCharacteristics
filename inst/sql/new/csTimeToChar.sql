@@ -36,11 +36,7 @@ SELECT
   {x@orderId} AS category_id,
   i.time_id,
   i.value_id,
-<<<<<<< HEAD
   i.value
-=======
-  1 AS value
->>>>>>> 5e18538c68dd35322dbbfa5d4c9a083dfe799b80
 FROM (
   {limit_sql(x)}
 ) i
