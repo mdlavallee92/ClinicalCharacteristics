@@ -190,7 +190,7 @@ addLineItems <- function(section, lineItem, ...) {
 #' Create a LineItem object and set its attributes
 #'
 #' @param ordinal The ordinal of the LineItem
-#' @param label The label of the LineItem
+#' @param name The name of the LineItem
 #' @param showMissing Whether to show missing values in the LineItem
 #' @param statisticType The statistic type of the LineItem
 #' @param limit The limit of the LineItem
@@ -198,12 +198,21 @@ addLineItems <- function(section, lineItem, ...) {
 #' @return A LineItem object
 #'
 #' @export
-createLineItem <- function(label, ordinal) {
+createLineItem <- function(name,
+                           ordinal) {
   lineItem <- LineItem$new()
   lineItem$setOrdinal(ordinal)
-  lineItem$setLabel(label)
+  lineItem$setLabel(name)
   #lineItem$setShowMissing(showMissing)
   #lineItem$setStatisticType(statisticType)
   #lineItem$setLimit(limit)
   return(lineItem)
+}
+
+
+
+addGenderItem <- function(genderConceptIds = c(),
+                          inputType) {
+  gender <- GenderDefinition$new(inputType = "Explicit", genderConceptIds = genderConceptIds)
+
 }

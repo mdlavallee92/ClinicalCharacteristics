@@ -1,32 +1,8 @@
 
 .getAssertChoices <- function(category) {
-  read.csv(file = system.file(package = pkgload::pkg_name(), "csv", "assertChoices.csv"),
-           as.is = TRUE, stringsAsFactors = FALSE) |>
+  readr::read_csv(file = system.file(package = pkgload::pkg_name(), "csv", "assertChoices.csv"), show_col_types = FALSE) |>
     dplyr::filter(category == !!category) |>
     dplyr::pull(choice)
-}
-
-.getStatisticTypes <- function(definitionType) {
-  read.csv(file = system.file(package = pkgload::pkg_name(), "csv", "definitionType.csv"),
-           as.is = TRUE, stringsAsFactors = FALSE) |>
-    dplyr::filter(definitionType == !!definitionType)
-}
-
-.getStatisticSqlFile <- function(choice) {
-  read.csv(file = system.file(package = pkgload::pkg_name(), "csv", "assertChoices.csv"),
-           as.is = TRUE, stringsAsFactors = FALSE) |>
-    dplyr::filter(category == "StatisticType" & choice == !!choice) |>
-    dplyr::pull(sqlFileName)
-}
-
-
-
-.cascadeObject <- function(cascadeFrom,
-                           cascadeName,
-                           cascadeTo) {
-  return(lapply(cascadeTo, function(object) {
-    object[[cascadeName]] <- cascadeFrom[[cascadeName]]
-  }))
 }
 
 .getCaseSql <- function(covariateValues,
@@ -68,6 +44,12 @@
 
 .setChoice <- function(private, key, value, choices) {
   checkmate::assert_choice(x = value, choices = choices, null.ok = FALSE)
+  private[[key]] <- value
+  invisible(private)
+}
+
+.setChoiceList <- function(private, key, value, choices) {
+  checkmate::assert_subset(x = value, choices = choices, empty.ok = FALSE)
   private[[key]] <- value
   invisible(private)
 }
