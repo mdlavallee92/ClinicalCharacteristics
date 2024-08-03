@@ -5,14 +5,14 @@
 \title{Create an ExecutionSettings object and set its attributes}
 \usage{
 createExecutionSettings(
-  connectionDetails = NULL,
-  connection = NULL,
-  cdmDatabaseSchema = NULL,
-  workDatabaseSchema = NULL,
-  tempEmulationSchema = NULL,
-  targetCohortTable = NULL,
-  cdmSourceName = NULL,
-  numThreads = NULL
+  connectionDetails,
+  connection,
+  cdmDatabaseSchema,
+  workDatabaseSchema,
+  tempEmulationSchema,
+  targetCohortTable,
+  cdmSourceName,
+  numThreads
 )
 }
 \arguments{

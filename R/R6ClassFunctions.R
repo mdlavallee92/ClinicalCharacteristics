@@ -18,8 +18,8 @@
   invisible(private)
 }
 
-.setNumber <- function(private, key, value) {
-  checkmate::assert_numeric(x = value, null.ok = FALSE)
+.setNumber <- function(private, key, value, nullable = FALSE) {
+  checkmate::assert_numeric(x = value, null.ok = nullable)
   private[[key]] <- value
   invisible(private)
 }
@@ -30,8 +30,8 @@
   invisible(private)
 }
 
-.setClass <- function(private, key, value, class) {
-  checkmate::assert_class(x = value, classes = class, null.ok = FALSE)
+.setClass <- function(private, key, value, class, nullable = FALSE) {
+  checkmate::assert_class(x = value, classes = class, null.ok = nullable)
   private[[key]] <- value
   invisible(private)
 }

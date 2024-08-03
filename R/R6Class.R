@@ -5,48 +5,48 @@
 #'
 #' @export
 ExecutionSettings <- R6::R6Class("ExecutionSettings",
- public = list(
-   connectionDetails = NULL,
-   connection = NULL,
-   cdmDatabaseSchema = NULL,
-   workDatabaseSchema = NULL,
-   tempEmulationSchema = NULL,
-   targetCohortTable = NULL,
-   cdmSourceName = NULL,
-   numThreads = NULL,
-   initialize = function(connectionDetails = NULL,
-                         connection = NULL,
-                         cdmDatabaseSchema = NULL,
-                         workDatabaseSchema = NULL,
-                         tempEmulationSchema = NULL,
-                         targetCohortTable = NULL,
-                         cdmSourceName = NULL,
-                         numThreads = NULL) {
-     stopifnot(is.null(connectionDetails) || is.null(connection))
-     checkmate::assert_string(x = connectionDetails, na.ok = TRUE, null.ok = TRUE)
-     checkmate::assert_string(x = connection, na.ok = TRUE, null.ok = TRUE)
-     checkmate::assert_string(x = cdmDatabaseSchema, na.ok = FALSE, null.ok = FALSE, min.chars = 1)
-     checkmate::assert_string(x = workDatabaseSchema, na.ok = FALSE, null.ok = FALSE, min.chars = 1)
-     checkmate::assert_string(x = tempEmulationSchema, na.ok = TRUE, null.ok = TRUE)
-     checkmate::assert_string(x = targetCohortTable, na.ok = FALSE, null.ok = FALSE, min.chars = 1)
-     checkmate::assert_string(x = cdmSourceName, na.ok = TRUE, null.ok = TRUE)
-     checkmate::assert_number(x = numThreads, na.ok = TRUE, null.ok = TRUE)
+  public = list(
+    connectionDetails = NULL,
+    connection = NULL,
+    cdmDatabaseSchema = NULL,
+    workDatabaseSchema = NULL,
+    tempEmulationSchema = NULL,
+    targetCohortTable = NULL,
+    cdmSourceName = NULL,
+    numThreads = NULL,
+    initialize = function(connectionDetails = NULL,
+                          connection = NULL,
+                          cdmDatabaseSchema = NULL,
+                          workDatabaseSchema = NULL,
+                          tempEmulationSchema = NULL,
+                          targetCohortTable = NULL,
+                          cdmSourceName = NULL,
+                          numThreads = NULL) {
+      stopifnot(is.null(connectionDetails) || is.null(connection))
+      checkmate::assert_string(x = connectionDetails, na.ok = TRUE, null.ok = TRUE)
+      checkmate::assert_string(x = connection, na.ok = TRUE, null.ok = TRUE)
+      checkmate::assert_string(x = cdmDatabaseSchema, na.ok = FALSE, null.ok = FALSE, min.chars = 1)
+      checkmate::assert_string(x = workDatabaseSchema, na.ok = FALSE, null.ok = FALSE, min.chars = 1)
+      checkmate::assert_string(x = tempEmulationSchema, na.ok = TRUE, null.ok = TRUE)
+      checkmate::assert_string(x = targetCohortTable, na.ok = FALSE, null.ok = FALSE, min.chars = 1)
+      checkmate::assert_string(x = cdmSourceName, na.ok = TRUE, null.ok = TRUE)
+      checkmate::assert_number(x = numThreads, na.ok = TRUE, null.ok = TRUE)
 
-     if (!is.null(connection)) {
-       self$connection <- connection
-       self$numThreads <- 1
-     } else {
-       self$connectionDetails <- connectionDetails
-       self$numThreads <- numThreads
-     }
+      if (!is.null(connection)) {
+        self$connection <- connection
+        self$numThreads <- 1
+      } else {
+        self$connectionDetails <- connectionDetails
+        self$numThreads <- numThreads
+      }
 
-     self$cdmDatabaseSchema <- cdmDatabaseSchema
-     self$workDatabaseSchema <- workDatabaseSchema
-     self$tempEmulationSchema <- tempEmulationSchema
-     self$targetCohortTable <- targetCohortTable
-     self$cdmSourceName <- cdmSourceName
-   }
- )
+      self$cdmDatabaseSchema <- cdmDatabaseSchema
+      self$workDatabaseSchema <- workDatabaseSchema
+      self$tempEmulationSchema <- tempEmulationSchema
+      self$targetCohortTable <- targetCohortTable
+      self$cdmSourceName <- cdmSourceName
+    }
+  )
 )
 
 
@@ -60,14 +60,16 @@ TableShell <- R6::R6Class("TableShell",
   public = list(
     initialize = function(name,
                           sections,
-                          targetCohorts) {
+                          targetCohorts,
+                          executionSettings) {
       .setString(private = private, key = "name", value = name)
       .setListofClasses(private = private, key = "targetCohorts", value = targetCohorts, classes = c("TargetCohort"))
       .setListofClasses(private = private, key = "sections", value = sections, classes = c("Section"))
+      .setClass(private = private, key = "executionSettings", value = executionSettings, class = "ExecutionSettings")
     },
-    getTitle = function() {
-      tsTitle <- private$name
-      return(tsTitle)
+    getName = function() {
+      tsName <- private$name
+      return(tsName)
     },
     getTargetCohorts = function() {
       tsTargetCohorts <- private$targetCohorts
@@ -81,7 +83,8 @@ TableShell <- R6::R6Class("TableShell",
   private = list(
     name = NULL,
     sections = NULL,
-    targetCohorts = NULL
+    targetCohorts = NULL,
+    executionSettings = NULL
   )
 )
 
@@ -154,318 +157,310 @@ Section <- R6::R6Class("Section",
 
 #' @description
 #' An R6 class to define a LineItem object
-#' A LineItem is an explicitly defined statistic to appear in a Section
-#' LineItems have names, ordinals, StatisticTypes, DomainIds, Limits
+#' A LineItem is a single, explicitly defined characterization to appear in a Section
 #' Derived classes exist off of LineItems
 #'
 #' @export
 LineItem <- R6::R6Class("LineItem",
   public = list(
-    setName = function(name) {
+    initialize = function(name,
+                          ordinal,
+                          definitionType,
+                          statistic#,
+                          #timeWindows
+                          ) {
       .setString(private = private, key = "name", value = name)
+      .setNumber(private = private, key = "ordinal", value = ordinal)
+      # TODO change this to enforce definitionType from choice list
+      .setString(private = private, key = "definitionType", value = definitionType)
+      .setClass(private = private, key = "statistic", value = statistic, class = "Statistic")
+      #.setListofClasses(private = private, key = "timeWindows", value = timeWindows, classes = c("TimeWindow"))
       invisible(self)
     },
     getName = function() {
       name <- private$name
       return(name)
     },
-    setOrdinal = function(ordinal) {
-      .setNumber(private = private, key = "ordinal", value = ordinal)
-      invisible(self)
-    },
-    setDomainIds = function(domainIds) {
-      theseChoices <- .getAssertChoices(category = "DomainId")
-      .setChoiceList(private = private, key = "domainIds", value = domainIds, choices = theseChoices)
-      invisible(self)
-    },
     getOrdinal = function() {
       liOrdinal <- private$ordinal
       return(liOrdinal)
     },
-    setStatisticType = function(statisticType) {
-      theseChoices <- .getAssertChoices(category = "StatisticType")
-      .setChoice(private = private, key = "statisticType", value = statisticType, choices = theseChoices)
-      invisible(self)
-    },
-    getStatisticType = function() {
-      liStatType <- private$statisticType
-      return(liStatType)
-    },
-    getDomainIds = function() {
-      domainIds <- private$domainIds
-      return(domainIds)
-    },
-    setLimit = function(limit) {
-      theseChoices <- .getAssertChoices(category = "Limit")
-      .setChoice(private = private, key = "limit", value = limit, choices = theseChoices)
-      invisible(self)
-    },
-    getLimit = function() {
-      liLimit <- private$limit
-      return(liLimit)
-    },
-    setTemplateSql = function(templateSql) {
-      .setString(private = private, key = "templateSql", value = templateSql)
-      invisible(self)
-    },
-    getTemplateSql = function() {
-      templateSql <- private$templateSql
-      return(templateSql)
-    },
-    setConceptIds = function(conceptIds) {
-      .setNumber(private = private, key = "conceptIds", value = conceptIds)
-      invisible(self)
-    },
-    getConceptIds = function() {
-      conceptIds <- private$conceptIds
-      return(conceptIds)
-    },
-    setMinThreshold = function(minThreshold) {
-      .setNumber(private = private, key = "minThreshold", value = minThreshold)
-      invisible(self)
-    },
-    getMinThreshold = function() {
-      minThreshold <- private$minThreshold
-      return(minThreshold)
-    },
-    setMaxThreshold = function(maxThreshold) {
-      .setNumber(private = private, key = "maxThreshold", value = maxThreshold)
-      invisible(self)
-    },
-    getMaxThreshold = function() {
-      maxThreshold <- private$maxThreshold
-      return(maxThreshold)
-    },
-    setAssetId = function(assetId) {
-      .setNumber(private = private, key = "assetId", value = assetId)
-      invisible(self)
-    },
-    getAssetId = function() {
-      assetId <- private$assetId
-      return(assetId)
+    getDefinitionType = function() {
+      liDefinitionType <- private$definitionType
+      return(liDefinitionType)
     }
   ),
   private = list(
     name = NULL,
-    assetId = NA,
     ordinal = NA,
-    statisticType = NULL,
-    domainIds = NULL,
-    limit = NULL,
-    templateSql = NULL,
-    conceptIds = c(),
-    minThreshold = NA,
-    maxThreshold = NA
+    definitionType = NULL,
+    statistic = NULL#,
+    #timeWindows = NULL
   )
 )
-
-# GenderDefinition -----
-
-#' @description
-#' An R6 class to define a GenderDefinition object.
-#'
-#' @export
-GenderDefinition <- R6::R6Class("GenderDefinition",
-  inherit = LineItem,
-  public = list(
-    initialize = function(name,
-                          genderConceptIds) {
-      super$setDomainIds(domainIds = "Gender")
-      super$setName(name = name)
-      super$setConceptIds(conceptIds = genderConceptIds)
-
-      templateSql <- "select something;" ## TODO as SqlRender::loadRenderTranslateSql()
-      super$setTemplateSql(templateSql = templateSql)
-    },
-    getGenderConceptIds = function() {
-      genderConceptIds <- private$genderConceptIds
-      return(genderConceptIds)
-    }
-  )
-)
-
-# AgeDefinition -----
-
-#' @description
-#' An R6 class to handle the ...
-#'
-#' @export
-AgeDefinition <- R6::R6Class("AgeDefinition",
-   inherit = LineItem,
-   public = list(
-     initialize = function(name,
-                           minAge = NULL,
-                           maxAge = NULL) {
-       super$setName(name = name)
-       super$setDomainIds(domainIds = "Age")
-       super$setMinThreshold(minThreshold = minAge)
-       super$setMaxThreshold(maxThreshold = maxAge)
-
-       templateSql <- "select something;" ## TODO as SqlRender::loadRenderTranslateSql()
-       super$setTemplateSql(templateSql = templateSql)
-     }
-   )
-)
-
-
-# IndexYearDefinition -----
-
-#' @description
-#' An R6 class to define a IndexYearDefinition object.
-#'
-#' @export
-IndexYearDefinition <- R6::R6Class("IndexYearDefinition",
-  inherit = LineItem,
-  public = list(
-    initialize = function(name = indexYear,
-                          indexYear) {
-      super$setName(name = name)
-      super$setDomainIds(domainIds = "IndexYear")
-      super$setMinThreshold(minThreshold = indexYear)
-      super$setMaxThreshold(maxThreshold = indexYear) # is it fine to just stuff this in min and max thresholds?
-
-      templateSql <- "select something;" ## TODO as SqlRender::loadRenderTranslateSql()
-      super$setTemplateSql(templateSql = templateSql)
-    }
-  )
-)
-
 
 # ConceptSetDefinition ----
 
 #' @description
 #' An R6 class to define a ConceptSetDefinition
-#' A line item that uses a Concept Set JSON
 #'
 #' @export
-ConceptSetDefinition <- R6::R6Class("ConceptSetDefinition", list(
+ConceptSetDefinition <- R6::R6Class("ConceptSetDefinition",
   inherit = LineItem,
   public = list(
     initialize = function(name,
-                          domainIds,
-                          conceptSetId) {
-      super$setName(name = name)
-      super$setDomainIds(domainIds = domainIds)
-      super$setAssetId(assetId = conceptSetId)
-
-      templateSql <- "select something;" ## TODO as SqlRender::loadRenderTranslateSql()
-      super$setTemplateSql(templateSql = templateSql)
-    }
-  )
-))
-
-# ConceptSetGroupDefinition ----
-
-#' @description
-#' An R6 class to define a ConceptSetGroupDefinition
-#' A line item that uses a Concept Set Group
-#'
-#' @export
-ConceptSetGroupDefinition <- R6::R6Class("ConceptSetGroupDefinition", list(
-  inherit = LineItem,
-  public = list(
-    initialize = function(conceptSetDefinitions) {
-      .setListofClasses(private = private, key = "conceptSetDefinitions", value = conceptSetDefinitions, classes = c("ConceptSet"))
-    },
-    getConceptSetDefinitions = function() {
-      conceptSetDefinitions <- private$conceptSetDefinitions
-      return(conceptSetDefinitions)
+                          ordinal,
+                          statistic,
+                          conceptSet,
+                          domain,
+                          sourceConceptSet = NULL,
+                          typeConceptIds = c(),
+                          visitOccurrenceConceptIds = c()) {
+      super$initialize(name = name, ordinal = ordinal, definitionType = "conceptSet", statistic = statistic)
+      .setClass(private = private, key = "conceptSet", value = conceptSet, class = "ConceptSet")
+      # TODO change this to enforce domain from choice list
+      .setString(private = private, key = "domain", value = domain)
+      .setClass(private = private, key = "sourceConceptSet", value = sourceConceptSet, class = "ConceptSet", nullable = TRUE)
+      .setNumber(private = private, key = "typeConceptIds", value = typeConceptIds, nullable = TRUE)
+      .setNumber(private = private, key = "visitOccurrenceConceptIds", value = visitOccurrenceConceptIds, nullable = TRUE)
     }
   ),
   private = list(
-    conceptSetDefinitions = c()
-  )
-))
-
-# CohortDefinition ----
-
-#' @description
-#' An R6 class to define a CohortDefinition
-#'
-#' @export
-CohortDefinition <- R6::R6Class("CohortDefinition",
-  public = list(
-    initialize = function(name,
-                          cohortDefinitionId) {
-      super$setName(name = name)
-      super$setDomainIds(domainIds = "Cohort")
-      super$setAssetId(assetId = cohortDefinitionId)
-
-      templateSql <- "select something;" ## TODO as SqlRender::loadRenderTranslateSql()
-      super$setTemplateSql(templateSql = templateSql)
-    }
+    conceptSet = NULL,
+    domain = NULL,
+    sourceConceptSet = NULL,
+    typeConceptIds = c(),
+    visitOccurrenceConceptIds = c()
   )
 )
 
-
-# RaceDefinition ------
-
+#' @title
+#' An R6 class to define a Statistic object
+#' 
 #' @description
-#' An R6 class to define a RaceDefinition object.
+#' A Statistic is a type of metric to be used for characterization
+#' Specific types of statistics are defined in derived classes
 #'
 #' @export
-RaceDefinition <- R6::R6Class("RaceDefinition", list(
-  inherit = LineItem,
+Statistic <- R6::R6Class("Statistic",
   public = list(
-    initialize = function(name,
-                          raceConceptIds) {
-      super$setDomainIds(domainIds = "Race")
-      super$setName(name = name)
-      super$setConceptIds(conceptIds = raceConceptIds)
-
-      templateSql <- "select something;" ## TODO as SqlRender::loadRenderTranslateSql()
-      super$setTemplateSql(templateSql = templateSql)
-    },
-    getGenderConceptIds = function() {
-      genderConceptIds <- private$genderConceptIds
-      return(genderConceptIds)
+    initialize = function(type) {
+      .setString(private = private , key = "type", value = type)
     }
+  ),
+  private = list(
+    type = NULL
   )
-))
+)
 
-######## MORE TO-DO #####
-
-# ValueDefinition ----
-
+#' @title
+#' An R6 class to define a Presence object
+#' 
 #' @description
-#' An R6 class to handle the ...
+#' Child of Statistic. The Presence statistic is a binary metric the indicates the presence of a variable
 #'
 #' @export
-ValueDefinition <- R6::R6Class("ValueDefinition", list(
-  inherit = LineItem,
+Presence <- R6::R6Class("Presence", 
+  inherit = Statistic,
+  public = list(
+    initialize = function(operator, 
+                          occurrences) {
+      super$initialize(type = "Presence")
+      # TODO change this to enforce operator from choice list
+      .setString(private = private, key = "operator", value = operator)
+      .setNumber(private = private, key = "occurrences", value = occurrences)
+    }
+  ),
+  private = list(
+    operator = NULL,
+    occurrences = NA
+  )
+)
 
-  domainIds = c(),
-  thresholdMin = NA,
-  thresholdMax = NA,
-  unitConceptIds = c(),
-  unitConversions = c()
-))
+# # GenderDefinition -----
 
-# UnitConversion ----
+# #' @description
+# #' An R6 class to define a GenderDefinition object.
+# #'
+# #' @export
+# GenderDefinition <- R6::R6Class("GenderDefinition",
+#   inherit = LineItem,
+#   public = list(
+#     initialize = function(name,
+#                           genderConceptIds) {
+#       super$setDomainIds(domainIds = "Gender")
+#       super$setName(name = name)
+#       super$setConceptIds(conceptIds = genderConceptIds)
 
-#' @description
-#' An R6 class to handle the ...
-#'
-#' @export
-UnitConversion <- R6::R6Class("UnitConversion", list(
-  originalUnitConceptId = NA,
-  targetUnitConceptId = NA,
-  multiplierToOriginal = NA
-))
+#       templateSql <- "select something;" ## TODO as SqlRender::loadRenderTranslateSql()
+#       super$setTemplateSql(templateSql = templateSql)
+#     },
+#     getGenderConceptIds = function() {
+#       genderConceptIds <- private$genderConceptIds
+#       return(genderConceptIds)
+#     }
+#   )
+# )
 
-# BreaksStrategy ----
+# # AgeDefinition -----
 
-#' @description
-#' An R6 class to handle the ...
-#'
-#' @export
-BreaksStrategy <- R6::R6Class("BreaksStrategy", list(
-  name = NULL,
-  breaks = NULL,
-  initialize = function(name,
-                        breaks) {
-    self$name <- name
-    self$breaks <- breaks
-  }
-))
+# #' @description
+# #' An R6 class to handle the ...
+# #'
+# #' @export
+# AgeDefinition <- R6::R6Class("AgeDefinition",
+#   inherit = LineItem,
+#   public = list(
+#     initialize = function(name,
+#                           minAge = NULL,
+#                           maxAge = NULL) {
+#       super$setName(name = name)
+#       super$setDomainIds(domainIds = "Age")
+#       super$setMinThreshold(minThreshold = minAge)
+#       super$setMaxThreshold(maxThreshold = maxAge)
+
+#       templateSql <- "select something;" ## TODO as SqlRender::loadRenderTranslateSql()
+#       super$setTemplateSql(templateSql = templateSql)
+#     }
+#   )
+# )
+
+
+# # IndexYearDefinition -----
+
+# #' @description
+# #' An R6 class to define a IndexYearDefinition object.
+# #'
+# #' @export
+# IndexYearDefinition <- R6::R6Class("IndexYearDefinition",
+#   inherit = LineItem,
+#   public = list(
+#     initialize = function(name = indexYear,
+#                           indexYear) {
+#       super$setName(name = name)
+#       super$setDomainIds(domainIds = "IndexYear")
+#       super$setMinThreshold(minThreshold = indexYear)
+#       super$setMaxThreshold(maxThreshold = indexYear) # is it fine to just stuff this in min and max thresholds?
+
+#       templateSql <- "select something;" ## TODO as SqlRender::loadRenderTranslateSql()
+#       super$setTemplateSql(templateSql = templateSql)
+#     }
+#   )
+# )
+
+# # ConceptSetGroupDefinition ----
+
+# #' @description
+# #' An R6 class to define a ConceptSetGroupDefinition
+# #' A line item that uses a Concept Set Group
+# #'
+# #' @export
+# ConceptSetGroupDefinition <- R6::R6Class("ConceptSetGroupDefinition", list(
+#   inherit = LineItem,
+#   public = list(
+#     initialize = function(conceptSetDefinitions) {
+#       .setListofClasses(private = private, key = "conceptSetDefinitions", value = conceptSetDefinitions, classes = c("ConceptSet"))
+#     },
+#     getConceptSetDefinitions = function() {
+#       conceptSetDefinitions <- private$conceptSetDefinitions
+#       return(conceptSetDefinitions)
+#     }
+#   ),
+#   private = list(
+#     conceptSetDefinitions = c()
+#   )
+# ))
+
+# # CohortDefinition ----
+
+# #' @description
+# #' An R6 class to define a CohortDefinition
+# #'
+# #' @export
+# CohortDefinition <- R6::R6Class("CohortDefinition",
+#   public = list(
+#     initialize = function(name,
+#                           cohortDefinitionId) {
+#       super$setName(name = name)
+#       super$setDomainIds(domainIds = "Cohort")
+#       super$setAssetId(assetId = cohortDefinitionId)
+
+#       templateSql <- "select something;" ## TODO as SqlRender::loadRenderTranslateSql()
+#       super$setTemplateSql(templateSql = templateSql)
+#     }
+#   )
+# )
+
+
+# # RaceDefinition ------
+
+# #' @description
+# #' An R6 class to define a RaceDefinition object.
+# #'
+# #' @export
+# RaceDefinition <- R6::R6Class("RaceDefinition", list(
+#   inherit = LineItem,
+#   public = list(
+#     initialize = function(name,
+#                           raceConceptIds) {
+#       super$setDomainIds(domainIds = "Race")
+#       super$setName(name = name)
+#       super$setConceptIds(conceptIds = raceConceptIds)
+
+#       templateSql <- "select something;" ## TODO as SqlRender::loadRenderTranslateSql()
+#       super$setTemplateSql(templateSql = templateSql)
+#     },
+#     getGenderConceptIds = function() {
+#       genderConceptIds <- private$genderConceptIds
+#       return(genderConceptIds)
+#     }
+#   )
+# ))
+
+# ######## MORE TO-DO #####
+
+# # ValueDefinition ----
+
+# #' @description
+# #' An R6 class to handle the ...
+# #'
+# #' @export
+# ValueDefinition <- R6::R6Class("ValueDefinition", list(
+#   inherit = LineItem,
+
+#   domainIds = c(),
+#   thresholdMin = NA,
+#   thresholdMax = NA,
+#   unitConceptIds = c(),
+#   unitConversions = c()
+# ))
+
+# # UnitConversion ----
+
+# #' @description
+# #' An R6 class to handle the ...
+# #'
+# #' @export
+# UnitConversion <- R6::R6Class("UnitConversion", list(
+#   originalUnitConceptId = NA,
+#   targetUnitConceptId = NA,
+#   multiplierToOriginal = NA
+# ))
+
+# # BreaksStrategy ----
+
+# #' @description
+# #' An R6 class to handle the ...
+# #'
+# #' @export
+# BreaksStrategy <- R6::R6Class("BreaksStrategy", list(
+#   name = NULL,
+#   breaks = NULL,
+#   initialize = function(name,
+#                         breaks) {
+#     self$name <- name
+#     self$breaks <- breaks
+#   }
+# ))
+
 

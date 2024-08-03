@@ -1,53 +1,10 @@
 library(testthat)
 
-test_that("createTableShell returns a TableShell object with the correct title", {
-  title <- "Test TableShell"
-  tableShell <- createTableShell(title)
-  expect_true(inherits(tableShell, "TableShell"))
-  expect_equal(tableShell$getTitle(), title)
-})
-
-test_that("addTargetCohorts sets the target cohorts correctly", {
-  tableShell <- createTableShell("Test TableShell")
-  targetCohorts <- list(
-    createTargetCohort(1, "Cohort 1"),
-    createTargetCohort(2, "Cohort 2")
-  )
-  tableShell <- addTargetCohorts(tableShell, targetCohorts)
-  expect_equal(tableShell$getTargetCohorts(), targetCohorts)
-})
-
-test_that("addTargetCohortsFromDf adds target cohorts from a data frame", {
-  tableShell <- createTableShell("Test TableShell")
-  df <- data.frame(id = c(1, 2), name = c("Cohort 1", "Cohort 2"))
-  tableShell <- addTargetCohortsFromDf(tableShell, df)
-  expect_true(all(sapply(tableShell$getTargetCohorts(), inherits, "TargetCohort")))
-})
-
-# test_that("addTargetCohortsFromCsv adds target cohorts from a CSV file", {
-#   tableShell <- createTableShell("Test TableShell")
-#   file <- "path/to/file.csv"
-#   tableShell <- addTargetCohortsFromCsv(tableShell, file)
-#   expect_true(all(sapply(tableShell$getTargetCohorts(), inherits, "TargetCohort")))
-# })
-
-test_that("addSections adds 2 sections to a TableShell object", {
-  tableShell <- createTableShell("Test TableShell")
-  section1 <- Section$new()
-  section2 <- Section$new()
-  tableShell <- addSections(tableShell, section1, section2)
-  expect_equal(tableShell$getSections(), list(section1, section2))
-})
-
-test_that("addSections adds 1 section to a TableShell object", {
-  tableShell <- createTableShell("Test TableShell")
-  section1 <- Section$new()
-  tableShell <- addSections(tableShell, section1)
-  expect_equal(tableShell$getSections(), list(section1))
-})
-
-test_that("setExecutionSettings sets the ExecutionSettings of a TableShell object", {
-  tableShell <- createTableShell("Test TableShell")
+test_that("createTableShell returns a TableShell object with the correct name", {
+  name <- "Table 1"
+  targetCohort <- createTargetCohort(id = 1, name = "TC")
+  lineItem <- LineItem$new("Line",1,"def",Statistic$new("stat"))
+  section <- createSection(name = "Section 1", ordinal = 1, lineItems = list(lineItem))
   es <- ExecutionSettings$new(connectionDetails = "fake_connection_details",
                               connection = NULL,
                               cdmDatabaseSchema = "fake_cdm_database_schema",
@@ -56,8 +13,16 @@ test_that("setExecutionSettings sets the ExecutionSettings of a TableShell objec
                               targetCohortTable = "fake_target_cohort_table",
                               cdmSourceName = "fake_cdm_source_name",
                               numThreads = 4)
-  tableShell <- setExecutionSettings(tableShell, es)
-  expect_equal(tableShell$getExecutionSettings(), es)
+  tableShell <- createTableShell(name = "Table 1", sections = list(section), targetCohorts = list(targetCohort), executionSettings = es)
+
+  expect_true(inherits(tableShell, "TableShell"))
+  expect_equal(tableShell$getName(), name)
+})
+
+test_that("addTargetCohortsFromDf adds target cohorts from a data frame", {
+  df <- data.frame(id = c(1, 2), name = c("Cohort 1", "Cohort 2"))
+  cohorts <- parseTargetCohortsFromDf(df)
+  expect_true(all(sapply(cohorts, inherits, "TargetCohort")))
 })
 
 test_that("createTargetCohort returns a TargetCohort object with the correct attributes", {
@@ -82,34 +47,31 @@ test_that("createExecutionSettings returns an ExecutionSettings object", {
 })
 
 test_that("createSection returns a Section object with the correct attributes", {
-  section <- createSection("Test Section", 1)
+  section <- createSection("Test Section", 1, list(LineItem$new("Line",1,"def",Statistic$new("stat"))))
   expect_true(inherits(section, "Section"))
-  expect_equal(section$getTitle(), "Test Section")
+  expect_equal(section$getName(), "Test Section")
   expect_equal(section$getOrdinal(), 1)
 })
 
-test_that("addLineItems adds line items to a Section object", {
-  section <- createSection("Test Section", 1)
-  lineItem1 <- createLineItem("Line Item 1", 1)
-  lineItem2 <- createLineItem("Line Item 2", 2)
-  section <- addLineItems(section, lineItem1, lineItem2)
-  expect_equal(section$getLineItems(), list(lineItem1, lineItem2))
+test_that("createConceptSetLineItem creates a ConceptSetDefinition object", {
+  csDefinition <- createConceptSetLineItem(name = "Concept Set 1",
+                                           ordinal = 1,
+                                           statistic = Presence$new("equal", 1),
+                                           conceptSet = Capr::cs(1335471, name = "test"),
+                                           domain = "Drug")
+  expect_true(inherits(csDefinition, "ConceptSetDefinition"))
+  expect_true(inherits(csDefinition, "LineItem"))
+  expect_equal(csDefinition$getDefinitionType(), "conceptSet")
 })
 
-test_that("addLineItems adds 1 line item to a Section object", {
-  section <- createSection("Test Section", 1)
-  lineItem1 <- createLineItem("Line Item 1", 1)
-  section <- addLineItems(section, lineItem1)
-  expect_equal(section$getLineItems(), list(lineItem1))
-})
-
-test_that("createLineItem returns a LineItem object with the correct attributes", {
-  ordinal <- 1
-  label <- "Test LineItem"
-
-  lineItem <- createLineItem(label, ordinal)
-
-  expect_true(inherits(lineItem, "LineItem"))
-  expect_equal(lineItem$getOrdinal(), ordinal)
-  expect_equal(lineItem$getLabel(), label)
+test_that("createConceptSetLineItemBatch creates a list of ConceptSetDefinition objects", {
+  conceptSets <- list(Capr::cs(1335471, name = "A"), Capr::cs(1340128, name = "B"), Capr::cs(1341927, name = "C"))
+  csDefinitions <- createConceptSetLineItemBatch(statistic = Presence$new("equal", 1),
+                                                 conceptSets = conceptSets,
+                                                 domain = "Drug")
+  expect_equal(length(csDefinitions), 3)
+  expect_true(inherits(csDefinitions[[1]], "ConceptSetDefinition"))
+  expect_true(inherits(csDefinitions[[1]], "LineItem"))
+  expect_equal(csDefinitions[[1]]$getName(), "A")
+  expect_equal(csDefinitions[[1]]$getOrdinal(), 1)
 })

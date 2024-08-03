@@ -2,99 +2,37 @@
 #' Create an empty TableShell object and set its title
 #'
 #' @param title The title of the TableShell
+#' @param sections A list of Section objects
+#' @param targetCohorts A list of TargetCohort objects
+#' @param executionSettings An ExecutionSettings object
 #'
 #' @return A TableShell object
 #'
 #' @export
-createTableShell <- function(title) {
-    tableShell <- TableShell$new()
-    tableShell$setTitle(title)
+createTableShell <- function(name,
+                            sections,
+                            targetCohorts,
+                            executionSettings) {
+    tableShell <- TableShell$new(name = name,
+                                 sections = sections,
+                                 targetCohorts = targetCohorts,
+                                 executionSettings = executionSettings)
     return(tableShell)
 }
 
 #' @title
-#' Add TargetCohorts to a TableShell object
+#' Parse target cohorts from a data frame
 #'
-#' @param tableShell The TableShell object
-#' @param targetCohorts A list of TargetCohort objects
+#' @param df The data frame containing the information for the target cohorts (id and name)
 #'
-#' @return A TableShell object
-#'
-#' @export
-addTargetCohorts <- function(tableShell, targetCohorts) {
-    tableShell$setTargetCohorts(targetCohorts)
-    invisible(tableShell)
-}
-
-#' @title
-#' Add target cohorts from a data frame
-#'
-#' @param tableShell The table shell object to which the target cohorts will be added.
-#' @param df The data frame containing the information for the target cohorts.
-#'
-#' @return The updated table shell object with the target cohorts added.
+#' @return A list of TargetCohort objects
 #'
 #' @export
-addTargetCohortsFromDf <- function(tableShell, df) {
+parseTargetCohortsFromDf <- function(df) {
     targetCohorts <- purrr::pmap(df, function(id, name) {
         createTargetCohort(id, name)
     })
-    tableShell$setTargetCohorts(targetCohorts)
-    invisible(tableShell)
-}
-
-#' @title
-#' Add target cohorts from a CSV file
-#'
-#' @param tableShell The table shell object to which the target cohorts will be added.
-#' @param file The path to the CSV file containing the target cohorts data.
-#'
-#' @return The modified table shell object.
-#'
-#' @export
-addTargetCohortsFromCsv <- function(tableShell, file) {
-    df <- read.csv(file)
-    addTargetCohortsFromDf(tableShell, df)
-    invisible(tableShell)
-}
-
-#' @title
-#' Add one or more Sections to a TableShell object
-#'
-#' @param tableShell The TableShell object
-#' @param section A Section object
-#' @param ... Additional Section objects to be added
-#'
-#' @return A TableShell object
-#'
-#' @export
-addSections <- function(tableShell, section, ...) {
-    if (!inherits(section, "Section")) {
-        stop("section must be a Section object")
-    }
-
-    additionalSections <- list(...)
-    if (!all(sapply(additionalSections, function(x) inherits(x, "Section")))) {
-        stop("All additional arguments must be Section objects")
-    }
-
-    allSections <- c(list(section), additionalSections)
-    tableShell$setSections(allSections)
-    invisible(tableShell)
-}
-
-#' @title
-#' Set the ExecutionSettings of a TableShell object
-#'
-#' @param tableShell The TableShell object
-#' @param executionSettings The ExecutionSettings object
-#'
-#' @return A TableShell object
-#'
-#' @export
-setExecutionSettings <- function(tableShell, executionSettings) {
-    tableShell$setExecutionSettings(executionSettings)
-    return(tableShell)
+    return(targetCohorts)
 }
 
 #' @title
@@ -107,9 +45,7 @@ setExecutionSettings <- function(tableShell, executionSettings) {
 #'
 #' @export
 createTargetCohort <- function(id, name) {
-  targetCohort <- TargetCohort$new()
-  targetCohort$setId(id)
-  targetCohort$setName(name)
+  targetCohort <- TargetCohort$new(id, name)
   return(targetCohort)
 }
 
@@ -147,72 +83,94 @@ createExecutionSettings <- function(connectionDetails,
 }
 
 #' @title
-#' Create a Section object and set its title and ordinal
+#' Create a Section object and set its attributes
 #' @param title The title of the Section
 #' @param ordinal The ordinal of the Section
+#' @param lineItems A list of LineItem objects
 #'
 #' @return A Section object
 #'
 #' @export
-createSection <- function(title, ordinal) {
-  section <- Section$new()
-  section$setTitle(title)
-  section$setOrdinal(ordinal)
+createSection <- function(name, ordinal, lineItems) {
+  section <- Section$new(name, ordinal, lineItems)
   return(section)
 }
 
 #' @title
-#' Add one or more Line Items to a Section object
+#' Create a concept set line item and set its attributes
 #'
-#' @param section The Section object
-#' @param lineItem A LineItem object
-#' @param ... Additional LineItem objects to be added
+#' @param name (OPTIONAL) The name of the line item (if not provided, the name will be set to the Capr concept set name)
+#' @param ordinal The ordinal of the line item within a section
+#' @param statistic The Statistic object to be used to evaluate the line item
+#' @param conceptSet The Capr concept set object
+#' @param domain The domain of the concept set (must be one of 'Condition', 'Drug', 'Procedure', 'Observation', 'Measurement', 'Device')
+#' @param sourceConceptSet (OPTIONAL) A Capr concept set of source concept IDs to use to limit the concept set
+#' @param typeConceptIds (OPTIONAL) A list of type concept IDs to use to limit the concept set
+#' @param visitOccurrenceConceptIds (OPTIONAL) A list of visit occurrence concept IDs to use to limit the concept set
 #'
-#' @return A Section object
+#' @return A ConceptSetDefinition object
 #'
 #' @export
-addLineItems <- function(section, lineItem, ...) {
-  if (!inherits(lineItem, "LineItem")) {
-    stop("lineItem must be a LineItem object")
-  }
-
-  additionalLineItems <- list(...)
-  if (!all(sapply(additionalLineItems, function(x) inherits(x, "LineItem")))) {
-    stop("All additional arguments must be LineItem objects")
-  }
-
-  allLineItems <- c(list(lineItem), additionalLineItems)
-  section$setLineItems(allLineItems)
-  invisible(section)
+createConceptSetLineItem <- function(name,
+                                     ordinal,
+                                     statistic,
+                                     conceptSet,
+                                     domain,
+                                     sourceConceptSet = NULL,
+                                     typeConceptIds = c(),
+                                     visitOccurrenceConceptIds = c()) {
+  csDefinition <- ConceptSetDefinition$new(name, 
+                                           ordinal,
+                                           statistic,
+                                           conceptSet,
+                                           domain,
+                                           sourceConceptSet = sourceConceptSet,
+                                           typeConceptIds = typeConceptIds,
+                                           visitOccurrenceConceptIds = visitOccurrenceConceptIds)
+  return(csDefinition)
 }
 
 #' @title
-#' Create a LineItem object and set its attributes
+#' Create a batch of concept set line items from a list of Capr concept sets. 
+#' 
+#' @description 
+#' The name of each line item will be set to the name of its Capr concept set, and the ordinal will be set to the index of the Capr concept set in the list. All line items will use the same statistic, domain, type concepts, and visit concepts. It is not possible to specify source concept IDs.
 #'
-#' @param ordinal The ordinal of the LineItem
-#' @param name The name of the LineItem
-#' @param showMissing Whether to show missing values in the LineItem
-#' @param statisticType The statistic type of the LineItem
-#' @param limit The limit of the LineItem
+#' @param statistic The Statistic object to be used to evaluate the line items
+#' @param conceptSets A list of concept set Capr objects
+#' @param domain The domain of the concept sets (must be one of 'Condition', 'Drug', 'Procedure', 'Observation', 'Measurement', 'Device')
+#' @param typeConceptIds (OPTIONAL) A list of type concept IDs to use to limit the concept set
+#' @param visitOccurrenceConceptIds (OPTIONAL) A list of visit occurrence concept IDs to use to limit the concept set
 #'
-#' @return A LineItem object
+#' @return A list of ConceptSetDefinition objects
 #'
 #' @export
-createLineItem <- function(name,
-                           ordinal) {
-  lineItem <- LineItem$new()
-  lineItem$setOrdinal(ordinal)
-  lineItem$setLabel(name)
-  #lineItem$setShowMissing(showMissing)
-  #lineItem$setStatisticType(statisticType)
-  #lineItem$setLimit(limit)
-  return(lineItem)
+createConceptSetLineItemBatch <- function(statistic,
+                                          conceptSets,
+                                          domain,
+                                          typeConceptIds = c(),
+                                          visitOccurrenceConceptIds = c()) {
+  checkmate::assert_list(x = conceptSets, types = c("ConceptSet"), null.ok = FALSE, min.len = 1)
+
+  csDefs <- list()
+  n <- 0
+  for (cs in conceptSets) {
+    n <- n + 1
+    csDefinition <- ConceptSetDefinition$new(name = cs@Name, 
+                                             ordinal = n,
+                                             statistic = statistic,
+                                             conceptSet = cs,
+                                             domain = domain,
+                                             typeConceptIds = typeConceptIds,
+                                             visitOccurrenceConceptIds = visitOccurrenceConceptIds)
+    csDefs <- append(csDefs, list(csDefinition))
+  }
+  return(csDefs)
 }
 
 
+# addGenderItem <- function(genderConceptIds = c(),
+#                           inputType) {
+#   gender <- GenderDefinition$new(inputType = "Explicit", genderConceptIds = genderConceptIds)
 
-addGenderItem <- function(genderConceptIds = c(),
-                          inputType) {
-  gender <- GenderDefinition$new(inputType = "Explicit", genderConceptIds = genderConceptIds)
-
-}
+# }
