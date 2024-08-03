@@ -18,8 +18,8 @@
   invisible(private)
 }
 
-.setNumber <- function(private, key, value) {
-  checkmate::assert_numeric(x = value, null.ok = FALSE)
+.setNumber <- function(private, key, value, nullable = FALSE) {
+  checkmate::assert_numeric(x = value, null.ok = nullable)
   private[[key]] <- value
   invisible(private)
 }

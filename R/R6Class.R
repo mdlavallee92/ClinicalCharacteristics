@@ -276,10 +276,6 @@ GenderDefinition <- R6::R6Class("GenderDefinition",
 
       templateSql <- "select something;" ## TODO as SqlRender::loadRenderTranslateSql()
       super$setTemplateSql(templateSql = templateSql)
-    },
-    getGenderConceptIds = function() {
-      genderConceptIds <- private$genderConceptIds
-      return(genderConceptIds)
     }
   )
 )
@@ -294,8 +290,8 @@ AgeDefinition <- R6::R6Class("AgeDefinition",
    inherit = LineItem,
    public = list(
      initialize = function(name,
-                           minAge = NULL,
-                           maxAge = NULL) {
+                           minAge,
+                           maxAge) {
        super$setName(name = name)
        super$setDomainIds(domainIds = "Age")
        super$setMinThreshold(minThreshold = minAge)
@@ -338,21 +334,36 @@ IndexYearDefinition <- R6::R6Class("IndexYearDefinition",
 #' A line item that uses a Concept Set JSON
 #'
 #' @export
-ConceptSetDefinition <- R6::R6Class("ConceptSetDefinition", list(
+ConceptSetDefinition <- R6::R6Class("ConceptSetDefinition",
   inherit = LineItem,
   public = list(
     initialize = function(name,
                           domainIds,
-                          conceptSetId) {
+                          conceptSetId,
+                          caprConceptSet,
+                          visitConceptIds = c(),
+                          sourceConceptIds = c(),
+                          typeConceptIds = c()) {
       super$setName(name = name)
       super$setDomainIds(domainIds = domainIds)
       super$setAssetId(assetId = conceptSetId)
 
+      .setClass(private = private, key = "caprConceptSet", value = caprConceptSet, class = c("ConceptSet"))
+      .setNumber(private = private, key = "visitConceptIds", value = visitConceptIds, nullable = TRUE)
+      .setNumber(private = private, key = "sourceConceptIds", value = sourceConceptIds, nullable = TRUE)
+      .setNumber(private = private, key = "typeConceptIds", value = typeConceptIds, nullable = TRUE)
+
       templateSql <- "select something;" ## TODO as SqlRender::loadRenderTranslateSql()
       super$setTemplateSql(templateSql = templateSql)
     }
+  ),
+  private = list(
+    caprConceptSet = NULL,
+    visitConceptIds = c(),
+    sourceConceptIds = c(),
+    typeConceptIds = c()
   )
-))
+)
 
 # ConceptSetGroupDefinition ----
 
@@ -361,11 +372,13 @@ ConceptSetDefinition <- R6::R6Class("ConceptSetDefinition", list(
 #' A line item that uses a Concept Set Group
 #'
 #' @export
-ConceptSetGroupDefinition <- R6::R6Class("ConceptSetGroupDefinition", list(
+ConceptSetGroupDefinition <- R6::R6Class("ConceptSetGroupDefinition",
   inherit = LineItem,
   public = list(
     initialize = function(conceptSetDefinitions) {
-      .setListofClasses(private = private, key = "conceptSetDefinitions", value = conceptSetDefinitions, classes = c("ConceptSet"))
+      .setListofClasses(private = private, key = "conceptSetDefinitions",
+                        value = conceptSetDefinitions,
+                        classes = c("ConceptSetDefinition"))
     },
     getConceptSetDefinitions = function() {
       conceptSetDefinitions <- private$conceptSetDefinitions
@@ -375,7 +388,7 @@ ConceptSetGroupDefinition <- R6::R6Class("ConceptSetGroupDefinition", list(
   private = list(
     conceptSetDefinitions = c()
   )
-))
+)
 
 # CohortDefinition ----
 
@@ -384,16 +397,28 @@ ConceptSetGroupDefinition <- R6::R6Class("ConceptSetGroupDefinition", list(
 #'
 #' @export
 CohortDefinition <- R6::R6Class("CohortDefinition",
+  inherit = LineItem,
   public = list(
     initialize = function(name,
-                          cohortDefinitionId) {
+                          cohortDefinitionId,
+                          cohortDatabaseSchema,
+                          cohortTable) {
       super$setName(name = name)
       super$setDomainIds(domainIds = "Cohort")
       super$setAssetId(assetId = cohortDefinitionId)
 
+      # Could simply use an execution settings object, but the scope here is much less, as we
+      # need the same connection and database
+      .setString(private = private, key = "cohortDatabaseSchema", value = cohortDatabaseSchema)
+      .setString(private = private, key = "cohortTable", value = cohortTable)
+
       templateSql <- "select something;" ## TODO as SqlRender::loadRenderTranslateSql()
       super$setTemplateSql(templateSql = templateSql)
     }
+  ),
+  private = list(
+    cohortDatabaseSchema = NULL,
+    cohortTable = NULL
   )
 )
 
@@ -404,7 +429,7 @@ CohortDefinition <- R6::R6Class("CohortDefinition",
 #' An R6 class to define a RaceDefinition object.
 #'
 #' @export
-RaceDefinition <- R6::R6Class("RaceDefinition", list(
+RaceDefinition <- R6::R6Class("RaceDefinition",
   inherit = LineItem,
   public = list(
     initialize = function(name,
@@ -416,12 +441,12 @@ RaceDefinition <- R6::R6Class("RaceDefinition", list(
       templateSql <- "select something;" ## TODO as SqlRender::loadRenderTranslateSql()
       super$setTemplateSql(templateSql = templateSql)
     },
-    getGenderConceptIds = function() {
-      genderConceptIds <- private$genderConceptIds
-      return(genderConceptIds)
+    getRaceConceptIds = function() {
+      raceConceptIds <- private$raceConceptIds
+      return(raceConceptIds)
     }
   )
-))
+)
 
 ######## MORE TO-DO #####
 
@@ -431,15 +456,15 @@ RaceDefinition <- R6::R6Class("RaceDefinition", list(
 #' An R6 class to handle the ...
 #'
 #' @export
-ValueDefinition <- R6::R6Class("ValueDefinition", list(
-  inherit = LineItem,
-
-  domainIds = c(),
-  thresholdMin = NA,
-  thresholdMax = NA,
-  unitConceptIds = c(),
-  unitConversions = c()
-))
+ValueDefinition <- R6::R6Class("ValueDefinition",
+  inherit = LineItem
+#
+#   domainIds = c(),
+#   thresholdMin = NA,
+#   thresholdMax = NA,
+#   unitConceptIds = c(),
+#   unitConversions = c()
+)
 
 # UnitConversion ----
 
@@ -447,11 +472,11 @@ ValueDefinition <- R6::R6Class("ValueDefinition", list(
 #' An R6 class to handle the ...
 #'
 #' @export
-UnitConversion <- R6::R6Class("UnitConversion", list(
-  originalUnitConceptId = NA,
-  targetUnitConceptId = NA,
-  multiplierToOriginal = NA
-))
+UnitConversion <- R6::R6Class("UnitConversion",
+  # originalUnitConceptId = NA,
+  # targetUnitConceptId = NA,
+  # multiplierToOriginal = NA
+)
 
 # BreaksStrategy ----
 
@@ -459,13 +484,13 @@ UnitConversion <- R6::R6Class("UnitConversion", list(
 #' An R6 class to handle the ...
 #'
 #' @export
-BreaksStrategy <- R6::R6Class("BreaksStrategy", list(
-  name = NULL,
-  breaks = NULL,
-  initialize = function(name,
-                        breaks) {
-    self$name <- name
-    self$breaks <- breaks
-  }
-))
+BreaksStrategy <- R6::R6Class("BreaksStrategy",
+  # name = NULL,
+  # breaks = NULL,
+  # initialize = function(name,
+  #                       breaks) {
+  #   self$name <- name
+  #   self$breaks <- breaks
+  # }
+)
 
