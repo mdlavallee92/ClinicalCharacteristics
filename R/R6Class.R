@@ -278,28 +278,24 @@ Presence <- R6::R6Class("Presence",
 )
 
 # # GenderDefinition -----
-
+# 
 # #' @description
 # #' An R6 class to define a GenderDefinition object.
 # #'
 # #' @export
 # GenderDefinition <- R6::R6Class("GenderDefinition",
-#   inherit = LineItem,
-#   public = list(
-#     initialize = function(name,
-#                           genderConceptIds) {
-#       super$setDomainIds(domainIds = "Gender")
-#       super$setName(name = name)
-#       super$setConceptIds(conceptIds = genderConceptIds)
-
-#       templateSql <- "select something;" ## TODO as SqlRender::loadRenderTranslateSql()
-#       super$setTemplateSql(templateSql = templateSql)
-#     },
-#     getGenderConceptIds = function() {
-#       genderConceptIds <- private$genderConceptIds
-#       return(genderConceptIds)
-#     }
-#   )
+#  inherit = LineItem,
+#  public = list(
+#    initialize = function(name,
+#                          genderConceptIds) {
+#      super$setDomainIds(domainIds = "Gender")
+#      super$setName(name = name)
+#      super$setConceptIds(conceptIds = genderConceptIds)
+#
+#      templateSql <- "select something;" ## TODO as SqlRender::loadRenderTranslateSql()
+#      super$setTemplateSql(templateSql = templateSql)
+#    }
+#  )
 # )
 
 # # AgeDefinition -----
@@ -312,13 +308,13 @@ Presence <- R6::R6Class("Presence",
 #   inherit = LineItem,
 #   public = list(
 #     initialize = function(name,
-#                           minAge = NULL,
-#                           maxAge = NULL) {
+#                           minAge,
+#                           maxAge) {
 #       super$setName(name = name)
 #       super$setDomainIds(domainIds = "Age")
 #       super$setMinThreshold(minThreshold = minAge)
 #       super$setMaxThreshold(maxThreshold = maxAge)
-
+#
 #       templateSql <- "select something;" ## TODO as SqlRender::loadRenderTranslateSql()
 #       super$setTemplateSql(templateSql = templateSql)
 #     }
@@ -333,20 +329,18 @@ Presence <- R6::R6Class("Presence",
 # #'
 # #' @export
 # IndexYearDefinition <- R6::R6Class("IndexYearDefinition",
-#   inherit = LineItem,
-#   public = list(
-#     initialize = function(name = indexYear,
-#                           indexYear) {
-#       super$setName(name = name)
-#       super$setDomainIds(domainIds = "IndexYear")
-#       super$setMinThreshold(minThreshold = indexYear)
-#       super$setMaxThreshold(maxThreshold = indexYear) # is it fine to just stuff this in min and max thresholds?
-
-#       templateSql <- "select something;" ## TODO as SqlRender::loadRenderTranslateSql()
-#       super$setTemplateSql(templateSql = templateSql)
-#     }
-#   )
-# )
+#  inherit = LineItem,
+#  public = list(
+#    initialize = function(name = indexYear,
+#                          indexYear) {
+#      super$setName(name = name)
+#      super$setDomainIds(domainIds = "IndexYear")
+#      super$setMinThreshold(minThreshold = indexYear)
+#      super$setMaxThreshold(maxThreshold = indexYear) # is it fine to just stuff this in min and max thresholds?
+#
+#      templateSql <- "select something;" ## TODO as SqlRender::loadRenderTranslateSql()
+#      super$setTemplateSql(templateSql = templateSql)
+#    }
 
 # # ConceptSetGroupDefinition ----
 
@@ -355,15 +349,17 @@ Presence <- R6::R6Class("Presence",
 # #' A line item that uses a Concept Set Group
 # #'
 # #' @export
-# ConceptSetGroupDefinition <- R6::R6Class("ConceptSetGroupDefinition", list(
-#   inherit = LineItem,
-#   public = list(
-#     initialize = function(conceptSetDefinitions) {
-#       .setListofClasses(private = private, key = "conceptSetDefinitions", value = conceptSetDefinitions, classes = c("ConceptSet"))
-#     },
-#     getConceptSetDefinitions = function() {
-#       conceptSetDefinitions <- private$conceptSetDefinitions
-#       return(conceptSetDefinitions)
+# ConceptSetGroupDefinition <- R6::R6Class("ConceptSetGroupDefinition",
+#  inherit = LineItem,
+#  public = list(
+#    initialize = function(conceptSetDefinitions) {
+#      .setListofClasses(private = private, key = "conceptSetDefinitions",
+#                        value = conceptSetDefinitions,
+#                        classes = c("ConceptSetDefinition"))
+#    },
+#    getConceptSetDefinitions = function() {
+#      conceptSetDefinitions <- private$conceptSetDefinitions
+#      return(conceptSetDefinitions)   
 #     }
 #   ),
 #   private = list(
@@ -371,6 +367,9 @@ Presence <- R6::R6Class("Presence",
 #   )
 # ))
 
+
+  
+      
 # # CohortDefinition ----
 
 # #' @description
@@ -378,19 +377,27 @@ Presence <- R6::R6Class("Presence",
 # #'
 # #' @export
 # CohortDefinition <- R6::R6Class("CohortDefinition",
+#   inherit = LineItem,
 #   public = list(
 #     initialize = function(name,
-#                           cohortDefinitionId) {
+#                           cohortDefinitionId, cohortDatabaseSchema, cohortTable) {
 #       super$setName(name = name)
 #       super$setDomainIds(domainIds = "Cohort")
 #       super$setAssetId(assetId = cohortDefinitionId)
-
+#
+#      # Could simply use an execution settings object, but the scope here is much less, as we
+#      # need the same connection and database
+#      .setString(private = private, key = "cohortDatabaseSchema", value = cohortDatabaseSchema)
+#      .setString(private = private, key = "cohortTable", value = cohortTable)
+#
 #       templateSql <- "select something;" ## TODO as SqlRender::loadRenderTranslateSql()
 #       super$setTemplateSql(templateSql = templateSql)
 #     }
-#   )
+#   ),
+#     private = list(
+#     cohortDatabaseSchema = NULL,
+#     cohortTable = NULL)
 # )
-
 
 # # RaceDefinition ------
 
@@ -410,9 +417,9 @@ Presence <- R6::R6Class("Presence",
 #       templateSql <- "select something;" ## TODO as SqlRender::loadRenderTranslateSql()
 #       super$setTemplateSql(templateSql = templateSql)
 #     },
-#     getGenderConceptIds = function() {
-#       genderConceptIds <- private$genderConceptIds
-#       return(genderConceptIds)
+#     getRaceConceptIds = function() {
+#      raceConceptIds <- private$raceConceptIds
+#      return(raceConceptIds)
 #     }
 #   )
 # ))
@@ -462,5 +469,3 @@ Presence <- R6::R6Class("Presence",
 #     self$breaks <- breaks
 #   }
 # ))
-
-
