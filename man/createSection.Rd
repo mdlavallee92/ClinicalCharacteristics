@@ -2,18 +2,20 @@
 % Please edit documentation in R/R6Wrappers.R
 \name{createSection}
 \alias{createSection}
-\title{Create a Section object and set its title and ordinal}
+\title{Create a Section object and set its attributes}
 \usage{
-createSection(title, ordinal)
+createSection(name, ordinal, lineItems)
 }
 \arguments{
-\item{title}{The title of the Section}
-
 \item{ordinal}{The ordinal of the Section}
+
+\item{lineItems}{A list of LineItem objects}
+
+\item{title}{The title of the Section}
 }
 \value{
 A Section object
 }
 \description{
-Create a Section object and set its title and ordinal
+Create a Section object and set its attributes
 }
