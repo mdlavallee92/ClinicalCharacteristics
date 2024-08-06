@@ -82,12 +82,26 @@ createExecutionSettings <- function(connectionDetails,
   return(executionSettings)
 }
 
-
+#' @title
+#' Create a single time interval
+#' @param lb the left bound of the time interval
+#' @param rb the right bound of the time interval
+#'
+#' @return A time interval object
+#'
+#' @export
 timeInterval <- function(lb, rb) {
   ti <- TimeInterval$new(lb = lb, rb = rb)
   return(ti)
 }
 
+#' @title
+#' Create a Time Window object
+#' @param ... a list of timeInterval objects
+#'
+#' @return A time window object
+#'
+#' @export
 createTimeWindows <- function(...) {
   windows <- list(...)
   tw <- TimeWindow$new(windows = windows)
