@@ -59,9 +59,9 @@ ExecutionSettings <- R6::R6Class("ExecutionSettings",
 TableShell <- R6::R6Class("TableShell",
   public = list(
     initialize = function(name,
-                          sections,
                           targetCohorts,
-                          executionSettings) {
+                          executionSettings,
+                          sections,) {
       .setString(private = private, key = "name", value = name)
       .setListofClasses(private = private, key = "targetCohorts", value = targetCohorts, classes = c("TargetCohort"))
       .setListofClasses(private = private, key = "sections", value = sections, classes = c("Section"))
@@ -174,7 +174,7 @@ LineItem <- R6::R6Class("LineItem",
       # TODO change this to enforce definitionType from choice list
       .setString(private = private, key = "definitionType", value = definitionType)
       .setClass(private = private, key = "statistic", value = statistic, class = "Statistic")
-      .setListofClasses(private = private, key = "timeWindows", value = timeWindows, classes = c("TimeWindow"))
+      .setClass(private = private, key = "timeWindows", value = timeWindows, class = "TimeWindow")
       invisible(self)
     },
     getName = function() {
@@ -188,7 +188,14 @@ LineItem <- R6::R6Class("LineItem",
     getDefinitionType = function() {
       liDefinitionType <- private$definitionType
       return(liDefinitionType)
+    },
+
+    # helper to retrieve the time windows in the clas
+    getTimeWindows = function() {
+      tw <- private$timeWindows$getTimeIntervals()
+      return(tw)
     }
+
   ),
   private = list(
     name = NULL,
@@ -208,31 +215,59 @@ LineItem <- R6::R6Class("LineItem",
 ConceptSetDefinition <- R6::R6Class("ConceptSetDefinition",
   inherit = LineItem,
   public = list(
+
+    # initialize the class
     initialize = function(name,
                           ordinal,
                           statistic,
-                          conceptSet,
+                          timeWindows,
                           domain,
+                          conceptSets,
                           sourceConceptSet = NULL,
                           typeConceptIds = c(),
                           visitOccurrenceConceptIds = c()) {
-      super$initialize(name = name, ordinal = ordinal, definitionType = "conceptSet", statistic = statistic)
-      .setClass(private = private, key = "conceptSet", value = conceptSet, class = "ConceptSet")
-      # TODO change this to enforce domain from choice list
+      super$initialize(name = name, ordinal = ordinal, definitionType = "ConceptSet",
+                       statistic = statistic, timeWindows = timeWindows)
       .setString(private = private, key = "domain", value = domain)
+      .setListofClasses(private = private, key = "conceptSets", value = conceptSets, classes = c("ConceptSet"))
+      # TODO change this to enforce domain from choice list
       .setClass(private = private, key = "sourceConceptSet", value = sourceConceptSet, class = "ConceptSet", nullable = TRUE)
       .setNumber(private = private, key = "typeConceptIds", value = typeConceptIds, nullable = TRUE)
       .setNumber(private = private, key = "visitOccurrenceConceptIds", value = visitOccurrenceConceptIds, nullable = TRUE)
+    },
+
+    # helper to get the concept sets in the class
+    getConceptSets = function() {
+      csHash <- purrr::map_chr(private$conceptSets, ~.x@id)
+      # # make key for cs use
+      csTbl <- tibble::tibble(
+        'name' = names(csHash),
+        'hash' = unname(csHash)
+      )
+      return(csTbl)
+    },
+
+    # helper to get the domain within the class
+    getDomain = function() {
+      dm <- private$domain
+      return(dm)
+    },
+
+    getStatisticType = function() {
+      statNm <- private$statistic$getStatType()
+      return(statNm)
     }
   ),
   private = list(
-    conceptSet = NULL,
+    conceptSets = NULL,
     domain = NULL,
     sourceConceptSet = NULL,
     typeConceptIds = c(),
     visitOccurrenceConceptIds = c()
   )
 )
+
+# Statistic ---------------------
 
 #' @title
 #' An R6 class to define a Statistic object
@@ -246,12 +281,20 @@ Statistic <- R6::R6Class("Statistic",
   public = list(
     initialize = function(type) {
       .setString(private = private , key = "type", value = type)
+    },
+
+    # helper to get state type from class
+    getStatType = function() {
+      statType <- private$type
+      return(statType)
     }
   ),
   private = list(
     type = NULL
   )
 )
+
+# Presence -----------------------
 
 #' @title
 #' An R6 class to define a Presence object
@@ -274,6 +317,69 @@ Presence <- R6::R6Class("Presence",
   private = list(
     operator = NULL,
     occurrences = NA
+  )
+)
+
+
+
+# TimeInterval ------
+
+TimeInterval <- R6::R6Class(
+  "TimeInterval",
+  public = list(
+    initialize = function(lb, rb) {
+      .setNumber(private = private, key = "lb", value = lb)
+      .setNumber(private = private, key = "rb", value = rb)
+      invisible(self)
+    },
+    getLeftBound = function() {
+      lb <- private$lb
+      return(lb)
+    },
+    getRightBound = function() {
+      rb <- private$rb
+      return(rb)
+    }
+  ),
+  private = list(
+    'lb' = NA_integer_,
+    'rb' = NA_integer_
+  )
+)
+
+
+# TimeWindow ------
+
+TimeWindow <- R6::R6Class(
+  "TimeWindow",
+  public = list(
+    initialize = function(windows) {
+      .setListofClasses(
+        private = private,
+        key = "windows",
+        value = windows,
+        classes = c("TimeInterval")
+      )
+      invisible(self)
+    },
+    length = function() {
+      ll <- length(private$windows)
+      return(ll)
+    },
+    getTimeIntervals = function() {
+
+      tis <- purrr::map_dfr(
+        private$windows,
+        ~tibble::tibble(
+          'lb' = .x$getLeftBound(),
+          'rb' = .x$getRightBound()
+        )
+      )
+      return(tis)
+    }
+  ),
+  private = list(
+    windows = NULL
   )
 )
 
@@ -426,63 +532,7 @@ Presence <- R6::R6Class("Presence",
 
 # ######## MORE TO-DO #####
 
-# TimeWindow ------
 
-TimeInterval <- R6::R6Class(
-  "TimeInterval",
-  public = list(
-    initialize = function(lb, rb) {
-      .setNumber(private = private, key = "lb", value = lb)
-      .setNumber(private = private, key = "rb", value = rb)
-      invisible(self)
-    },
-    getLeftBound = function() {
-      lb <- private$lb
-      return(lb)
-    },
-    getRightBound = function() {
-      rb <- private$rb
-      return(rb)
-    }
-  ),
-  private = list(
-    'lb' = NA_integer_,
-    'rb' = NA_integer_
-  )
-)
-
-TimeWindow <- R6::R6Class(
-  "TimeWindow",
-  public = list(
-    initialize = function(windows) {
-      .setListofClasses(
-        private = private,
-        key = "windows",
-        value = windows,
-        classes = c("TimeInterval")
-      )
-      invisible(self)
-    },
-    length = function() {
-      ll <- length(private$windows)
-      return(ll)
-    },
-    getTimeIntervals = function() {
-
-      tis <- purrr::map_dfr(
-        private$windows,
-        ~tibble::tibble(
-          'lb' = .x$getLeftBound(),
-          'rb' = .x$getRightBound()
-        )
-      )
-      return(tis)
-    }
-  ),
-  private = list(
-    windows = NULL
-  )
-)
 # # ValueDefinition ----
 
 # #' @description

@@ -2,21 +2,21 @@
 #' Create an empty TableShell object and set its title
 #'
 #' @param title The title of the TableShell
-#' @param sections A list of Section objects
 #' @param targetCohorts A list of TargetCohort objects
 #' @param executionSettings An ExecutionSettings object
+#' @param sections A list of Section objects
 #'
 #' @return A TableShell object
 #'
 #' @export
 createTableShell <- function(name,
-                            sections,
                             targetCohorts,
-                            executionSettings) {
+                            executionSettings,
+                            sections) {
     tableShell <- TableShell$new(name = name,
-                                 sections = sections,
                                  targetCohorts = targetCohorts,
-                                 executionSettings = executionSettings)
+                                 executionSettings = executionSettings,
+                                 sections = sections,)
     return(tableShell)
 }
 
@@ -105,6 +105,13 @@ timeInterval <- function(lb, rb) {
 createTimeWindows <- function(...) {
   windows <- list(...)
   tw <- TimeWindow$new(windows = windows)
+  return(tw)
+}
+
+
+createPresence <- function(operator = "at_least", occurrences = 1) {
+  pres <- Presence$new(operator = operator, occurrences = occurrences)
+  return(pres)
 }
 
 #' @title
@@ -127,6 +134,7 @@ createSection <- function(name, ordinal, lineItems) {
 #' @param name (OPTIONAL) The name of the line item (if not provided, the name will be set to the Capr concept set name)
 #' @param ordinal The ordinal of the line item within a section
 #' @param statistic The Statistic object to be used to evaluate the line item
+#' @param timeWindows The Time Windows object used for the line item
 #' @param conceptSet The Capr concept set object
 #' @param domain The domain of the concept set (must be one of 'Condition', 'Drug', 'Procedure', 'Observation', 'Measurement', 'Device')
 #' @param sourceConceptSet (OPTIONAL) A Capr concept set of source concept IDs to use to limit the concept set
@@ -139,16 +147,18 @@ createSection <- function(name, ordinal, lineItems) {
 createConceptSetLineItem <- function(name,
                                      ordinal,
                                      statistic,
-                                     conceptSet,
+                                     timeWindows,
                                      domain,
+                                     conceptSets,
                                      sourceConceptSet = NULL,
                                      typeConceptIds = c(),
                                      visitOccurrenceConceptIds = c()) {
   csDefinition <- ConceptSetDefinition$new(name,
                                            ordinal,
                                            statistic,
-                                           conceptSet,
+                                           timeWindows,
                                            domain,
+                                           conceptSets,
                                            sourceConceptSet = sourceConceptSet,
                                            typeConceptIds = typeConceptIds,
                                            visitOccurrenceConceptIds = visitOccurrenceConceptIds)
