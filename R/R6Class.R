@@ -166,15 +166,15 @@ LineItem <- R6::R6Class("LineItem",
     initialize = function(name,
                           ordinal,
                           definitionType,
-                          statistic#,
-                          #timeWindows
+                          statistic,
+                          timeWindows
                           ) {
       .setString(private = private, key = "name", value = name)
       .setNumber(private = private, key = "ordinal", value = ordinal)
       # TODO change this to enforce definitionType from choice list
       .setString(private = private, key = "definitionType", value = definitionType)
       .setClass(private = private, key = "statistic", value = statistic, class = "Statistic")
-      #.setListofClasses(private = private, key = "timeWindows", value = timeWindows, classes = c("TimeWindow"))
+      .setListofClasses(private = private, key = "timeWindows", value = timeWindows, classes = c("TimeWindow"))
       invisible(self)
     },
     getName = function() {
@@ -194,8 +194,8 @@ LineItem <- R6::R6Class("LineItem",
     name = NULL,
     ordinal = NA,
     definitionType = NULL,
-    statistic = NULL#,
-    #timeWindows = NULL
+    statistic = NULL,
+    timeWindows = NULL
   )
 )
 
@@ -236,7 +236,7 @@ ConceptSetDefinition <- R6::R6Class("ConceptSetDefinition",
 
 #' @title
 #' An R6 class to define a Statistic object
-#' 
+#'
 #' @description
 #' A Statistic is a type of metric to be used for characterization
 #' Specific types of statistics are defined in derived classes
@@ -255,15 +255,15 @@ Statistic <- R6::R6Class("Statistic",
 
 #' @title
 #' An R6 class to define a Presence object
-#' 
+#'
 #' @description
 #' Child of Statistic. The Presence statistic is a binary metric the indicates the presence of a variable
 #'
 #' @export
-Presence <- R6::R6Class("Presence", 
+Presence <- R6::R6Class("Presence",
   inherit = Statistic,
   public = list(
-    initialize = function(operator, 
+    initialize = function(operator,
                           occurrences) {
       super$initialize(type = "Presence")
       # TODO change this to enforce operator from choice list
@@ -278,7 +278,7 @@ Presence <- R6::R6Class("Presence",
 )
 
 # # GenderDefinition -----
-# 
+#
 # #' @description
 # #' An R6 class to define a GenderDefinition object.
 # #'
@@ -359,7 +359,7 @@ Presence <- R6::R6Class("Presence",
 #    },
 #    getConceptSetDefinitions = function() {
 #      conceptSetDefinitions <- private$conceptSetDefinitions
-#      return(conceptSetDefinitions)   
+#      return(conceptSetDefinitions)
 #     }
 #   ),
 #   private = list(
@@ -368,8 +368,8 @@ Presence <- R6::R6Class("Presence",
 # ))
 
 
-  
-      
+
+
 # # CohortDefinition ----
 
 # #' @description
@@ -426,6 +426,63 @@ Presence <- R6::R6Class("Presence",
 
 # ######## MORE TO-DO #####
 
+# TimeWindow ------
+
+TimeInterval <- R6::R6Class(
+  "TimeInterval",
+  public = list(
+    initialize = function(lb, rb) {
+      .setNumber(private = private, key = "lb", value = lb)
+      .setNumber(private = private, key = "rb", value = rb)
+      invisible(self)
+    },
+    getLeftBound = function() {
+      lb <- private$lb
+      return(lb)
+    },
+    getRightBound = function() {
+      rb <- private$rb
+      return(rb)
+    }
+  ),
+  private = list(
+    'lb' = NA_integer_,
+    'rb' = NA_integer_
+  )
+)
+
+TimeWindow <- R6::R6Class(
+  "TimeWindow",
+  public = list(
+    initialize = function(windows) {
+      .setListofClasses(
+        private = private,
+        key = "windows",
+        value = windows,
+        classes = c("TimeInterval")
+      )
+      invisible(self)
+    },
+    length = function() {
+      ll <- length(private$windows)
+      return(ll)
+    },
+    getTimeIntervals = function() {
+
+      tis <- purrr::map_dfr(
+        private$windows,
+        ~tibble::tibble(
+          'lb' = .x$getLeftBound(),
+          'rb' = .x$getRightBound()
+        )
+      )
+      return(tis)
+    }
+  ),
+  private = list(
+    windows = NULL
+  )
+)
 # # ValueDefinition ----
 
 # #' @description
