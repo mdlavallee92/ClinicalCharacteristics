@@ -82,6 +82,17 @@ createExecutionSettings <- function(connectionDetails,
   return(executionSettings)
 }
 
+
+timeInterval <- function(lb, rb) {
+  ti <- TimeInterval$new(lb = lb, rb = rb)
+  return(ti)
+}
+
+createTimeWindows <- function(...) {
+  windows <- list(...)
+  tw <- TimeWindow$new(windows = windows)
+}
+
 #' @title
 #' Create a Section object and set its attributes
 #' @param title The title of the Section
@@ -119,7 +130,7 @@ createConceptSetLineItem <- function(name,
                                      sourceConceptSet = NULL,
                                      typeConceptIds = c(),
                                      visitOccurrenceConceptIds = c()) {
-  csDefinition <- ConceptSetDefinition$new(name, 
+  csDefinition <- ConceptSetDefinition$new(name,
                                            ordinal,
                                            statistic,
                                            conceptSet,
@@ -131,9 +142,9 @@ createConceptSetLineItem <- function(name,
 }
 
 #' @title
-#' Create a batch of concept set line items from a list of Capr concept sets. 
-#' 
-#' @description 
+#' Create a batch of concept set line items from a list of Capr concept sets.
+#'
+#' @description
 #' The name of each line item will be set to the name of its Capr concept set, and the ordinal will be set to the index of the Capr concept set in the list. All line items will use the same statistic, domain, type concepts, and visit concepts. It is not possible to specify source concept IDs.
 #'
 #' @param statistic The Statistic object to be used to evaluate the line items
@@ -156,7 +167,7 @@ createConceptSetLineItemBatch <- function(statistic,
   n <- 0
   for (cs in conceptSets) {
     n <- n + 1
-    csDefinition <- ConceptSetDefinition$new(name = cs@Name, 
+    csDefinition <- ConceptSetDefinition$new(name = cs@Name,
                                              ordinal = n,
                                              statistic = statistic,
                                              conceptSet = cs,
