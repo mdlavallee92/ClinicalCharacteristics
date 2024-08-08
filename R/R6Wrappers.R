@@ -209,7 +209,7 @@ createGenderLineItem <- function(ordinal) {
   gender <- DemographicDefinition$new(
     name = "Gender",
     ordinal = ordnial,
-    statistic = DemoConcept$new(conceptIds = c(8532, 8507), conceptNames = c("Female", "Male"))
+    statistic = DemoConcept$new(conceptColumn = "gender_concept_id")
   )
 
   return(gender)
@@ -217,12 +217,36 @@ createGenderLineItem <- function(ordinal) {
 }
 
 
+createRaceLineItem <- function(ordinal) {
+
+  gender <- DemographicDefinition$new(
+    name = "Race",
+    ordinal = ordnial,
+    statistic = DemoConcept$new(conceptColumn = "race_concept_id")
+  )
+
+  return(gender)
+
+}
+
+createEthnicityLineItem <- function(ordinal) {
+
+  gender <- DemographicDefinition$new(
+    name = "Ethnicity",
+    ordinal = ordnial,
+    statistic = DemoConcept$new(conceptColumn = "ethnicity_concept_id")
+  )
+
+  return(gender)
+
+}
+
 
 createAgeLineItem <- function(ordinal, breaks = NULL) {
 
   age <- DemographicDefinition$new(
     name = "Age",
-    ordinal = ordnial,
+    ordinal = ordinal,
     statistic = Age$new(breaks = breaks)
   )
 
