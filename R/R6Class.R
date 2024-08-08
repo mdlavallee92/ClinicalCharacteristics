@@ -383,8 +383,14 @@ ConceptSetDefinition <- R6::R6Class("ConceptSetDefinition",
       .setNumber(private = private, key = "visitOccurrenceConceptIds", value = visitOccurrenceConceptIds, nullable = TRUE)
     },
 
-    # helper to get the concept sets in the class
-    getConceptSets = function() {
+    # helper to pull concept Capr class items
+    grabConceptSets = function() {
+      cs <- private$conceptSets
+      return(cs)
+    },
+
+    # helper to get reference table of the concept sets in the class
+    getConceptSetRef = function() {
       csHash <- purrr::map_chr(private$conceptSets, ~.x@id)
       # # make key for cs use
       csTbl <- tibble::tibble(
