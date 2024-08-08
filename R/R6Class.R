@@ -61,7 +61,7 @@ TableShell <- R6::R6Class("TableShell",
     initialize = function(name,
                           targetCohorts,
                           executionSettings,
-                          sections,) {
+                          sections) {
       .setString(private = private, key = "name", value = name)
       .setListofClasses(private = private, key = "targetCohorts", value = targetCohorts, classes = c("TargetCohort"))
       .setListofClasses(private = private, key = "sections", value = sections, classes = c("Section"))
@@ -153,7 +153,9 @@ Section <- R6::R6Class("Section",
   )
 )
 
-# LineItem -----
+# LineItem Classes -----
+
+## Line Item Super----------
 
 #' @description
 #' An R6 class to define a LineItem object
@@ -166,15 +168,13 @@ LineItem <- R6::R6Class("LineItem",
     initialize = function(name,
                           ordinal,
                           definitionType,
-                          statistic,
-                          timeWindows
-                          ) {
+                          statistic) {
       .setString(private = private, key = "name", value = name)
       .setNumber(private = private, key = "ordinal", value = ordinal)
       # TODO change this to enforce definitionType from choice list
       .setString(private = private, key = "definitionType", value = definitionType)
       .setClass(private = private, key = "statistic", value = statistic, class = "Statistic")
-      .setClass(private = private, key = "timeWindows", value = timeWindows, class = "TimeWindow")
+
       invisible(self)
     },
     getName = function() {
@@ -188,25 +188,18 @@ LineItem <- R6::R6Class("LineItem",
     getDefinitionType = function() {
       liDefinitionType <- private$definitionType
       return(liDefinitionType)
-    },
-
-    # helper to retrieve the time windows in the clas
-    getTimeWindows = function() {
-      tw <- private$timeWindows$getTimeIntervals()
-      return(tw)
     }
-
   ),
+
   private = list(
     name = NULL,
     ordinal = NA,
     definitionType = NULL,
-    statistic = NULL,
-    timeWindows = NULL
+    statistic = NULL
   )
 )
 
-# ConceptSetDefinition ----
+## ConceptSetDefinition ----
 
 #' @description
 #' An R6 class to define a ConceptSetDefinition
@@ -230,6 +223,7 @@ ConceptSetDefinition <- R6::R6Class("ConceptSetDefinition",
                        statistic = statistic, timeWindows = timeWindows)
       .setString(private = private, key = "domain", value = domain)
       .setListofClasses(private = private, key = "conceptSets", value = conceptSets, classes = c("ConceptSet"))
+      .setClass(private = private, key = "timeWindows", value = timeWindows, class = "TimeWindow")
       # TODO change this to enforce domain from choice list
       .setClass(private = private, key = "sourceConceptSet", value = sourceConceptSet, class = "ConceptSet", nullable = TRUE)
       .setNumber(private = private, key = "typeConceptIds", value = typeConceptIds, nullable = TRUE)
@@ -253,6 +247,12 @@ ConceptSetDefinition <- R6::R6Class("ConceptSetDefinition",
       return(dm)
     },
 
+    # helper to retrieve the time windows in the clas
+    getTimeWindows = function() {
+      tw <- private$timeWindows$getTimeIntervals()
+      return(tw)
+    },
+
     getStatisticType = function() {
       statNm <- private$statistic$getStatType()
       return(statNm)
@@ -260,6 +260,7 @@ ConceptSetDefinition <- R6::R6Class("ConceptSetDefinition",
   ),
   private = list(
     conceptSets = NULL,
+    timeWindows = NULL,
     domain = NULL,
     sourceConceptSet = NULL,
     typeConceptIds = c(),
@@ -267,7 +268,30 @@ ConceptSetDefinition <- R6::R6Class("ConceptSetDefinition",
   )
 )
 
-# Statistic ---------------------
+# DemographicDefinition -----
+
+#' @description
+#' An R6 class to handle the ...
+#'
+#' @export
+DemographicDefinition <- R6::R6Class("DemographicDefinition",
+  inherit = LineItem,
+  public = list(
+    initialize = function(name,
+                          ordinal,
+                          statistic) {
+      super$initialize(name = name,
+                       ordinal = ordinal,
+                       definitionType = "Demographic",
+                       statistic = statistic)
+    }
+  )
+)
+
+
+# Statistic Class ---------------------
+
+# Statistic Super-------------
 
 #' @title
 #' An R6 class to define a Statistic object
@@ -293,6 +317,40 @@ Statistic <- R6::R6Class("Statistic",
     type = NULL
   )
 )
+
+## Age -----------------
+Age <- R6::R6Class("Age",
+   inherit = Statistic,
+   public = list(
+     initialize = function(breaks = NULL) {
+       super$initialize(type = "Age")
+       if (!is.null(breaks)) {
+         .setClass(private = private, key = "breaks", value = breaks, class = "Breaks")
+       }
+     }
+   ),
+   private = list(
+     breaks = NULL
+   )
+)
+
+
+## Demo Concept -----------------
+DemoConcept <- R6::R6Class("DemoConcept",
+      inherit = Statistic,
+       public = list(
+           initialize = function(conceptIds, conceptNames) {
+             super$initialize(type = "DemoConcept")
+               .setNumber(private = private, key = "conceptIds", value = conceptIds)
+               .setString(private = private, key = 'conceptNames', value = conceptNames)
+           }
+         ),
+         private = list(
+           conceptIds = NULL,
+           conceptNames = NULL
+         )
+)
+
 
 # Presence -----------------------
 
@@ -320,9 +378,9 @@ Presence <- R6::R6Class("Presence",
   )
 )
 
+# Helper Classes -----
 
-
-# TimeInterval ------
+## TimeInterval ------
 
 TimeInterval <- R6::R6Class(
   "TimeInterval",
@@ -348,7 +406,7 @@ TimeInterval <- R6::R6Class(
 )
 
 
-# TimeWindow ------
+## TimeWindow ------
 
 TimeWindow <- R6::R6Class(
   "TimeWindow",
@@ -404,28 +462,7 @@ TimeWindow <- R6::R6Class(
 #  )
 # )
 
-# # AgeDefinition -----
 
-# #' @description
-# #' An R6 class to handle the ...
-# #'
-# #' @export
-# AgeDefinition <- R6::R6Class("AgeDefinition",
-#   inherit = LineItem,
-#   public = list(
-#     initialize = function(name,
-#                           minAge,
-#                           maxAge) {
-#       super$setName(name = name)
-#       super$setDomainIds(domainIds = "Age")
-#       super$setMinThreshold(minThreshold = minAge)
-#       super$setMaxThreshold(maxThreshold = maxAge)
-#
-#       templateSql <- "select something;" ## TODO as SqlRender::loadRenderTranslateSql()
-#       super$setTemplateSql(templateSql = templateSql)
-#     }
-#   )
-# )
 
 
 # # IndexYearDefinition -----
