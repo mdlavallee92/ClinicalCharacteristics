@@ -16,6 +16,13 @@ Child of Statistic. The Presence statistic is a binary metric the indicates the 
 \item \href{#method-Presence-clone}{\code{Presence$clone()}}
 }
 }
+\if{html}{\out{
+<details open><summary>Inherited methods</summary>
+<ul>
+<li><span class="pkg-link" data-pkg="ClinicalCharacteristics" data-topic="Statistic" data-id="getStatType"><a href='../../ClinicalCharacteristics/html/Statistic.html#method-Statistic-getStatType'><code>ClinicalCharacteristics::Statistic$getStatType()</code></a></span></li>
+</ul>
+</details>
+}}
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Presence-new"></a>}}
 \if{latex}{\out{\hypertarget{method-Presence-new}{}}}

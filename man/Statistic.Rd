@@ -11,6 +11,7 @@ Specific types of statistics are defined in derived classes
 \subsection{Public methods}{
 \itemize{
 \item \href{#method-Statistic-new}{\code{Statistic$new()}}
+\item \href{#method-Statistic-getStatType}{\code{Statistic$getStatType()}}
 \item \href{#method-Statistic-clone}{\code{Statistic$clone()}}
 }
 }
@@ -20,6 +21,15 @@ Specific types of statistics are defined in derived classes
 \subsection{Method \code{new()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Statistic$new(type)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Statistic-getStatType"></a>}}
+\if{latex}{\out{\hypertarget{method-Statistic-getStatType}{}}}
+\subsection{Method \code{getStatType()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Statistic$getStatType()}\if{html}{\out{</div>}}
 }
 
 }
