@@ -153,6 +153,152 @@ Section <- R6::R6Class("Section",
   )
 )
 
+
+# Statistic Class ---------------------
+
+# Statistic Super-------------
+
+#' @title
+#' An R6 class to define a Statistic object
+#'
+#' @description
+#' A Statistic is a type of metric to be used for characterization
+#' Specific types of statistics are defined in derived classes
+#'
+#' @export
+Statistic <- R6::R6Class("Statistic",
+                         public = list(
+                           initialize = function(type) {
+                             .setString(private = private , key = "type", value = type)
+                           },
+
+                           # helper to get state type from class
+                           getStatType = function() {
+                             statType <- private$type
+                             return(statType)
+                           }
+                         ),
+                         private = list(
+                           type = NULL
+                         )
+)
+
+## Demographic Stats
+
+### Demo Age -----------------
+Age <- R6::R6Class("DemoAge",
+                   inherit = Statistic,
+                   public = list(
+                     initialize = function(breaks = NULL) {
+                       super$initialize(type = "Age")
+                       if (!is.null(breaks)) {
+                         .setClass(private = private, key = "breaks", value = breaks, class = "Breaks")
+                       }
+                       invisible(private)
+                     }
+                   ),
+                   private = list(
+                     breaks = NULL
+                   )
+)
+
+
+### Demo Concept -----------------
+DemoConcept <- R6::R6Class("DemoConcept",
+                           inherit = Statistic,
+                           public = list(
+                             initialize = function(conceptColumn) {
+                               super$initialize(type = "DemoConcept")
+                               .setString(private = private, key = 'conceptColumn', value = conceptColumn)
+                               invisible(private)
+                             },
+                             getDemoColumn = function() {
+                               col <- private$conceptColumn
+                               return(col)
+                             }
+                           ),
+                           private = list(
+                             conceptColumn = NULL
+                           )
+)
+
+
+### Demo Year -----------------
+DemoYear <- R6::R6Class("DemoYear",
+                           inherit = Statistic,
+                           public = list(
+                             initialize = function(breaks = NULL) {
+                               super$initialize(type = "Year")
+                               if (!is.null(breaks)) {
+                                 .setClass(private = private,
+                                           key = "breaks",
+                                           value = breaks,
+                                           class = "Breaks")
+                               }
+                               invisible(private)
+                             }
+                           ),
+                           private = list(
+                             breaks = NULL
+                           )
+)
+
+
+## Presence -----------------------
+
+#' @title
+#' An R6 class to define a Presence object
+#'
+#' @description
+#' Child of Statistic. The Presence statistic is a binary metric the indicates the presence of a variable
+#'
+#' @export
+Presence <- R6::R6Class("Presence",
+                        inherit = Statistic,
+                        public = list(
+                          initialize = function(operator,
+                                                occurrences) {
+                            super$initialize(type = "Presence")
+                            # TODO change this to enforce operator from choice list
+                            .setString(private = private, key = "operator", value = operator)
+                            .setNumber(private = private, key = "occurrences", value = occurrences)
+                            invisible(private)
+                          }
+                        ),
+                        private = list(
+                          operator = NULL,
+                          occurrences = NA
+                        )
+)
+
+
+## Count -----------------------
+
+#' @title
+#' An R6 class to define a Count object
+#'
+#' @description
+#' Child of Statistic. The Count statistic is a poisson metric the indicates the number of occurrences of a variable
+#'
+#' @export
+Count <- R6::R6Class("Count",
+                     inherit = Statistic,
+                     public = list(
+                       initialize = function(breaks = NULL) {
+                         super$initialize(type = "Count")
+                         # TODO change this to enforce operator from choice list
+                         if (!is.null(breaks)) {
+                           .setClass(private = private, key = "breaks", value = breaks, class = "Breaks")
+                         }
+                         invisible(private)
+                       }
+                     ),
+                     private = list(
+                       breaks = NULL
+                     )
+)
+
+
 # LineItem Classes -----
 
 ## Line Item Super----------
@@ -220,7 +366,7 @@ ConceptSetDefinition <- R6::R6Class("ConceptSetDefinition",
                           typeConceptIds = c(),
                           visitOccurrenceConceptIds = c()) {
       super$initialize(name = name, ordinal = ordinal, definitionType = "ConceptSet",
-                       statistic = statistic, timeWindows = timeWindows)
+                       statistic = statistic)
       .setString(private = private, key = "domain", value = domain)
       .setListofClasses(private = private, key = "conceptSets", value = conceptSets, classes = c("ConceptSet"))
       .setClass(private = private, key = "timeWindows", value = timeWindows, class = "TimeWindow")
@@ -284,129 +430,51 @@ DemographicDefinition <- R6::R6Class("DemographicDefinition",
                        ordinal = ordinal,
                        definitionType = "Demographic",
                        statistic = statistic)
-    }
-  )
-)
-
-
-# Statistic Class ---------------------
-
-# Statistic Super-------------
-
-#' @title
-#' An R6 class to define a Statistic object
-#'
-#' @description
-#' A Statistic is a type of metric to be used for characterization
-#' Specific types of statistics are defined in derived classes
-#'
-#' @export
-Statistic <- R6::R6Class("Statistic",
-  public = list(
-    initialize = function(type) {
-      .setString(private = private , key = "type", value = type)
     },
+    # function to get sql
+    getSql = function() {
 
-    # helper to get state type from class
-    getStatType = function() {
-      statType <- private$type
-      return(statType)
+      # get stat type
+      statType <- private$statistic$getStatType()
+
+      # prep sql if Age demographic
+      if (statType == "Age") {
+        sqlFile <- "demoAgeChar.sql"
+        ordinal <- private$ordinal
+        # get sql from package
+        sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", sqlFile)) |>
+          readr::read_file() |>
+          glue::glue()
+      }
+
+      # prep sql if Concept demographic
+      if (statType == "DemoConcept") {
+        sqlFile <- "demoConceptChar.sql"
+        ordinal <- private$ordinal
+        conceptColumn <- private$statistic$getDemoColumn()
+        # get sql from package
+        sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", sqlFile)) |>
+          readr::read_file() |>
+          glue::glue()
+      }
+
+      # prep sql if Concept demographic
+      if (statType == "Year") {
+        sqlFile <- "demoYearChar.sql"
+        ordinal <- private$ordinal
+        # get sql from package
+        sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", sqlFile)) |>
+          readr::read_file() |>
+          glue::glue()
+      }
+
+
+      return(sql)
     }
-  ),
-  private = list(
-    type = NULL
-  )
-)
-
-## Age -----------------
-Age <- R6::R6Class("Age",
-   inherit = Statistic,
-   public = list(
-     initialize = function(breaks = NULL) {
-       super$initialize(type = "Age")
-       if (!is.null(breaks)) {
-         .setClass(private = private, key = "breaks", value = breaks, class = "Breaks")
-       }
-       invisible(private)
-     }
-   ),
-   private = list(
-     breaks = NULL
-   )
-)
-
-
-## Demo Concept -----------------
-DemoConcept <- R6::R6Class("DemoConcept",
-      inherit = Statistic,
-       public = list(
-           initialize = function(conceptIds, conceptNames) {
-             super$initialize(type = "DemoConcept")
-               .setNumber(private = private, key = "conceptIds", value = conceptIds)
-               .setString(private = private, key = 'conceptNames', value = conceptNames)
-               invisible(private)
-           }
-         ),
-         private = list(
-           conceptIds = NULL,
-           conceptNames = NULL
-         )
-)
-
-
-## Presence -----------------------
-
-#' @title
-#' An R6 class to define a Presence object
-#'
-#' @description
-#' Child of Statistic. The Presence statistic is a binary metric the indicates the presence of a variable
-#'
-#' @export
-Presence <- R6::R6Class("Presence",
-  inherit = Statistic,
-  public = list(
-    initialize = function(operator,
-                          occurrences) {
-      super$initialize(type = "Presence")
-      # TODO change this to enforce operator from choice list
-      .setString(private = private, key = "operator", value = operator)
-      .setNumber(private = private, key = "occurrences", value = occurrences)
-      invisible(private)
-    }
-  ),
-  private = list(
-    operator = NULL,
-    occurrences = NA
   )
 )
 
 
-## Count -----------------------
-
-#' @title
-#' An R6 class to define a Count object
-#'
-#' @description
-#' Child of Statistic. The Count statistic is a poisson metric the indicates the number of occurrences of a variable
-#'
-#' @export
-Count <- R6::R6Class("Count",
-              inherit = Statistic,
-              public = list(
-                initialize = function(breaks = NULL) {
-                  super$initialize(type = "Count")
-                  # TODO change this to enforce operator from choice list
-                  if (!is.null(breaks)) {
-                    .setClass(private = private, key = "breaks", value = breaks, class = "Breaks")
-                  }
-                  invisible(private)
-                }
-              ),
-              private = list(
-                breaks = NULL
-              )
-)
 
 # Helper Classes -----
 
