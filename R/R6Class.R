@@ -108,6 +108,13 @@ TargetCohort <- R6::R6Class("TargetCohort",
     getName = function(name) {
       tcName <- private$name
       return(tcName)
+    },
+    getSql = function() {
+      cohortIds <- private$id
+      # get sql from package
+      sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", sqlFile)) |>
+        readr::read_file() |>
+        glue::glue()
     }
   ),
   private = list(
