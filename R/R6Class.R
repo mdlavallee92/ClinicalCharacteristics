@@ -327,6 +327,7 @@ Age <- R6::R6Class("Age",
        if (!is.null(breaks)) {
          .setClass(private = private, key = "breaks", value = breaks, class = "Breaks")
        }
+       invisible(private)
      }
    ),
    private = list(
@@ -343,6 +344,7 @@ DemoConcept <- R6::R6Class("DemoConcept",
              super$initialize(type = "DemoConcept")
                .setNumber(private = private, key = "conceptIds", value = conceptIds)
                .setString(private = private, key = 'conceptNames', value = conceptNames)
+               invisible(private)
            }
          ),
          private = list(
@@ -352,7 +354,7 @@ DemoConcept <- R6::R6Class("DemoConcept",
 )
 
 
-# Presence -----------------------
+## Presence -----------------------
 
 #' @title
 #' An R6 class to define a Presence object
@@ -370,12 +372,40 @@ Presence <- R6::R6Class("Presence",
       # TODO change this to enforce operator from choice list
       .setString(private = private, key = "operator", value = operator)
       .setNumber(private = private, key = "occurrences", value = occurrences)
+      invisible(private)
     }
   ),
   private = list(
     operator = NULL,
     occurrences = NA
   )
+)
+
+
+## Count -----------------------
+
+#' @title
+#' An R6 class to define a Count object
+#'
+#' @description
+#' Child of Statistic. The Count statistic is a poisson metric the indicates the number of occurrences of a variable
+#'
+#' @export
+Count <- R6::R6Class("Count",
+              inherit = Statistic,
+              public = list(
+                initialize = function(breaks = NULL) {
+                  super$initialize(type = "Count")
+                  # TODO change this to enforce operator from choice list
+                  if (!is.null(breaks)) {
+                    .setClass(private = private, key = "breaks", value = breaks, class = "Breaks")
+                  }
+                  invisible(private)
+                }
+              ),
+              private = list(
+                breaks = NULL
+              )
 )
 
 # Helper Classes -----
