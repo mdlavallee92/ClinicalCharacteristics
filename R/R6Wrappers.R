@@ -204,6 +204,33 @@ createConceptSetLineItemBatch <- function(statistic,
 }
 
 
+createGenderLineItem <- function(ordinal) {
+
+  gender <- DemographicDefinition$new(
+    name = "Gender",
+    ordinal = ordnial,
+    statistic = DemoConcept$new(conceptIds = c(8532, 8507), conceptNames = c("Female", "Male"))
+  )
+
+  return(gender)
+
+}
+
+
+
+createAgeLineItem <- function(ordinal, breaks = NULL) {
+
+  age <- DemographicDefinition$new(
+    name = "Age",
+    ordinal = ordnial,
+    statistic = Age$new(breaks = breaks)
+  )
+
+  return(age)
+
+}
+
+
 # addGenderItem <- function(genderConceptIds = c(),
 #                           inputType) {
 #   gender <- GenderDefinition$new(inputType = "Explicit", genderConceptIds = genderConceptIds)
