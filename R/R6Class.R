@@ -110,6 +110,7 @@ TargetCohort <- R6::R6Class("TargetCohort",
       return(tcName)
     },
     getSql = function() {
+      sqlFile <- "targetCohort.sql"
       cohortIds <- private$id
       # get sql from package
       sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", sqlFile)) |>
@@ -366,17 +367,17 @@ ConceptSetDefinition <- R6::R6Class("ConceptSetDefinition",
     initialize = function(name,
                           ordinal,
                           statistic,
-                          timeWindows,
                           domain,
-                          conceptSets,
+                          conceptSet,
+                          timeInterval,
                           sourceConceptSet = NULL,
                           typeConceptIds = c(),
                           visitOccurrenceConceptIds = c()) {
       super$initialize(name = name, ordinal = ordinal, definitionType = "ConceptSet",
                        statistic = statistic)
       .setString(private = private, key = "domain", value = domain)
-      .setListofClasses(private = private, key = "conceptSets", value = conceptSets, classes = c("ConceptSet"))
-      .setClass(private = private, key = "timeWindows", value = timeWindows, class = "TimeWindow")
+      .setClass(private = private, key = "conceptSet", value = conceptSet, class = "ConceptSet")
+      .setClass(private = private, key = "timeInterval", value = timeInterval, class = "TimeInterval")
       # TODO change this to enforce domain from choice list
       .setClass(private = private, key = "sourceConceptSet", value = sourceConceptSet, class = "ConceptSet", nullable = TRUE)
       .setNumber(private = private, key = "typeConceptIds", value = typeConceptIds, nullable = TRUE)
@@ -384,18 +385,17 @@ ConceptSetDefinition <- R6::R6Class("ConceptSetDefinition",
     },
 
     # helper to pull concept Capr class items
-    grabConceptSets = function() {
-      cs <- private$conceptSets
+    grabConceptSet = function() {
+      cs <- private$conceptSet
       return(cs)
     },
 
     # helper to get reference table of the concept sets in the class
     getConceptSetRef = function() {
-      csHash <- purrr::map_chr(private$conceptSets, ~.x@id)
       # # make key for cs use
       csTbl <- tibble::tibble(
-        'name' = names(csHash),
-        'hash' = unname(csHash)
+        'name' = private$conceptSet@Name,
+        'hash' = private$conceptSet@id
       )
       return(csTbl)
     },
@@ -407,8 +407,8 @@ ConceptSetDefinition <- R6::R6Class("ConceptSetDefinition",
     },
 
     # helper to retrieve the time windows in the clas
-    getTimeWindows = function() {
-      tw <- private$timeWindows$getTimeIntervals()
+    getTimeInterval = function() {
+      tw <- private$timeInterval$getTimeInterval()
       return(tw)
     },
 
@@ -418,9 +418,9 @@ ConceptSetDefinition <- R6::R6Class("ConceptSetDefinition",
     }
   ),
   private = list(
-    conceptSets = NULL,
-    timeWindows = NULL,
     domain = NULL,
+    conceptSet = NULL,
+    timeInterval = NULL,
     sourceConceptSet = NULL,
     typeConceptIds = c(),
     visitOccurrenceConceptIds = c()
@@ -501,13 +501,12 @@ TimeInterval <- R6::R6Class(
       .setNumber(private = private, key = "rb", value = rb)
       invisible(self)
     },
-    getLeftBound = function() {
-      lb <- private$lb
-      return(lb)
-    },
-    getRightBound = function() {
-      rb <- private$rb
-      return(rb)
+    getTimeInterval = function() {
+      tb <- tibble::tibble(
+        lb = private$lb,
+        rb = private$rb
+      )
+      return(tb)
     }
   ),
   private = list(
@@ -518,39 +517,39 @@ TimeInterval <- R6::R6Class(
 
 
 ## TimeWindow ------
-
-TimeWindow <- R6::R6Class(
-  "TimeWindow",
-  public = list(
-    initialize = function(windows) {
-      .setListofClasses(
-        private = private,
-        key = "windows",
-        value = windows,
-        classes = c("TimeInterval")
-      )
-      invisible(self)
-    },
-    length = function() {
-      ll <- length(private$windows)
-      return(ll)
-    },
-    getTimeIntervals = function() {
-
-      tis <- purrr::map_dfr(
-        private$windows,
-        ~tibble::tibble(
-          'lb' = .x$getLeftBound(),
-          'rb' = .x$getRightBound()
-        )
-      )
-      return(tis)
-    }
-  ),
-  private = list(
-    windows = NULL
-  )
-)
+#
+# TimeWindow <- R6::R6Class(
+#   "TimeWindow",
+#   public = list(
+#     initialize = function(windows) {
+#       .setListofClasses(
+#         private = private,
+#         key = "windows",
+#         value = windows,
+#         classes = c("TimeInterval")
+#       )
+#       invisible(self)
+#     },
+#     length = function() {
+#       ll <- length(private$windows)
+#       return(ll)
+#     },
+#     getTimeIntervals = function() {
+#
+#       tis <- purrr::map_dfr(
+#         private$windows,
+#         ~tibble::tibble(
+#           'lb' = .x$getLeftBound(),
+#           'rb' = .x$getRightBound()
+#         )
+#       )
+#       return(tis)
+#     }
+#   ),
+#   private = list(
+#     windows = NULL
+#   )
+# )
 
 # # GenderDefinition -----
 #
