@@ -25,7 +25,38 @@ ExecutionSettings <- R6::R6Class("ExecutionSettings",
       .setString(private = private, key = "targetCohortTable", value = targetCohortTable)
       .setString(private = private, key = "cdmSourceName", value = cdmSourceName)
       #checkmate::assert_number(x = numThreads, na.ok = TRUE, null.ok = TRUE)
+    },
+
+    getCdmDatabaseSchema <- function() {
+      cdmDatabaseSchema <- private$cdmDatabaseSchema
+      return(cdmDatabaseSchema)
+    },
+
+    getWorkDatabaseSchema <- function() {
+      workDatabaseSchema <- private$workDatabaseSchema
+      return(workDatabaseSchema)
+    },
+
+    getTempEmulationSchema <- function() {
+      tempEmulationSchema <- private$tempEmulationSchema
+      return(tempEmulationSchema)
+    },
+
+    getTargetCohortTable <- function() {
+      targetCohortTable <- private$targetCohortTable
+      return(targetCohortTable)
+    },
+
+    getCdmSourceName <- function() {
+      cdmSourceName <- private$cdmSourceName
+      return(cdmSourceName)
+    },
+
+    getDbms <- function() {
+      dbms <- private$connectionDetails$dbms
+      retrun(dbms)
     }
+
   ),
   private = list(
     connectionDetails = NULL,
