@@ -61,11 +61,11 @@ TableShell <- R6::R6Class("TableShell",
     initialize = function(name,
                           targetCohorts,
                           executionSettings,
-                          sections) {
+                          lineItems) {
       .setString(private = private, key = "name", value = name)
       .setListofClasses(private = private, key = "targetCohorts", value = targetCohorts, classes = c("TargetCohort"))
-      .setListofClasses(private = private, key = "sections", value = sections, classes = c("Section"))
       .setClass(private = private, key = "executionSettings", value = executionSettings, class = "ExecutionSettings")
+      .setListofClasses(private = private, key = "lineItems", value = lineItems, classes = c("LineItem"))
     },
     getName = function() {
       tsName <- private$name
@@ -76,15 +76,15 @@ TableShell <- R6::R6Class("TableShell",
       return(tsTargetCohorts)
     },
     getSections = function() {
-      tsSections <- private$sections
-      return(tsSections)
+      tsLineItems <- private$lineItems
+      return(tsLineItems)
     }
   ),
   private = list(
     name = NULL,
-    sections = NULL,
+    executionSettings = NULL,
     targetCohorts = NULL,
-    executionSettings = NULL
+    lineItems = NULL
   )
 )
 
@@ -193,7 +193,7 @@ Statistic <- R6::R6Class("Statistic",
 
 ## Demographic Stats
 
-### Demo Age -----------------
+### Demographic Age -----------------
 DemographicAge <- R6::R6Class("DemographicAge",
                    inherit = Statistic,
                    public = list(

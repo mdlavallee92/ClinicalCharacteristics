@@ -4,19 +4,19 @@
 #' @param title The title of the TableShell
 #' @param targetCohorts A list of TargetCohort objects
 #' @param executionSettings An ExecutionSettings object
-#' @param sections A list of Section objects
+#' @param lineItems A list of lineItem objects
 #'
 #' @return A TableShell object
 #'
 #' @export
-createTableShell <- function(name,
-                            targetCohorts,
-                            executionSettings,
-                            sections) {
-    tableShell <- TableShell$new(name = name,
+createTableShell <- function(title,
+                             targetCohorts,
+                             executionSettings,
+                             lineItems) {
+    tableShell <- TableShell$new(name = title,
                                  targetCohorts = targetCohorts,
                                  executionSettings = executionSettings,
-                                 sections = sections,)
+                                 lineItems = lineItems)
     return(tableShell)
 }
 
