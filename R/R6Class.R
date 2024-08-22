@@ -6,46 +6,37 @@
 #' @export
 ExecutionSettings <- R6::R6Class("ExecutionSettings",
   public = list(
-    connectionDetails = NULL,
-    connection = NULL,
-    cdmDatabaseSchema = NULL,
-    workDatabaseSchema = NULL,
-    tempEmulationSchema = NULL,
-    targetCohortTable = NULL,
-    cdmSourceName = NULL,
-    numThreads = NULL,
     initialize = function(connectionDetails = NULL,
                           connection = NULL,
                           cdmDatabaseSchema = NULL,
                           workDatabaseSchema = NULL,
                           tempEmulationSchema = NULL,
                           targetCohortTable = NULL,
-                          cdmSourceName = NULL,
-                          numThreads = NULL) {
+                          cdmSourceName = NULL
+                          #numThreads = NULL
+                          ) {
       stopifnot(is.null(connectionDetails) || is.null(connection))
-      checkmate::assert_string(x = connectionDetails, na.ok = TRUE, null.ok = TRUE)
-      checkmate::assert_string(x = connection, na.ok = TRUE, null.ok = TRUE)
-      checkmate::assert_string(x = cdmDatabaseSchema, na.ok = FALSE, null.ok = FALSE, min.chars = 1)
-      checkmate::assert_string(x = workDatabaseSchema, na.ok = FALSE, null.ok = FALSE, min.chars = 1)
-      checkmate::assert_string(x = tempEmulationSchema, na.ok = TRUE, null.ok = TRUE)
-      checkmate::assert_string(x = targetCohortTable, na.ok = FALSE, null.ok = FALSE, min.chars = 1)
-      checkmate::assert_string(x = cdmSourceName, na.ok = TRUE, null.ok = TRUE)
-      checkmate::assert_number(x = numThreads, na.ok = TRUE, null.ok = TRUE)
-
-      if (!is.null(connection)) {
-        self$connection <- connection
-        self$numThreads <- 1
-      } else {
-        self$connectionDetails <- connectionDetails
-        self$numThreads <- numThreads
-      }
-
-      self$cdmDatabaseSchema <- cdmDatabaseSchema
-      self$workDatabaseSchema <- workDatabaseSchema
-      self$tempEmulationSchema <- tempEmulationSchema
-      self$targetCohortTable <- targetCohortTable
-      self$cdmSourceName <- cdmSourceName
+      .setClass(private = private, key = "connectionDetails", value = connectionDetails, class = "ConnectionDetails")
+      .setClass(private = private, key = "connection", value = connection,
+                class = "DatabaseConnectorJdbcConnection", nullable = TRUE)
+      .setString(private = private, key = "cdmDatabaseSchema", value = cdmDatabaseSchema)
+      .setString(private = private, key = "workDatabaseSchema", value = workDatabaseSchema)
+      .setString(private = private, key = "tempEmulationSchema", value = tempEmulationSchema)
+      .setString(private = private, key = "targetCohortTable", value = targetCohortTable)
+      .setString(private = private, key = "cdmSourceName", value = cdmSourceName)
+      #checkmate::assert_number(x = numThreads, na.ok = TRUE, null.ok = TRUE)
     }
+  ),
+  private = list(
+    connectionDetails = NULL,
+    connection = NULL,
+    cdmDatabaseSchema = NULL,
+    workDatabaseSchema = NULL,
+    tempEmulationSchema = NULL,
+    targetCohortTable = NULL,
+    cdmSourceName = NULL
+    #TODO think about adding
+    #numThreads = NULL,
   )
 )
 

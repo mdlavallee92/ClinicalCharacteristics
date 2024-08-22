@@ -59,26 +59,23 @@ createTargetCohort <- function(id, name) {
 #' @param tempEmulationSchema Some database platforms like Oracle and Snowflake do not truly support temp tables. To emulate temp tables, provide a schema with write privileges where temp tables can be created.
 #' @param targetCohortTable The name of the table where the target cohort(s) are stored
 #' @param cdmSourceName A human-readable name for the OMOP CDM source
-#' @param numThreads (OPTIONAL) The number of threads to use for parallel processing
 #'
 #' @return An ExecutionSettings object
 #' @export
 createExecutionSettings <- function(connectionDetails,
-                                    connection,
+                                    connection = NULL,
                                     cdmDatabaseSchema,
                                     workDatabaseSchema,
                                     tempEmulationSchema,
                                     targetCohortTable,
-                                    cdmSourceName,
-                                    numThreads) {
+                                    cdmSourceName) {
   executionSettings <- ExecutionSettings$new(connectionDetails = connectionDetails,
                                              connection = connection,
                                              cdmDatabaseSchema = cdmDatabaseSchema,
                                              workDatabaseSchema = workDatabaseSchema,
                                              tempEmulationSchema = tempEmulationSchema,
                                              targetCohortTable = targetCohortTable,
-                                             cdmSourceName = cdmSourceName,
-                                             numThreads = numThreads)
+                                             cdmSourceName = cdmSourceName)
   return(executionSettings)
 }
 
