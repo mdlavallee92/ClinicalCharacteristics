@@ -210,7 +210,7 @@ createGenderLineItem <- function() {
 
   gender <- DemographicDefinition$new(
     name = "Gender",
-    statistic = DemoConcept$new(conceptColumn = "gender_concept_id")
+    statistic = DemographicConcept$new(conceptColumn = "gender_concept_id")
   )
 
   return(gender)
@@ -222,7 +222,7 @@ createRaceLineItem <- function() {
 
   gender <- DemographicDefinition$new(
     name = "Race",
-    statistic = DemoConcept$new(conceptColumn = "race_concept_id")
+    statistic = DemographicConcept$new(conceptColumn = "race_concept_id")
   )
 
   return(gender)
@@ -233,7 +233,7 @@ createEthnicityLineItem <- function() {
 
   gender <- DemographicDefinition$new(
     name = "Ethnicity",
-    statistic = DemoConcept$new(conceptColumn = "ethnicity_concept_id")
+    statistic = DemographicConcept$new(conceptColumn = "ethnicity_concept_id")
   )
 
   return(gender)
@@ -245,7 +245,7 @@ createAgeLineItem <- function(breaks = NULL) {
 
   age <- DemographicDefinition$new(
     name = "Age",
-    statistic = Age$new(breaks = breaks)
+    statistic = DemographicAge$new(breaks = breaks)
   )
 
   return(age)
