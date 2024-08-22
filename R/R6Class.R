@@ -111,7 +111,7 @@ TargetCohort <- R6::R6Class("TargetCohort",
     },
     getSql = function() {
       sqlFile <- "targetCohort.sql"
-      cohortIds <- private$id
+      cohortId <- private$id
       # get sql from package
       sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", sqlFile)) |>
         readr::read_file() |>
@@ -194,7 +194,7 @@ Statistic <- R6::R6Class("Statistic",
 ## Demographic Stats
 
 ### Demo Age -----------------
-Age <- R6::R6Class("DemoAge",
+DemographicAge <- R6::R6Class("DemographicAge",
                    inherit = Statistic,
                    public = list(
                      initialize = function(breaks = NULL) {
@@ -211,12 +211,13 @@ Age <- R6::R6Class("DemoAge",
 )
 
 
-### Demo Concept -----------------
-DemoConcept <- R6::R6Class("DemoConcept",
+### Demographic Concept -----------------
+DemographicConcept <- R6::R6Class("DemographicConcept",
                            inherit = Statistic,
                            public = list(
                              initialize = function(conceptColumn) {
-                               super$initialize(type = "DemoConcept")
+                               super$initialize(type = "Concept")
+                               #TODO make this a setChoics of Concept, Age, Year
                                .setString(private = private, key = 'conceptColumn', value = conceptColumn)
                                invisible(private)
                              },
@@ -231,8 +232,8 @@ DemoConcept <- R6::R6Class("DemoConcept",
 )
 
 
-### Demo Year -----------------
-DemoYear <- R6::R6Class("DemoYear",
+### Demographic Year -----------------
+DemographicYear <- R6::R6Class("DemographicYear",
                            inherit = Statistic,
                            public = list(
                              initialize = function(breaks = NULL) {
@@ -294,7 +295,6 @@ Count <- R6::R6Class("Count",
                      public = list(
                        initialize = function(breaks = NULL) {
                          super$initialize(type = "Count")
-                         # TODO change this to enforce operator from choice list
                          if (!is.null(breaks)) {
                            .setClass(private = private, key = "breaks", value = breaks, class = "Breaks")
                          }

@@ -95,18 +95,6 @@ timeInterval <- function(lb, rb) {
   return(ti)
 }
 
-#' @title
-#' Create a Time Window object
-#' @param ... a list of timeInterval objects
-#'
-#' @return A time window object
-#'
-#' @export
-createTimeWindows <- function(...) {
-  windows <- list(...)
-  tw <- TimeWindow$new(windows = windows)
-  return(tw)
-}
 
 
 createPresence <- function(operator = "at_least", occurrences = 1) {
@@ -207,7 +195,6 @@ createConceptSetLineItemBatch <- function(
     domain,
     conceptSets,
     timeIntervals,
-    sourceConceptSet = NULL,
     typeConceptIds = c(),
     visitOccurrenceConceptIds = c()) {
 
@@ -228,7 +215,7 @@ createConceptSetLineItemBatch <- function(
       domain = domain,
       conceptSet = .x,
       timeInterval = .y,
-      sourceConceptSet = sourceConceptSet,
+      sourceConceptSet = NULL,
       typeConceptIds = typeConceptIds,
       visitOccurrenceConceptIds = visitOccurrenceConceptIds
     )
@@ -256,7 +243,7 @@ createRaceLineItem <- function(ordinal) {
 
   gender <- DemographicDefinition$new(
     name = "Race",
-    ordinal = ordnial,
+    ordinal = ordinal,
     statistic = DemoConcept$new(conceptColumn = "race_concept_id")
   )
 
