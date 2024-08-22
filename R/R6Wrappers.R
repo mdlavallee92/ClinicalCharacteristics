@@ -205,7 +205,11 @@ createConceptSetLineItemBatch <- function(
   return(csLiBatch)
 }
 
-
+#' @title
+#' Create gender demographic line item
+#'
+#' @return A Demographic line item type class object
+#' @export
 createGenderLineItem <- function() {
 
   gender <- DemographicDefinition$new(
@@ -218,6 +222,11 @@ createGenderLineItem <- function() {
 }
 
 
+#' @title
+#' Create race demographic line item
+#'
+#' @return A Demographic line item type class object
+#' @export
 createRaceLineItem <- function() {
 
   gender <- DemographicDefinition$new(
@@ -229,6 +238,11 @@ createRaceLineItem <- function() {
 
 }
 
+#' @title
+#' Create ethnicity demographic line item
+#'
+#' @return A Demographic line item type class object
+#' @export
 createEthnicityLineItem <- function() {
 
   gender <- DemographicDefinition$new(
@@ -240,7 +254,12 @@ createEthnicityLineItem <- function() {
 
 }
 
-
+#' @title
+#' Create age demographic line item
+#'
+#' @param breaks A breaks object describing how to categorize the continuous value
+#' @return A Demographic line item type class object
+#' @export
 createAgeLineItem <- function(breaks = NULL) {
 
   age <- DemographicDefinition$new(
@@ -252,7 +271,12 @@ createAgeLineItem <- function(breaks = NULL) {
 
 }
 
-
+#' @title
+#' Combine all lineItems to enter into the tableShell slot
+#'
+#' @param ... A list of lineItems created from various calls
+#' @return a flattened list of lineItems
+#' @export
 lineItems <- function(...) {
   listOfLineItems <- list(...) |>
     purrr::list_flatten()
