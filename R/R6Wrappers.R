@@ -99,25 +99,11 @@ createPresence <- function(operator = "at_least", occurrences = 1) {
   return(pres)
 }
 
-#' @title
-#' Create a Section object and set its attributes
-#' @param title The title of the Section
-#' @param ordinal The ordinal of the Section
-#' @param lineItems A list of LineItem objects
-#'
-#' @return A Section object
-#'
-#' @export
-createSection <- function(name, ordinal, lineItems) {
-  section <- Section$new(name, ordinal, lineItems)
-  return(section)
-}
 
 #' @title
 #' Create a concept set line item and set its attributes
 #'
 #' @param name (OPTIONAL) The name of the line item (if not provided, the name will be set to the Capr concept set name)
-#' @param ordinal The ordinal of the line item within a section
 #' @param statistic The Statistic object to be used to evaluate the line item
 #' @param domain The domain of the concept set (must be one of 'Condition', 'Drug', 'Procedure', 'Observation', 'Measurement', 'Device')
 #' @param conceptSet The Capr concept set object
@@ -130,7 +116,6 @@ createSection <- function(name, ordinal, lineItems) {
 #'
 #' @export
 createConceptSetLineItem <- function(name,
-                                     ordinal,
                                      statistic,
                                      domain,
                                      conceptSet,
@@ -139,7 +124,6 @@ createConceptSetLineItem <- function(name,
                                      typeConceptIds = c(),
                                      visitOccurrenceConceptIds = c()) {
   csDefinition <- ConceptSetDefinition$new(name = name,
-                                           ordinal = ordinal,
                                            statistic = statistic,
                                            domain = domain,
                                            conceptSet = conceptSet,
@@ -207,7 +191,6 @@ createConceptSetLineItemBatch <- function(
     permDf$timeIntervals,
     ~createConceptSetLineItem(
       name = name,
-      ordinal = NA_integer_,
       statistic = statistic,
       domain = domain,
       conceptSet = .x,
@@ -223,11 +206,10 @@ createConceptSetLineItemBatch <- function(
 }
 
 
-createGenderLineItem <- function(ordinal) {
+createGenderLineItem <- function() {
 
   gender <- DemographicDefinition$new(
     name = "Gender",
-    ordinal = ordnial,
     statistic = DemoConcept$new(conceptColumn = "gender_concept_id")
   )
 
@@ -236,11 +218,10 @@ createGenderLineItem <- function(ordinal) {
 }
 
 
-createRaceLineItem <- function(ordinal) {
+createRaceLineItem <- function() {
 
   gender <- DemographicDefinition$new(
     name = "Race",
-    ordinal = ordinal,
     statistic = DemoConcept$new(conceptColumn = "race_concept_id")
   )
 
@@ -248,11 +229,10 @@ createRaceLineItem <- function(ordinal) {
 
 }
 
-createEthnicityLineItem <- function(ordinal) {
+createEthnicityLineItem <- function() {
 
   gender <- DemographicDefinition$new(
     name = "Ethnicity",
-    ordinal = ordnial,
     statistic = DemoConcept$new(conceptColumn = "ethnicity_concept_id")
   )
 
@@ -261,16 +241,24 @@ createEthnicityLineItem <- function(ordinal) {
 }
 
 
-createAgeLineItem <- function(ordinal, breaks = NULL) {
+createAgeLineItem <- function(breaks = NULL) {
 
   age <- DemographicDefinition$new(
     name = "Age",
-    ordinal = ordinal,
     statistic = Age$new(breaks = breaks)
   )
 
   return(age)
 
+}
+
+
+lineItems <- function(...) {
+  listOfLineItems <- list(...) |>
+    purrr::list_flatten()
+  # ensure that all elements are lineItems
+  checkmate::assert_list(x = listOfLineItems, types = "LineItem", null.ok = FALSE, min.len = 1)
+  return(listOfLineItems)
 }
 
 

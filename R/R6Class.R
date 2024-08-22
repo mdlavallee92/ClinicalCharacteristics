@@ -131,7 +131,7 @@ TableShell <- R6::R6Class("TableShell",
       tsTargetCohorts <- private$targetCohorts
       return(tsTargetCohorts)
     },
-    getSections = function() {
+    getLineItems = function() {
       tsLineItems <- private$lineItems
       return(tsLineItems)
     }
@@ -177,43 +177,6 @@ TargetCohort <- R6::R6Class("TargetCohort",
   private = list(
     id = NULL,
     name = NULL
-  )
-)
-
-# Section ------
-
-#' @description
-#' An R6 class to define a Section object
-#' A Section object is a logical encapsulation of LineItems
-#' Sections have names and ordinals for the final output
-#'
-#' @export
-Section <- R6::R6Class("Section",
-  public = list(
-    initialize = function(name,
-                          ordinal,
-                          lineItems) {
-      .setString(private = private, key = "name", value = name)
-      .setNumber(private = private, key = "ordinal", value = ordinal)
-      .setListofClasses(private = private, key = "lineItems", value = lineItems, classes = c("LineItem"))
-    },
-    getName = function() {
-      name <- private$name
-      return(name)
-    },
-    getOrdinal = function() {
-      sectionOrdinal <- private$ordinal
-      return(sectionOrdinal)
-    },
-    getLineItems = function() {
-      sectionLineItems <- private$lineItems
-      return(sectionLineItems)
-    }
-  ),
-  private = list(
-    name = NULL,
-    ordinal = NA,
-    lineItems = NULL
   )
 )
 
@@ -376,11 +339,11 @@ Count <- R6::R6Class("Count",
 LineItem <- R6::R6Class("LineItem",
   public = list(
     initialize = function(name,
-                          ordinal,
+                          #ordinal,
                           definitionType,
                           statistic) {
       .setString(private = private, key = "name", value = name)
-      .setNumber(private = private, key = "ordinal", value = ordinal)
+      #.setNumber(private = private, key = "ordinal", value = ordinal)
       # TODO change this to enforce definitionType from choice list
       .setString(private = private, key = "definitionType", value = definitionType)
       .setClass(private = private, key = "statistic", value = statistic, class = "Statistic")
@@ -391,10 +354,6 @@ LineItem <- R6::R6Class("LineItem",
       name <- private$name
       return(name)
     },
-    getOrdinal = function() {
-      liOrdinal <- private$ordinal
-      return(liOrdinal)
-    },
     getDefinitionType = function() {
       liDefinitionType <- private$definitionType
       return(liDefinitionType)
@@ -403,7 +362,7 @@ LineItem <- R6::R6Class("LineItem",
 
   private = list(
     name = NULL,
-    ordinal = NA,
+    ordinal = NA_integer_,
     definitionType = NULL,
     statistic = NULL
   )
@@ -421,7 +380,7 @@ ConceptSetDefinition <- R6::R6Class("ConceptSetDefinition",
 
     # initialize the class
     initialize = function(name,
-                          ordinal,
+                          #ordinal,
                           statistic,
                           domain,
                           conceptSet,
@@ -429,7 +388,7 @@ ConceptSetDefinition <- R6::R6Class("ConceptSetDefinition",
                           sourceConceptSet = NULL,
                           typeConceptIds = c(),
                           visitOccurrenceConceptIds = c()) {
-      super$initialize(name = name, ordinal = ordinal, definitionType = "ConceptSet",
+      super$initialize(name = name, definitionType = "ConceptSet",
                        statistic = statistic)
       .setString(private = private, key = "domain", value = domain)
       .setClass(private = private, key = "conceptSet", value = conceptSet, class = "ConceptSet")
@@ -493,10 +452,10 @@ DemographicDefinition <- R6::R6Class("DemographicDefinition",
   inherit = LineItem,
   public = list(
     initialize = function(name,
-                          ordinal,
+                          #ordinal,
                           statistic) {
       super$initialize(name = name,
-                       ordinal = ordinal,
+                       #ordinal = ordinal,
                        definitionType = "Demographic",
                        statistic = statistic)
     },
@@ -570,6 +529,48 @@ TimeInterval <- R6::R6Class(
     'rb' = NA_integer_
   )
 )
+
+
+# Legacy -------------
+
+
+## Section ------
+
+## @description
+###' An R6 class to define a Section object
+## A Section object is a logical encapsulation of LineItems
+## Sections have names and ordinals for the final output
+##
+## @export
+## Section <- R6::R6Class("Section",
+#   public = list(
+#     initialize = function(name,
+#                           ordinal,
+#                           lineItems) {
+#       .setString(private = private, key = "name", value = name)
+#       .setNumber(private = private, key = "ordinal", value = ordinal)
+#       .setListofClasses(private = private, key = "lineItems", value = lineItems, classes = c("LineItem"))
+#     },
+#     getName = function() {
+#       name <- private$name
+#       return(name)
+#     },
+#     getOrdinal = function() {
+#       sectionOrdinal <- private$ordinal
+#       return(sectionOrdinal)
+#     },
+#     getLineItems = function() {
+#       sectionLineItems <- private$lineItems
+#       return(sectionLineItems)
+#     }
+#   ),
+#   private = list(
+#     name = NULL,
+#     ordinal = NA,
+#     lineItems = NULL
+#   )
+# )
+
 
 
 ## TimeWindow ------
