@@ -1,3 +1,136 @@
+
+
+
+# TableShell -----
+
+#' @description
+#' An R6 class to define a TableShell object
+#'
+#' @export
+TableShell <- R6::R6Class("TableShell",
+  public = list(
+    initialize = function(name,
+                          targetCohorts,
+                          executionSettings,
+                          lineItems) {
+      .setString(private = private, key = "name", value = name)
+      .setListofClasses(private = private, key = "targetCohorts", value = targetCohorts, classes = c("TargetCohort"))
+      .setClass(private = private, key = "executionSettings", value = executionSettings, class = "ExecutionSettings")
+      .setListofClasses(private = private, key = "lineItems", value = lineItems, classes = c("LineItem"))
+    },
+    getName = function() {
+      tsName <- private$name
+      return(tsName)
+    },
+    getTargetCohorts = function() {
+      tsTargetCohorts <- private$targetCohorts
+      return(tsTargetCohorts)
+    },
+    getLineItems = function() {
+      tsLineItems <- private$lineItems
+      return(tsLineItems)
+    }
+
+  ),
+  private = list(
+    name = NULL,
+    executionSettings = NULL,
+    targetCohorts = NULL,
+    lineItems = NULL,
+
+    ### private methods ---------------
+
+    # function to get target cohort sql
+    .getTargetCohortSql = function() {
+      sqlFile <- "targetCohort.sql"
+      cohortIds <- purrr::map_int(
+        private$targetCohorts,
+        ~.x$getId()
+      )
+      # get sql from package
+      sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", sqlFile)) |>
+        readr::read_file() |>
+        glue::glue()
+      return(sql)
+    },
+
+    # pluck Concept Set Line Items
+    .pluckLineItems = function(classType) {
+      lineItems <- self$getLineItems()
+      lineClasses <- purrr::map_chr(lineItems, ~class(.x)[1])
+      lineItems <- lineItems[which(lineClasses == classType)]
+      return(lineItems)
+    },
+
+    .buildDemographicsQuery = function() {
+
+      # get concept set line items
+      demoLineItems <- private$.pluckLineItems(classType = "DemographicDefinition")
+      demoSql <- purrr::map(
+        demoLineItems,
+        ~.x$getSql()
+      )|>
+        glue::glue_collapse(sep = "\n\n")
+
+      return(demoSql)
+
+    },
+
+    # .insertTimeWindows = function() {
+    #
+    # },
+
+    # function to create sql for codset query
+    .buildCodesetQueries = function() {
+
+      #temporary change with class
+      codesetTable <- "#Codeset"
+
+      # get concept set line items
+      csLineItems <- private$.pluckLineItems(classType = "ConceptSetDefinition")
+      # retrieve each concept set from the line items and flatten
+      csCapr <- purrr::map(
+        csLineItems,
+        ~.x$grabConceptSet()
+      )
+      # remove duplicated ids
+      cs_id <- !duplicated(purrr::map_chr(csCapr, ~.x@id))
+      cs_tbl2 <- csCapr[cs_id]
+
+      # change function name to .camel
+      cs_query <- bind_codeset_queries(cs_tbl2, codesetTable = codesetTable)
+      return(cs_query)
+
+    },
+
+    # function to create sql for conceptSet queries
+    .buildConceptLineItemQuery = function() {
+      csLineItems <- private$.pluckLineItems(classType = "ConceptSetDefinition")
+      #get concetp set meta and retrieve tables
+      csMeta <- .conceptSetMeta(csLineItems)
+      csTables <- csMeta |>
+        dplyr::select(csIdSet, twIdSet, domain, tempTableName) |>
+        dplyr::distinct()
+      # Use sql template to create different domain joins
+      csSql <- purrr::pmap_chr(
+        csTables,
+        ~.prepCsQuery(
+          csIdSet = ..1,
+          twIdSet = ..2,
+          domain = ..3,
+          tempTableName = ..4
+        )
+      ) |>
+        glue::glue_collapse(sep = "\n\n")
+
+      return(csSql)
+
+    }
+
+  )
+)
+
+
 # ExecutionSettings ----
 
 #' @description
@@ -106,44 +239,6 @@ ExecutionSettings <- R6::R6Class(
 )
 
 
-# TableShell -----
-
-#' @description
-#' An R6 class to define a TableShell object
-#'
-#' @export
-TableShell <- R6::R6Class("TableShell",
-  public = list(
-    initialize = function(name,
-                          targetCohorts,
-                          executionSettings,
-                          lineItems) {
-      .setString(private = private, key = "name", value = name)
-      .setListofClasses(private = private, key = "targetCohorts", value = targetCohorts, classes = c("TargetCohort"))
-      .setClass(private = private, key = "executionSettings", value = executionSettings, class = "ExecutionSettings")
-      .setListofClasses(private = private, key = "lineItems", value = lineItems, classes = c("LineItem"))
-    },
-    getName = function() {
-      tsName <- private$name
-      return(tsName)
-    },
-    getTargetCohorts = function() {
-      tsTargetCohorts <- private$targetCohorts
-      return(tsTargetCohorts)
-    },
-    getLineItems = function() {
-      tsLineItems <- private$lineItems
-      return(tsLineItems)
-    }
-  ),
-  private = list(
-    name = NULL,
-    executionSettings = NULL,
-    targetCohorts = NULL,
-    lineItems = NULL
-  )
-)
-
 # Target Cohort -----
 
 #' @description
@@ -164,15 +259,16 @@ TargetCohort <- R6::R6Class("TargetCohort",
     getName = function(name) {
       tcName <- private$name
       return(tcName)
-    },
-    getSql = function() {
-      sqlFile <- "targetCohort.sql"
-      cohortId <- private$id
-      # get sql from package
-      sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", sqlFile)) |>
-        readr::read_file() |>
-        glue::glue()
     }
+    # DEFUNCT: this is now one cohort per class
+    # getSql = function() {
+    #   sqlFile <- "targetCohort.sql"
+    #   cohortId <- private$id
+    #   # get sql from package
+    #   sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", sqlFile)) |>
+    #     readr::read_file() |>
+    #     glue::glue()
+    # }
   ),
   private = list(
     id = NULL,
@@ -362,10 +458,23 @@ LineItem <- R6::R6Class("LineItem",
 
   private = list(
     name = NULL,
-    ordinal = NA_integer_,
+    .ordinal = NA_integer_,
     definitionType = NULL,
     statistic = NULL
+  ),
+
+  active = list(
+    ordinal = function(value) {
+      # return the value if nothing added
+      if(missing(value)) {
+        ord <- private$.ordinal
+        return(ord)
+      }
+      private$.ordinal <- as.integer(value)
+      invisible(private)
+    }
   )
+
 )
 
 ## ConceptSetDefinition ----
@@ -405,26 +514,25 @@ ConceptSetDefinition <- R6::R6Class("ConceptSetDefinition",
       return(cs)
     },
 
-    # helper to get reference table of the concept sets in the class
-    getConceptSetRef = function() {
-      # # make key for cs use
-      csTbl <- tibble::tibble(
-        'name' = private$conceptSet@Name,
-        'hash' = private$conceptSet@id
-      )
-      return(csTbl)
-    },
-
-    # helper to get the domain within the class
-    getDomain = function() {
-      dm <- private$domain
-      return(dm)
-    },
-
     # helper to retrieve the time windows in the clas
     getTimeInterval = function() {
       tw <- private$timeInterval$getTimeInterval()
       return(tw)
+    },
+
+
+    # helper to get reference table of the concept sets in the class
+    getConceptSetRef = function() {
+
+      # # make key for cs use
+      csTbl <- tibble::tibble(
+        'name' = private$conceptSet@Name,
+        'hash' = private$conceptSet@id,
+        'domain' = private$domain,
+        'lb' = private$timeInterval$getLb(),
+        'rb' = private$timeInterval$getRb()
+      )
+      return(csTbl)
     },
 
     getStatisticType = function() {
@@ -476,7 +584,7 @@ DemographicDefinition <- R6::R6Class("DemographicDefinition",
       }
 
       # prep sql if Concept demographic
-      if (statType == "DemoConcept") {
+      if (statType == "Concept") {
         sqlFile <- "demoConceptChar.sql"
         ordinal <- private$ordinal
         conceptColumn <- private$statistic$getDemoColumn()
@@ -496,7 +604,6 @@ DemographicDefinition <- R6::R6Class("DemographicDefinition",
           glue::glue()
       }
 
-
       return(sql)
     }
   )
@@ -515,6 +622,14 @@ TimeInterval <- R6::R6Class(
       .setNumber(private = private, key = "lb", value = lb)
       .setNumber(private = private, key = "rb", value = rb)
       invisible(self)
+    },
+    getLb = function() {
+      lb <- private$lb
+      return(lb)
+    },
+    getRb = function() {
+      rb <- private$rb
+      return(rb)
     },
     getTimeInterval = function() {
       tb <- tibble::tibble(
