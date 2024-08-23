@@ -282,6 +282,12 @@ lineItems <- function(...) {
     purrr::list_flatten()
   # ensure that all elements are lineItems
   checkmate::assert_list(x = listOfLineItems, types = "LineItem", null.ok = FALSE, min.len = 1)
+
+  # add in ordinals
+  ii <- seq_along(listOfLineItems)
+  for(i in ii) {
+    listOfLineItems[[i]]$ordinal <- ii[i]
+  }
   return(listOfLineItems)
 }
 
