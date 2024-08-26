@@ -1,3 +1,12 @@
+.opConverter <- function(op) {
+  op <- switch(op,
+               'at_least' = '>=',
+               'at_most' = '<=',
+               'exactly' = '=')
+  return(op)
+}
+
+
 # function to get timeInterval and concept set combinations
 .permuteCsTi <- function(conceptSets, timeIntervals) {
 
@@ -20,6 +29,9 @@
 # function to build Concept Set Meta table; route concept set build
 .conceptSetMeta <- function(csLineItems) {
 
+  ord <- tibble::tibble(
+    tsOrd = purrr::map_int(csLineItems, ~.x$ordinal)
+  )
   # get concept set Ref
   csMeta <- purrr::map_dfr(csLineItems, ~.x$getConceptSetRef()) |>
     dplyr::mutate(
@@ -29,7 +41,7 @@
       tsCsId = dplyr::row_number(),
       .before = 1
     )
-
+  csMeta <- dplyr::bind_cols(ord, csMeta)
   # get the distinct concept sets
   distinct_cs <- csMeta |>
     dplyr::select(
@@ -111,6 +123,15 @@
       csTempTables , by = c("csIdSet", "twIdSet", "domain")
     )
 
+  # Identify the stat type
+  statTb <- purrr::map_dfr(csLineItems, ~.x$getStatisticInfo())
+
+  # add back to csMeta
+  csMeta <- csMeta |>
+    dplyr::left_join(
+      statTb , by = c("tsOrd" = "ord")
+    )
+
   return(csMeta)
 
 }
@@ -183,7 +204,7 @@ domain_translate <- function(domain) {
 }
 
 
-.prepCsQuery <- function(csIdSet, twIdSet, domain, tempTableName) {
+.prepCsExtract <- function(csIdSet, twIdSet, domain, tempTableName) {
 
   # change names for glue
   timeIds <- twIdSet
@@ -200,3 +221,17 @@ domain_translate <- function(domain) {
 
   return(sql)
 }
+
+
+.prepCsTransform <- function(tempTableName, sql) {
+
+  # change names for glue
+  csTempTableName <- tempTableName
+
+  # get conceptSet Sql
+  sql <- sql |>
+    glue::glue()
+
+  return(sql)
+}
+
