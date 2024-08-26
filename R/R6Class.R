@@ -27,37 +27,106 @@ TableShell <- R6::R6Class("TableShell",
       return(tsLineItems)
     },
 
+    # function to insert time windows
+    insertTimeWindows = function(executionSettings) {
+
+      # ensure that executionSettings R6 object used
+      checkmate::assert_class(executionSettings, classes = "ExecutionSettings", null.ok = FALSE)
+
+      # get concept set line items
+      csLineItems <- private$.pluckLineItems(classType = "ConceptSetDefinition")
+
+      # make the time windows table
+      time_tbl <- purrr::map_dfr(csLineItems, ~.x$getTimeInterval()) |>
+        dplyr::distinct() |>
+        dplyr::mutate(
+          time_id = dplyr::row_number(), .before = 1
+        ) |>
+        dplyr::rename(
+          time_a = lb,
+          time_b = rb
+        )
+
+      cli::cat_bullet(
+        glue::glue("Insert time window tables for characterization"),
+        bullet = "pointer",
+        bullet_col = "yellow"
+      )
+
+      # establish connection to database
+      connection <- executionSettings$getConnection()
+
+      if (is.null(connection)) {
+        connection <- executionSettings$connect()
+      }
+
+      # insert the time windows into the database
+      DatabaseConnector::insertTable(
+        connection = connection,
+        tableName = "time_windows",
+        tempEmulationSchema = executionSettings$tempEmulationSchema,
+        data = time_tbl,
+        tempTable = TRUE
+      )
+
+      invisible(time_tbl)
+
+    },
+
     #key function to generate the table shell
-    buildTableShellSql = function() {
+    buildTableShellSql = function(executionSettings) {
 
-      sqlItems <- c(
+      # ensure that executionSettings R6 object used
+      checkmate::assert_class(executionSettings, classes = "ExecutionSettings", null.ok = FALSE)
 
-        # step 1: create targe cohort table
+      # collect all the sql
+      fullSql <- c(
+
+        # step 1: dat table ddl
+        private$.makeDatTable(),
+
+        # step 2: create targe cohort table
         private$.getTargetCohortSql(),
 
-        # Step 2: Create line items
+        # Step 3: Create line items
 
-        # A) Demographics
+          # A) Demographics
         private$.buildDemographicsQuery(),
 
-        # B) Concept Set
+          # B) Concept Set
         # create codeset query
         private$.buildCodesetQueries(),
         # create concept set query
         private$.buildConceptLineItemQuery(),
 
-        # C) Multi-domain groups
+          # C) Multi-domain groups
         # grp_Sql <- private$.buildGroupLineItemQuery()
 
-        # D) Cohorts
+          # D) Cohorts
         #cd_sql <- private$.buildCohortLineItemQuery()
 
-        # Step 3: Make table drop sql
+        # Step 4: Make table drop sql
         private$.dropCsTempTables()
       ) |>
         glue::glue_collapse(sep = "\n")
 
-      return(sqlItems)
+      # render it with schema info
+      renderedSql <- SqlRender::render(
+        sql = fullSql,
+        cdmDatabaseSchema = executionSettings$cdmDatabaseSchema,
+        workDatabaseSchema = executionSetting$workDatabaseSchema,
+        cohortTable = executionSettings$targetCohortTable,
+        dataTable = "#dat_tbl"
+      )
+
+      # translate and prep for execution
+      finalSql <- SqlRender::translate(
+        sql = renderedSql,
+        targetDialect = executionSettings$getDbms(),
+        tempEmulationSchema = executionSettings$tempEmulationSchema
+      )
+
+      return(finalSql)
 
     }
 
@@ -119,51 +188,6 @@ TableShell <- R6::R6Class("TableShell",
 
     },
 
-    # function to insert time windows
-    .insertTimeWindows = function(executionSettings) {
-
-      # ensure that executionSettings R6 object used
-      checkmate::assert_class(executionSettings, classes = "ExecutionSettings", null.ok = FALSE)
-
-      # get concept set line items
-      csLineItems <- private$.pluckLineItems(classType = "ConceptSetDefinition")
-
-      # make the time windows table
-      time_tbl <- purrr::map_dfr(csLineItems, ~.x$getTimeInterval()) |>
-        dplyr::distinct() |>
-        dplyr::mutate(
-          time_id = dplyr::row_number(), .before = 1
-        ) |>
-        dplyr::rename(
-          time_a = lb,
-          time_b = rb
-        )
-
-      cli::cat_bullet(
-        glue::glue("Insert time window tables for characterization"),
-        bullet = "pointer",
-        bullet_col = "yellow"
-      )
-
-      # establish connection to database
-      connection <- executionSettings$getConnection()
-
-      if (is.null(connection)) {
-        connection <- executionSettings$connect()
-      }
-
-      # insert the time windows into the database
-      DatabaseConnector::insertTable(
-        connection = connection,
-        tableName = "time_windows",
-        tempEmulationSchema = executionSettings$tempEmulationSchema,
-        data = time_tbl,
-        tempTable = TRUE
-      )
-
-      invisible(time_tbl)
-
-    },
 
     # function to create sql for codset query
     .buildCodesetQueries = function() {
