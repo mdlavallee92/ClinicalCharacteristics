@@ -3,7 +3,6 @@
 #'
 #' @param title The title of the TableShell
 #' @param targetCohorts A list of TargetCohort objects
-#' @param executionSettings An ExecutionSettings object
 #' @param lineItems A list of lineItem objects
 #'
 #' @return A TableShell object
@@ -11,11 +10,9 @@
 #' @export
 createTableShell <- function(title,
                              targetCohorts,
-                             executionSettings,
                              lineItems) {
     tableShell <- TableShell$new(name = title,
                                  targetCohorts = targetCohorts,
-                                 executionSettings = executionSettings,
                                  lineItems = lineItems)
     return(tableShell)
 }
@@ -134,24 +131,7 @@ createConceptSetLineItem <- function(name,
   return(csDefinition)
 }
 
-# function to get timeInterval and concept set combinations
-.permuteCsTi <- function(conceptSets, timeIntervals) {
 
-  # get number of items for each
-  numCs <- length(conceptSets)
-  numTis <- length(timeIntervals)
-
-  # build out permutations
-  csPerm <- rep(conceptSets, times = numTis)
-  tiPerm <- rep(timeIntervals, each = numCs)
-
-  permTiCs <- list(
-    'conceptSets' = csPerm,
-    'timeIntervals' = tiPerm
-  )
-  return(permTiCs)
-
-}
 
 #' @title
 #' Create a batch of concept set line items from a list of Capr concept sets.

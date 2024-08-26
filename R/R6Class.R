@@ -11,11 +11,10 @@ TableShell <- R6::R6Class("TableShell",
   public = list(
     initialize = function(name,
                           targetCohorts,
-                          executionSettings,
                           lineItems) {
       .setString(private = private, key = "name", value = name)
       .setListofClasses(private = private, key = "targetCohorts", value = targetCohorts, classes = c("TargetCohort"))
-      .setClass(private = private, key = "executionSettings", value = executionSettings, class = "ExecutionSettings")
+      #.setClass(private = private, key = "executionSettings", value = executionSettings, class = "ExecutionSettings")
       .setListofClasses(private = private, key = "lineItems", value = lineItems, classes = c("LineItem"))
     },
     getName = function() {
@@ -34,7 +33,6 @@ TableShell <- R6::R6Class("TableShell",
   ),
   private = list(
     name = NULL,
-    executionSettings = NULL,
     targetCohorts = NULL,
     lineItems = NULL,
 
@@ -76,9 +74,43 @@ TableShell <- R6::R6Class("TableShell",
 
     },
 
-    # .insertTimeWindows = function() {
-    #
-    # },
+    .insertTimeWindows = function(executionSettings) {
+
+      # ensure that executionSettings R6 object used
+      checkmate::assert_class(executionSettings, classes = "ExecutionSettings", null.ok = FALSE)
+
+      # get concept set line items
+      csLineItems <- private$.pluckLineItems(classType = "ConceptSetDefinition")
+
+      # make the time windows table
+      tw_tbl <- purrr::map_dfr(csLineItems, ~.x$getTimeInterval()) |>
+        dplyr::distinct() |>
+        dplyr::mutate(
+          time_id = dplyr::row_number(), .before = 1
+        ) |>
+        dplyr::rename(
+          time_a = lb,
+          time_b = rb
+        )
+
+      cli::cat_bullet(
+        glue::glue("Insert time window tables for characterization"),
+        bullet = "pointer",
+        bullet_col = "yellow"
+      )
+
+      # insert the time windows into the database
+      DatabaseConnector::insertTable(
+        connection = executionSettings$connection,
+        tableName = "time_windows",
+        tempEmulationSchema = executionSettings$tempEmulationSchema,
+        data = time_tbl,
+        tempTable = TRUE
+      )
+
+      invisible(tw_tbl)
+
+    },
 
     # function to create sql for codset query
     .buildCodesetQueries = function() {
