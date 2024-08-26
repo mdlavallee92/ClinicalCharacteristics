@@ -272,8 +272,4 @@ lineItems <- function(...) {
 }
 
 
-# addGenderItem <- function(genderConceptIds = c(),
-#                           inputType) {
-#   gender <- GenderDefinition$new(inputType = "Explicit", genderConceptIds = genderConceptIds)
 
-# }
