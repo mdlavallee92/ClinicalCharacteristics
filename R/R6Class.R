@@ -28,29 +28,36 @@ TableShell <- R6::R6Class("TableShell",
     },
 
     #key function to generate the table shell
-    generateTableShell = function(executionSettings) {
+    buildTableShellSql = function() {
 
-      # step 1: create targe cohort table
-      targetCohort <- private$.getTargetCohortSql()
+      sqlItems <- c(
 
-      # step 2: create codeset query if any
-      codeset_sql <- private$.buildCodesetQueries()
+        # step 1: create targe cohort table
+        private$.getTargetCohortSql(),
 
-      # Step 3: Create line items
+        # Step 2: Create line items
 
-      # A) Demographics
-      demo_sql <- private$.buildDemographicsQuery()
+        # A) Demographics
+        private$.buildDemographicsQuery(),
 
-      # B) Concept Set
-      cs_sql <- private$.buildConceptLineItemQuery()
+        # B) Concept Set
+        # create codeset query
+        private$.buildCodesetQueries(),
+        # create concept set query
+        private$.buildConceptLineItemQuery(),
 
-      # C) Multi-domain groups
-      # grp_Sql <- private$.buildGroupLineItemQuery()
+        # C) Multi-domain groups
+        # grp_Sql <- private$.buildGroupLineItemQuery()
 
-      # D) Cohorts
-      #cd_sql <- private$.buildCohortLineItemQuery()
+        # D) Cohorts
+        #cd_sql <- private$.buildCohortLineItemQuery()
 
-      # Step 4: Make table drop sql
+        # Step 3: Make table drop sql
+        private$.dropCsTempTables()
+      ) |>
+        glue::glue_collapse(sep = "\n")
+
+      return(sqlItems)
 
     }
 
@@ -107,7 +114,6 @@ TableShell <- R6::R6Class("TableShell",
       } else {
         demoSql <- ""
       }
-
 
       return(demoSql)
 
@@ -188,7 +194,7 @@ TableShell <- R6::R6Class("TableShell",
     },
 
     # function to extract concept level information
-    .builConceptLineItemQuery = function() {
+    .buildConceptLineItemQuery = function() {
       csLineItems <- private$.pluckLineItems(classType = "ConceptSetDefinition")
 
       # only run if CSD in ts
@@ -781,7 +787,7 @@ DemographicDefinition <- R6::R6Class("DemographicDefinition",
       # prep sql if Age demographic
       if (statType == "Age") {
         sqlFile <- "demoAgeChar.sql"
-        ordinal <- private$ordinal
+        ordinal <- self$ordinal
         # get sql from package
         sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", sqlFile)) |>
           readr::read_file() |>
@@ -791,7 +797,7 @@ DemographicDefinition <- R6::R6Class("DemographicDefinition",
       # prep sql if Concept demographic
       if (statType == "Concept") {
         sqlFile <- "demoConceptChar.sql"
-        ordinal <- private$ordinal
+        ordinal <- self$ordinal
         conceptColumn <- private$statistic$getDemoColumn()
         # get sql from package
         sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", sqlFile)) |>
@@ -802,7 +808,7 @@ DemographicDefinition <- R6::R6Class("DemographicDefinition",
       # prep sql if Concept demographic
       if (statType == "Year") {
         sqlFile <- "demoYearChar.sql"
-        ordinal <- private$ordinal
+        ordinal <- self$ordinal
         # get sql from package
         sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", sqlFile)) |>
           readr::read_file() |>
