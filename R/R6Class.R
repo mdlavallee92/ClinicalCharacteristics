@@ -25,6 +25,31 @@ TableShell <- R6::R6Class("TableShell",
     getLineItems = function() {
       tsLineItems <- private$lineItems
       return(tsLineItems)
+    },
+
+    #key function to generate the table shell
+    generateTableShell = function(executionSettings) {
+
+      # step 1: create targe cohort table
+      targetCohort <- private$.getTargetCohortSql()
+
+      # step 2: create codeset query if any
+      codeset_sql <- private$.buildCodesetQueries()
+
+      # Step 3: Create line items
+
+      # A) Demographics
+      demo_sql <- private$.buildDemographicsQuery()
+
+      # B) Concept Set
+      cs_sql <- private$.buildConceptLineItemQuery()
+
+      # C) Multi-domain groups
+      # grp_Sql <- private$.buildGroupLineItemQuery()
+
+      # D) Cohorts
+      #cd_sql <- private$.buildCohortLineItemQuery()
+
     }
 
   ),
@@ -34,6 +59,15 @@ TableShell <- R6::R6Class("TableShell",
     lineItems = NULL,
 
     ### private methods ---------------
+
+    #function to create dat table
+    .makeDatTable = function(){
+      sqlFile <- "datTable.sql"
+      # get sql from package
+      sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", sqlFile)) |>
+        readr::read_file()
+      return(sql)
+    },
 
     # function to get target cohort sql
     .getTargetCohortSql = function() {
@@ -57,20 +91,27 @@ TableShell <- R6::R6Class("TableShell",
       return(lineItems)
     },
 
+    # function to prep demographics sql
     .buildDemographicsQuery = function() {
 
       # get concept set line items
       demoLineItems <- private$.pluckLineItems(classType = "DemographicDefinition")
-      demoSql <- purrr::map(
-        demoLineItems,
-        ~.x$getSql()
-      )|>
-        glue::glue_collapse(sep = "\n\n")
+      if (length(demoLineItems) >= 1) {
+        demoSql <- purrr::map(
+          demoLineItems,
+          ~.x$getSql()
+        )|>
+          glue::glue_collapse(sep = "\n\n")
+      } else {
+        demoSql <- ""
+      }
+
 
       return(demoSql)
 
     },
 
+    # function to insert time windows
     .insertTimeWindows = function(executionSettings) {
 
       # ensure that executionSettings R6 object used
@@ -103,7 +144,6 @@ TableShell <- R6::R6Class("TableShell",
         connection <- executionSettings$connect()
       }
 
-
       # insert the time windows into the database
       DatabaseConnector::insertTable(
         connection = connection,
@@ -125,41 +165,73 @@ TableShell <- R6::R6Class("TableShell",
 
       # get concept set line items
       csLineItems <- private$.pluckLineItems(classType = "ConceptSetDefinition")
-      # retrieve each concept set from the line items and flatten
-      csCapr <- purrr::map(
-        csLineItems,
-        ~.x$grabConceptSet()
-      )
-      # remove duplicated ids
-      cs_id <- !duplicated(purrr::map_chr(csCapr, ~.x@id))
-      cs_tbl2 <- csCapr[cs_id]
+      if (length(csLineItems) >= 1) {
+        # retrieve each concept set from the line items and flatten
+        csCapr <- purrr::map(
+          csLineItems,
+          ~.x$grabConceptSet()
+        )
+        # remove duplicated ids
+        cs_id <- !duplicated(purrr::map_chr(csCapr, ~.x@id))
+        cs_tbl2 <- csCapr[cs_id]
 
-      # change function name to .camel
-      cs_query <- bind_codeset_queries(cs_tbl2, codesetTable = codesetTable)
+        # change function name to .camel
+        cs_query <- bind_codeset_queries(cs_tbl2, codesetTable = codesetTable)
+      } else{
+        cs_query <- ""
+      }
+
       return(cs_query)
 
     },
 
-    # function to create sql for conceptSet queries
-    .buildConceptLineItemQuery = function() {
+    # function to extract concept level information
+    .builConceptLineItemQuery = function() {
       csLineItems <- private$.pluckLineItems(classType = "ConceptSetDefinition")
-      #get concetp set meta and retrieve tables
-      csMeta <- .conceptSetMeta(csLineItems)
-      csTables <- csMeta |>
-        dplyr::select(csIdSet, twIdSet, domain, tempTableName) |>
-        dplyr::distinct()
-      # Use sql template to create different domain joins
-      csSql <- purrr::pmap_chr(
-        csTables,
-        ~.prepCsQuery(
-          csIdSet = ..1,
-          twIdSet = ..2,
-          domain = ..3,
-          tempTableName = ..4
-        )
-      ) |>
-        glue::glue_collapse(sep = "\n\n")
 
+      # only run if CSD in ts
+      if (length(csLineItems) >= 1) {
+
+        # Step 1: Get the concept set meta
+        csMeta <- .conceptSetMeta(csLineItems)
+
+        # Step 2: Prep the concept set extraction
+        csTables <- csMeta |>
+          dplyr::select(csIdSet, twIdSet, domain, tempTableName) |>
+          dplyr::distinct()
+        # Use sql template to create different domain joins
+        csExtractSql <- purrr::pmap_chr(
+          csTables,
+          ~.prepCsExtract(
+            csIdSet = ..1,
+            twIdSet = ..2,
+            domain = ..3,
+            tempTableName = ..4
+          )
+        ) |>
+          glue::glue_collapse(sep = "\n\n")
+
+        # step 3: transform extraction based on stat
+        statTb <- csMeta |>
+          dplyr::select(tempTableName, sql) |>
+          dplyr::distinct()
+
+        csTransformSql <- purrr::pmap_chr(
+          statTb,
+          ~.prepCsTransform(
+            tempTableName = ..1,
+            sql = ..2
+          )
+        ) |>
+          glue::glue_collapse(sep = "\n\n")
+
+
+        csSql <- c(csExtractSql, csTransformSql) |>
+          glue::glue_collapse(sep = "\n\n")
+
+      } else {
+        csSql <- ""
+      }
       return(csSql)
 
     }
@@ -468,6 +540,17 @@ Presence <- R6::R6Class("Presence",
                             .setString(private = private, key = "operator", value = operator)
                             .setNumber(private = private, key = "occurrences", value = occurrences)
                             invisible(private)
+                          },
+                          getSql = function() {
+
+                            sqlFile <- "presenceStat.sql"
+                            op <- .opConverter(private$operator)
+                            occurrences <- private$occurrences
+                            # get sql from package
+                            sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", sqlFile)) |>
+                              readr::read_file() |>
+                              glue::glue()
+                            return(sql)
                           }
                         ),
                         private = list(
@@ -495,6 +578,15 @@ Count <- R6::R6Class("Count",
                            .setClass(private = private, key = "breaks", value = breaks, class = "Breaks")
                          }
                          invisible(private)
+                       },
+                       getSql = function() {
+
+                         sqlFile <- "countStat.sql"
+                          # get sql from package
+                         sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", sqlFile)) |>
+                           readr::read_file() |>
+                           glue::glue()
+                         return(sql)
                        }
                      ),
                      private = list(
@@ -616,9 +708,13 @@ ConceptSetDefinition <- R6::R6Class("ConceptSetDefinition",
       return(csTbl)
     },
 
-    getStatisticType = function() {
-      statNm <- private$statistic$getStatType()
-      return(statNm)
+    getStatisticInfo = function() {
+      tb <- tibble::tibble(
+        'ord' = self$ordinal,
+        'statType' = private$statistic$getStatType(),
+        'sql' = private$statistic$getSql()
+      )
+      return(tb)
     }
   ),
   private = list(
