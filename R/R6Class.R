@@ -1,6 +1,3 @@
-
-
-
 # TableShell -----
 
 #' @description
@@ -193,7 +190,43 @@ ExecutionSettings <- R6::R6Class(
     getDbms = function() {
       dbms <- private$connectionDetails$dbms
       return(dbms)
+    },
+
+    # connect to database
+    connect = function() {
+
+      # check if private$connection is NULL
+      conObj <- private$connection
+      if (is.null(conObj)) {
+        private$connection <- DatabaseConnector::connect(private$connectionDetails)
+      } else{
+        cli::cat_bullet(
+          "Connection object already open",
+          bullet = "info",
+          bullet_col = "blue"
+        )
+      }
+    },
+
+    # disconnect to database
+    disconnect = function() {
+
+      # check if private$connection is NULL
+      conObj <- private$connection
+      if (class(conObj) == "DatabaseConnectorJdbcConnection") {
+        # disconnect connection
+        DatabaseConnector::disconnect(private$connection)
+        private$connection <- NULL
+      }
+
+      cli::cat_bullet(
+        "Connection object has been disconected",
+        bullet = "info",
+        bullet_col = "blue"
+      )
+      invisible(conObj)
     }
+
   ),
 
   private = list(
@@ -267,6 +300,7 @@ ExecutionSettings <- R6::R6Class(
         bullet_col = "blue"
       )
     }
+
   )
 )
 
