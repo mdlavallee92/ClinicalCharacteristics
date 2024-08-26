@@ -80,7 +80,7 @@ TableShell <- R6::R6Class("TableShell",
       csLineItems <- private$.pluckLineItems(classType = "ConceptSetDefinition")
 
       # make the time windows table
-      tw_tbl <- purrr::map_dfr(csLineItems, ~.x$getTimeInterval()) |>
+      time_tbl <- purrr::map_dfr(csLineItems, ~.x$getTimeInterval()) |>
         dplyr::distinct() |>
         dplyr::mutate(
           time_id = dplyr::row_number(), .before = 1
@@ -96,16 +96,24 @@ TableShell <- R6::R6Class("TableShell",
         bullet_col = "yellow"
       )
 
+      # establish connection to database
+      connection <- executionSettings$getConnection()
+
+      if (is.null(connection)) {
+        connection <- executionSettings$connect()
+      }
+
+
       # insert the time windows into the database
       DatabaseConnector::insertTable(
-        connection = executionSettings$connection,
+        connection = connection,
         tableName = "time_windows",
         tempEmulationSchema = executionSettings$tempEmulationSchema,
         data = time_tbl,
         tempTable = TRUE
       )
 
-      invisible(tw_tbl)
+      invisible(time_tbl)
 
     },
 
@@ -178,7 +186,7 @@ ExecutionSettings <- R6::R6Class(
                           cdmSourceName = NULL) {
       stopifnot(is.null(connectionDetails) || is.null(connection))
       .setClass(private = private, key = "connectionDetails", value = connectionDetails, class = "ConnectionDetails")
-      .setClass(private = private, key = "connection", value = connection,
+      .setClass(private = private, key = ".connection", value = connection,
                 class = "DatabaseConnectorJdbcConnection", nullable = TRUE)
       .setString(private = private, key = ".cdmDatabaseSchema", value = cdmDatabaseSchema)
       .setString(private = private, key = ".workDatabaseSchema", value = workDatabaseSchema)
@@ -196,9 +204,9 @@ ExecutionSettings <- R6::R6Class(
     connect = function() {
 
       # check if private$connection is NULL
-      conObj <- private$connection
+      conObj <- private$.connection
       if (is.null(conObj)) {
-        private$connection <- DatabaseConnector::connect(private$connectionDetails)
+        private$.connection <- DatabaseConnector::connect(private$connectionDetails)
       } else{
         cli::cat_bullet(
           "Connection object already open",
@@ -212,11 +220,11 @@ ExecutionSettings <- R6::R6Class(
     disconnect = function() {
 
       # check if private$connection is NULL
-      conObj <- private$connection
+      conObj <- private$.connection
       if (class(conObj) == "DatabaseConnectorJdbcConnection") {
         # disconnect connection
-        DatabaseConnector::disconnect(private$connection)
-        private$connection <- NULL
+        DatabaseConnector::disconnect(private$.connection)
+        private$.connection <- NULL
       }
 
       cli::cat_bullet(
@@ -225,13 +233,20 @@ ExecutionSettings <- R6::R6Class(
         bullet_col = "blue"
       )
       invisible(conObj)
+    },
+
+    #TODO make this more rigorous
+    # add warning if no connection available
+    getConnection = function() {
+      conObj <- private$.connection
+      return(conObj)
     }
 
   ),
 
   private = list(
     connectionDetails = NULL,
-    connection = NULL,
+    .connection = NULL,
     .cdmDatabaseSchema = NULL,
     .workDatabaseSchema = NULL,
     .tempEmulationSchema = NULL,
