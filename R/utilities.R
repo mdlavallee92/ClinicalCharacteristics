@@ -1,3 +1,22 @@
+# function to get timeInterval and concept set combinations
+.permuteCsTi <- function(conceptSets, timeIntervals) {
+
+  # get number of items for each
+  numCs <- length(conceptSets)
+  numTis <- length(timeIntervals)
+
+  # build out permutations
+  csPerm <- rep(conceptSets, times = numTis)
+  tiPerm <- rep(timeIntervals, each = numCs)
+
+  permTiCs <- list(
+    'conceptSets' = csPerm,
+    'timeIntervals' = tiPerm
+  )
+  return(permTiCs)
+
+}
+
 # function to build Concept Set Meta table; route concept set build
 .conceptSetMeta <- function(csLineItems) {
 
