@@ -223,6 +223,11 @@ domain_translate <- function(domain) {
 }
 
 
+.truncDropTempTables <- function(tempTableName) {
+  sql <- glue::glue("TRUNCATE TABLE {tempTableName}; DROP TABLE {tempTableName};")
+  return(sql)
+}
+
 .prepCsTransform <- function(tempTableName, sql) {
 
   # change names for glue

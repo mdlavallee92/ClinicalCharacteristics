@@ -50,6 +50,8 @@ TableShell <- R6::R6Class("TableShell",
       # D) Cohorts
       #cd_sql <- private$.buildCohortLineItemQuery()
 
+      # Step 4: Make table drop sql
+
     }
 
   ),
@@ -234,6 +236,32 @@ TableShell <- R6::R6Class("TableShell",
       }
       return(csSql)
 
+    },
+
+    # function to drop all cs Tables
+    .dropCsTempTables = function() {
+
+      csLineItems <- private$.pluckLineItems(classType = "ConceptSetDefinition")
+      # only run if CSD in ts
+      if (length(csLineItems) >= 1) {
+      tempTables <- .conceptSetMeta(csLineItems) |>
+        dplyr::select(tempTableName) |>
+        dplyr::distinct()
+
+      dropTmpTb0 <- purrr::pmap(tempTables, ~.truncDropTempTables(tempTableName = ..1)) |>
+        glue::glue_collapse(sep = "\n\n")
+
+      dropTmpTb <- c(
+        "\n-- Drop CS Temp Tables",
+        .truncDropTempTables(tempTableName = "#Codeset"),
+        dropTmpTb0
+      )|>
+        glue::glue_collapse(sep = "\n\n")
+      } else {
+        dropTmpTb <- ""
+      }
+
+      return(dropTmpTb)
     }
 
   )
