@@ -76,6 +76,23 @@ createExecutionSettings <- function(connectionDetails,
   return(executionSettings)
 }
 
+
+tableShellBuildOptions <- function(keepDatTable = FALSE,
+                                   codesetTempTable = "#Codeset",
+                                   timeWindowTempTable = "#TimeWindows",
+                                   targetCohortTempTable = "#TargetCohorts") {
+
+  buildOpts <- BuildOptions$new(
+    keepDatTable = keepDatTable,
+    codesetTempTable = codesetTempTable,
+    timeWindowTempTable = timeWindowTempTable,
+    targetCohortTempTable = targetCohortTempTable
+  )
+  return(buildOpts)
+
+}
+
+
 #' @title
 #' Create a single time interval
 #' @param lb the left bound of the time interval
