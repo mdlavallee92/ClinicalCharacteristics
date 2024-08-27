@@ -70,7 +70,7 @@ TableShell <- R6::R6Class("TableShell",
     },
 
     # function to insert time windows
-    insertTimeWindows = function(executionSettings) {
+    insertTimeWindows = function(executionSettings, buildOptions) {
 
       # ensure that executionSettings R6 object used
       checkmate::assert_class(executionSettings, classes = "ExecutionSettings", null.ok = FALSE)
@@ -105,7 +105,7 @@ TableShell <- R6::R6Class("TableShell",
       # insert the time windows into the database
       DatabaseConnector::insertTable(
         connection = connection,
-        tableName = "time_windows",
+        tableName = buildOptions$timeWindowTempTable,
         tempEmulationSchema = executionSettings$tempEmulationSchema,
         data = time_tbl,
         tempTable = TRUE
@@ -116,7 +116,7 @@ TableShell <- R6::R6Class("TableShell",
     },
 
     #key function to generate the table shell
-    buildTableShellSql = function(executionSettings) {
+    buildTableShellSql = function(executionSettings, buildOptions) {
 
       # ensure that executionSettings R6 object used
       checkmate::assert_class(executionSettings, classes = "ExecutionSettings", null.ok = FALSE)
@@ -158,7 +158,10 @@ TableShell <- R6::R6Class("TableShell",
         cdmDatabaseSchema = executionSettings$cdmDatabaseSchema,
         workDatabaseSchema = executionSettings$workDatabaseSchema,
         cohortTable = executionSettings$targetCohortTable,
-        dataTable = "#dat_tbl"
+        dataTable = buildOptions$datTempTable,
+        codesetTable = buildOptions$codesetTempTable,
+        targetTable = buildOptions$targetCohortTempTable,
+        timeWindowTable = buildOptions$timeWindowTempTable
       )
 
       # translate and prep for execution
@@ -351,10 +354,12 @@ BuildOptions <- R6::R6Class(
   classname = "BuildOptions",
   public = list(
     initialize = function(keepDatTable = NULL,
+                          datTempTable = NULL,
                           codesetTempTable = NULL,
                           timeWindowTempTable = NULL,
                           targetCohortTempTable = NULL) {
       .setLogical(private = private, key = ".keepDatTable", value = keepDatTable)
+      .setString(private = private, key = ".datTempTable", value = codesetTempTable)
       .setString(private = private, key = ".codesetTempTable", value = codesetTempTable)
       .setString(private = private, key = ".timeWindowTempTable", value = timeWindowTempTable)
       .setString(private = private, key = ".targetCohortTempTable", value = targetCohortTempTable)
@@ -362,6 +367,7 @@ BuildOptions <- R6::R6Class(
   ),
   private = list(
     .keepDatTable = NULL,
+    .datTempTable = NULL,
     .codesetTempTable = NULL,
     .timeWindowTempTable = NULL,
     .targetCohortTempTable = NULL
@@ -372,6 +378,12 @@ BuildOptions <- R6::R6Class(
     keepDatTable = function(value) {
       .setActiveLogical(private = private, key = ".keepDatTable", value = value)
     },
+
+
+    datTempTable = function(value) {
+      .setActiveString(private = private, key = ".datTempTable", value = value)
+    },
+
 
     codesetTempTable = function(value) {
       .setActiveString(private = private, key = ".codesetTempTable", value = value)
