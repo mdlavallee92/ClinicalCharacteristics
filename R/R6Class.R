@@ -27,6 +27,48 @@ TableShell <- R6::R6Class("TableShell",
       return(tsLineItems)
     },
 
+    printJobDetails = function() {
+
+      titleNm <- self$getName()
+
+      tcs <- self$getTargetCohorts()
+      cohortPrintInfo <- purrr::map_chr(tcs, ~.x$targetCohortDetails())
+
+      # get line item info
+      lineItems <- self$getLineItems()
+      liPrintInfo <- purrr::map_chr(lineItems, ~.x$lineItemDetails())
+
+      cli::cat_bullet(
+        glue::glue_col("{yellow Job Details for Table Shell: {titleNm}}"),
+        bullet = "pointer",
+        bullet_col = "yellow"
+      )
+
+      cli::cat_bullet(
+        glue::glue("Target Cohort Details:"),
+        bullet = "pointer",
+        bullet_col = "yellow"
+      )
+
+      cli::cat_line(
+        glue::glue("\t{cohortPrintInfo}")
+      )
+
+
+      cli::cat_bullet(
+        glue::glue("Line Item tasks:"),
+        bullet = "pointer",
+        bullet_col = "yellow"
+      )
+
+      cli::cat_line(
+        glue::glue("\t{liPrintInfo}")
+      )
+
+      invisible(liPrintInfo)
+
+    },
+
     # function to insert time windows
     insertTimeWindows = function(executionSettings) {
 
@@ -114,7 +156,7 @@ TableShell <- R6::R6Class("TableShell",
       renderedSql <- SqlRender::render(
         sql = fullSql,
         cdmDatabaseSchema = executionSettings$cdmDatabaseSchema,
-        workDatabaseSchema = executionSetting$workDatabaseSchema,
+        workDatabaseSchema = executionSettings$workDatabaseSchema,
         cohortTable = executionSettings$targetCohortTable,
         dataTable = "#dat_tbl"
       )
@@ -135,6 +177,7 @@ TableShell <- R6::R6Class("TableShell",
     name = NULL,
     targetCohorts = NULL,
     lineItems = NULL,
+
 
     ### private methods ---------------
 
@@ -298,6 +341,54 @@ TableShell <- R6::R6Class("TableShell",
 )
 
 
+# BuildOptions ----
+
+#' @description
+#' An R6 class to define build options for the tableShell
+#'
+#' @export
+BuildOptions <- R6::R6Class(
+  classname = "BuildOptions",
+  public = list(
+    initialize = function(keepDatTable = NULL,
+                          codesetTempTable = NULL,
+                          timeWindowTempTable = NULL,
+                          targetCohortTempTable = NULL) {
+      .setLogical(private = private, key = ".keepDatTable", value = keepDatTable)
+      .setString(private = private, key = ".codesetTempTable", value = codesetTempTable)
+      .setString(private = private, key = ".timeWindowTempTable", value = timeWindowTempTable)
+      .setString(private = private, key = ".targetCohortTempTable", value = targetCohortTempTable)
+    }
+  ),
+  private = list(
+    .keepDatTable = NULL,
+    .codesetTempTable = NULL,
+    .timeWindowTempTable = NULL,
+    .targetCohortTempTable = NULL
+  ),
+
+  active = list(
+
+    keepDatTable = function(value) {
+      .setActiveLogical(private = private, key = ".keepDatTable", value = value)
+    },
+
+    codesetTempTable = function(value) {
+      .setActiveString(private = private, key = ".codesetTempTable", value = value)
+    },
+
+
+    timeWindowTempTable = function(value) {
+      .setActiveString(private = private, key = ".timeWindowTempTable", value = value)
+    },
+
+    targetCohortTempTable = function(value) {
+      .setActiveString(private = private, key = ".targetCohortTempTable", value = value)
+    }
+
+  )
+)
+
 # ExecutionSettings ----
 
 #' @description
@@ -401,6 +492,22 @@ ExecutionSettings <- R6::R6Class(
       )
     },
 
+    workDatabaseSchema = function(value) {
+      # return the value if nothing added
+      if(missing(value)) {
+        cds <- private$.workDatabaseSchema
+        return(cds)
+      }
+      # replace the workDatabaseSchema
+      .setString(private = private, key = ".workDatabaseSchema", value = value)
+      cli::cat_bullet(
+        glue::glue("Replaced {crayon::cyan('workDatabaseSchema')} with {crayon::green(value)}"),
+        bullet = "info",
+        bullet_col = "blue"
+      )
+    },
+
+
     tempEmulationSchema = function(value) {
       # return the value if nothing added
       if(missing(value)) {
@@ -470,6 +577,17 @@ TargetCohort <- R6::R6Class("TargetCohort",
     getName = function(name) {
       tcName <- private$name
       return(tcName)
+    },
+    targetCohortDetails = function(){
+      id <- self$getId()
+      name <- self$getName()
+
+      info <- glue::glue_col(
+        "- CohortId: {green {id}}; CohortName: {green {name}}"
+      )
+
+      return(info)
+
     }
     # DEFUNCT: this is now one cohort per class
     # getSql = function() {
@@ -685,6 +803,7 @@ LineItem <- R6::R6Class("LineItem",
       liDefinitionType <- private$definitionType
       return(liDefinitionType)
     }
+
   ),
 
   private = list(
@@ -737,6 +856,32 @@ ConceptSetDefinition <- R6::R6Class("ConceptSetDefinition",
       .setClass(private = private, key = "sourceConceptSet", value = sourceConceptSet, class = "ConceptSet", nullable = TRUE)
       .setNumber(private = private, key = "typeConceptIds", value = typeConceptIds, nullable = TRUE)
       .setNumber(private = private, key = "visitOccurrenceConceptIds", value = visitOccurrenceConceptIds, nullable = TRUE)
+    },
+
+    # gather information for print
+    lineItemDetails = function() {
+
+      ord <- self$ordinal |>
+        tibble::as_tibble() |>
+        dplyr::rename(
+          ordinal = value
+          )
+
+      info <- self$getConceptSetRef() |>
+        dplyr::select(
+          -c(hash)
+        ) |>
+        dplyr::bind_cols(
+          ord
+        ) |>
+        glue::glue_data_col(
+          "{ordinal}) \\
+          ConceptSetName: {green {name}}; \\
+          ConceptSetDomain: {green {domain}}; \\
+          TimeWindow: {magenta {lb}d} to {magenta {rb}d}"
+        )
+
+      return(info)
     },
 
     # helper to pull concept Capr class items
@@ -802,6 +947,23 @@ DemographicDefinition <- R6::R6Class("DemographicDefinition",
                        definitionType = "Demographic",
                        statistic = statistic)
     },
+
+    # gather information for print
+    lineItemDetails = function() {
+
+      ord <- self$ordinal
+
+      nm <- self$getName()
+
+      info <- glue::glue_col(
+          "{ord}) \\
+          DemographicName: {green {nm}}"
+      )
+
+      return(info)
+    },
+
+
     # function to get sql
     getSql = function() {
 
