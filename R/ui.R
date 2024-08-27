@@ -1,20 +1,24 @@
 # function that builds and aggregates ts
-generateTableShell <- function(tableShell, executionSettings, keepDat) {
+generateTableShell <- function(tableShell, executionSettings, buildOptions = NULL) {
+
+  if (is.null(buildOptions)){
+    buildOptions <- defaultTableShellBuildOptions()
+  }
 
   # user print specifying job info
   tableShell$printJobDetails()
 
   # insert time windows
-  tableShell$insertTimeWindows(executionSettings)
+  tableShell$insertTimeWindows(executionSettings, buildOptions)
 
   # make sql file for table shell run
-  sql <- tableShell$buildTableShellSql(executionSettings)
+  sql <- tableShell$buildTableShellSql(executionSettings, buildOptions)
 
   # Execute them on dbms
   DatabaseConnector::executeSql(connection = executionSettings$getConnection(), sql = sql)
 
   # keep dat Temp table for future use
-  if (keepDat) {
+  if (buildOptions$keepDatTable) {
     # TODO create ctas to save temp table
   }
 
@@ -24,10 +28,14 @@ generateTableShell <- function(tableShell, executionSettings, keepDat) {
 
 
 # function that shows sql used to make table shell
-reviewTableShellSql <- function(tableShell, executionSettings){
+reviewTableShellSql <- function(tableShell, executionSettings, buildOptions = NULL){
+
+  if (is.null(buildOptions)){
+    buildOptions <- defaultTableShellBuildOptions()
+  }
 
   # make sql file for table shell run
-  sql <- tableShell$buildTableShellSql(executionSettings)
+  sql <- tableShell$buildTableShellSql(executionSettings, buildOptions)
 
   cli::cat_bullet(
     glue::glue("Opening Table Shell Query Sql in Monaco widget"),
