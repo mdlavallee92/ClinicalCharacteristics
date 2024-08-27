@@ -5,10 +5,10 @@ generateTableShell <- function(tableShell, executionSettings, keepDat) {
   tableShell$printJobDetails()
 
   # insert time windows
-  tableShell$insertTimeWindows()
+  tableShell$insertTimeWindows(executionSettings)
 
   # make sql file for table shell run
-  sql <- tableShell$buildTableShellSql()
+  sql <- tableShell$buildTableShellSql(executionSettings)
 
   # Execute them on dbms
   DatabaseConnector::executeSql(connection = executionSettings$getConnection(), sql = sql)
@@ -20,9 +20,28 @@ generateTableShell <- function(tableShell, executionSettings, keepDat) {
 
 }
 
-# function that shows sql used to make table shell
-checkTableShellSql <- function(tableShell, executionSettings){
 
+
+
+# function that shows sql used to make table shell
+reviewTableShellSql <- function(tableShell, executionSettings){
+
+  # make sql file for table shell run
+  sql <- tableShell$buildTableShellSql(executionSettings)
+
+  cli::cat_bullet(
+    glue::glue("Opening Table Shell Query Sql in Monaco widget"),
+    bullet = "pointer",
+    bullet_col = "yellow"
+  )
+
+  mnc <- monaco::monaco(
+    contents = sql,
+    language = "sql",
+    theme = "vs"
+  )
+
+  return(mnc)
 }
 
 
