@@ -5,23 +5,45 @@ generateTableShell <- function(tableShell, executionSettings, buildOptions = NUL
     buildOptions <- defaultTableShellBuildOptions()
   }
 
-  # user print specifying job info
+  # Step 0: user print specifying job info
   tableShell$printJobDetails()
 
-  # insert time windows
+  # Step 1: insert time windows
   tableShell$insertTimeWindows(executionSettings, buildOptions)
 
-  # make sql file for table shell run
+  # Step 2: make sql file for table shell run
   sql <- tableShell$buildTableShellSql(executionSettings, buildOptions)
 
-  # Execute them on dbms
+  # Step 3: Execute them on dbms
+  cli::cat_bullet(
+    glue::glue_col("{yellow Executing shell sql}"),
+    bullet = "pointer",
+    bullet_col = "yellow"
+  )
   DatabaseConnector::executeSql(connection = executionSettings$getConnection(), sql = sql)
 
+  # Step 4: Transform results (continuous => categorical; categorical => continuous)
+  tableShell$categorizeItems(executionSettings)
+  # tableShell$scoreItems(executionSettings)
+
+  # Step 5: Aggregate Results Table
+  # step 5a: aggregate categorical results first
+  categoricalResultsRaw <- tableShell$aggregateCategorical(executionSettings)
+  categoricalResultsFormatted <- formatCategoricalResult(categoricalResultsRaw)
+  #step 5b: aggregate continuous results second
+  continuousResultsRaw <- tableShell$aggregateContinuous(executionSettings)
+  continuousResultsFormatted <- formatCategoricalResult(continuousResultsRaw)
   # keep dat Temp table for future use
   if (buildOptions$keepDatTable) {
     # TODO create ctas to save temp table
   }
 
+  tableShellResults <- list(
+    'categorical' = categoricalResults,
+    'continuous' = continuousResults
+  )
+
+  return(tableShellResults)
 }
 
 
