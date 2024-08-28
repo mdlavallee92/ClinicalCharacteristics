@@ -121,6 +121,13 @@ TableShell <- R6::R6Class("TableShell",
       # ensure that executionSettings R6 object used
       checkmate::assert_class(executionSettings, classes = "ExecutionSettings", null.ok = FALSE)
 
+
+      cli::cat_bullet(
+        glue::glue_col("{yellow Preparing table shell sql}"),
+        bullet = "pointer",
+        bullet_col = "yellow"
+      )
+
       # collect all the sql
       fullSql <- c(
 
@@ -156,6 +163,7 @@ TableShell <- R6::R6Class("TableShell",
       renderedSql <- SqlRender::render(
         sql = fullSql,
         cdmDatabaseSchema = executionSettings$cdmDatabaseSchema,
+        vocabularyDatabaseSchema = executionSettings$cdmDatabaseSchema,
         workDatabaseSchema = executionSettings$workDatabaseSchema,
         cohortTable = executionSettings$targetCohortTable,
         dataTable = buildOptions$datTempTable,
@@ -291,14 +299,20 @@ TableShell <- R6::R6Class("TableShell",
 
         # step 3: transform extraction based on stat
         statTb <- csMeta |>
-          dplyr::select(tempTableName, sql) |>
-          dplyr::distinct()
+          dplyr::select(tsCsId, tempTableName, sql) |>
+          dplyr::group_by(tempTableName, sql) |>
+          dplyr::summarize(
+            categoryId = 2^sum(tsCsId),
+            .groups = "keep"
+          ) |>
+          dplyr::select(categoryId, tempTableName, sql)
 
         csTransformSql <- purrr::pmap_chr(
           statTb,
           ~.prepCsTransform(
-            tempTableName = ..1,
-            sql = ..2
+            categoryId = ..1,
+            tempTableName = ..2,
+            sql = ..3
           )
         ) |>
           glue::glue_collapse(sep = "\n\n")
@@ -353,21 +367,21 @@ TableShell <- R6::R6Class("TableShell",
 BuildOptions <- R6::R6Class(
   classname = "BuildOptions",
   public = list(
-    initialize = function(keepDatTable = NULL,
-                          datTempTable = NULL,
+    initialize = function(keepResultsTable = NULL,
+                          resultsTempTable = NULL,
                           codesetTempTable = NULL,
                           timeWindowTempTable = NULL,
                           targetCohortTempTable = NULL) {
-      .setLogical(private = private, key = ".keepDatTable", value = keepDatTable)
-      .setString(private = private, key = ".datTempTable", value = codesetTempTable)
+      .setLogical(private = private, key = ".keepResultsTable", value = keepResultsTable)
+      .setString(private = private, key = ".resultsTempTable", value = resultsTempTable)
       .setString(private = private, key = ".codesetTempTable", value = codesetTempTable)
       .setString(private = private, key = ".timeWindowTempTable", value = timeWindowTempTable)
       .setString(private = private, key = ".targetCohortTempTable", value = targetCohortTempTable)
     }
   ),
   private = list(
-    .keepDatTable = NULL,
-    .datTempTable = NULL,
+    .keepResultsTable = NULL,
+    .resultsTempTable = NULL,
     .codesetTempTable = NULL,
     .timeWindowTempTable = NULL,
     .targetCohortTempTable = NULL
@@ -376,12 +390,12 @@ BuildOptions <- R6::R6Class(
   active = list(
 
     keepDatTable = function(value) {
-      .setActiveLogical(private = private, key = ".keepDatTable", value = value)
+      .setActiveLogical(private = private, key = ".keepResultsTable", value = value)
     },
 
 
     datTempTable = function(value) {
-      .setActiveString(private = private, key = ".datTempTable", value = value)
+      .setActiveString(private = private, key = ".resultsTempTable", value = value)
     },
 
 
