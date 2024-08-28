@@ -77,15 +77,15 @@ createExecutionSettings <- function(connectionDetails,
 }
 
 
-defaultTableShellBuildOptions <- function(keepDatTable = FALSE,
-                                          datTempTable = "#DatTable",
-                                          codesetTempTable = "#Codeset",
-                                          timeWindowTempTable = "#TimeWindows",
-                                          targetCohortTempTable = "#TargetCohorts") {
+defaultTableShellBuildOptions <- function(keepResultsTable = FALSE,
+                                          resultsTempTable = "#results_table",
+                                          codesetTempTable = "#codeset",
+                                          timeWindowTempTable = "#time_windows",
+                                          targetCohortTempTable = "#target_cohorts") {
 
   buildOpts <- BuildOptions$new(
-    keepDatTable = keepDatTable,
-    datTempTable = datTempTable,
+    keepResultsTable = keepResultsTable,
+    resultsTempTable = resultsTempTable,
     codesetTempTable = codesetTempTable,
     timeWindowTempTable = timeWindowTempTable,
     targetCohortTempTable = targetCohortTempTable
