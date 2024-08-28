@@ -181,7 +181,62 @@ TableShell <- R6::R6Class("TableShell",
 
       return(finalSql)
 
+    },
+
+    # function to aggregate categorical vars into table
+    aggregateTableShell = function(executionSettings, type) {
+
+      #identify which lineItems are continuous or categorical
+      statTypeIds <- self$getLineItems() |>
+        purrr::map_chr(~.x$identifyStatType())
+
+      # get sql for categorical
+      if (type == "categorical") {
+        categoricalIds <- which(statTypeIds == "categorical") |>
+          glue::glue_collapse(sep = ", ")
+
+        sqlFile <- "aggregateCategorical.sql"
+        # get sql from package
+        sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", sqlFile)) |>
+          readr::read_file() |>
+          glue::glue()
+      }
+
+      # get sql for continuous
+      if (type == "continuous") {
+        continuousIds <- which(statTypeIds == "continuous") |>
+          glue::glue_collapse(sep = ", ")
+
+        sqlFile <- "aggregateContinuous.sql"
+        # get sql from package
+        sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", sqlFile)) |>
+          readr::read_file() |>
+          glue::glue()
+      }
+
+      finalSql <- sql |>
+        SqlRender::render(
+          workDatabaseSchema = executionSettings$workDatabaseSchema,
+          cohortTable = executionSettings$targetCohortTable,
+          dataTable = buildOptions$resultsTempTable
+        ) |>
+        SqlRender::translate(
+          targetDialect = executionSettings$getDbms(),
+          tempEmulationSchema = executionSettings$tempEmulationSchema
+        )
+
+      # get aggregateTable
+      aggregateTable <- DatabaseConnector::querySql(
+        connection = executionSettings$getConnection(),
+        sql = sql) |>
+        tibble::as_tibble() |>
+        dplyr::rename_with(tolower) |>
+        dplyr::arrange(cohort_id, category_id, time_id, value_id)
+
+
+
     }
+
 
   ),
   private = list(
@@ -221,6 +276,12 @@ TableShell <- R6::R6Class("TableShell",
       lineClasses <- purrr::map_chr(lineItems, ~class(.x)[1])
       lineItems <- lineItems[which(lineClasses == classType)]
       return(lineItems)
+    },
+
+    .identifyStatType = function() {
+      lineItems <- self$getLineItems()
+      statTypeId <- purrr::map_chr(li, ~.x$identifyStatType())
+      return(statTypeId)
     },
 
     # function to prep demographics sql
@@ -389,12 +450,12 @@ BuildOptions <- R6::R6Class(
 
   active = list(
 
-    keepDatTable = function(value) {
+    keepResultsTable = function(value) {
       .setActiveLogical(private = private, key = ".keepResultsTable", value = value)
     },
 
 
-    datTempTable = function(value) {
+    resultsTempTable = function(value) {
       .setActiveString(private = private, key = ".resultsTempTable", value = value)
     },
 
@@ -828,6 +889,16 @@ LineItem <- R6::R6Class("LineItem",
     getDefinitionType = function() {
       liDefinitionType <- private$definitionType
       return(liDefinitionType)
+    },
+    identifyStatType = function() {
+      statType <- private$statistic$getStatType() |>
+        .isLineItemContinuous()
+      if (statType) {
+        statType <- "continuous"
+      } else {
+        statType <- "categorical"
+      }
+      return(statType)
     }
 
   ),

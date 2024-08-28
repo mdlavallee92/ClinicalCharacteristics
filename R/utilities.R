@@ -136,6 +136,15 @@
 
 }
 
+.isLineItemContinuous <- function(statType) {
+  if (statType %in% c("Age", "Year", "Count")) {
+    check <- TRUE
+  } else {
+    check <-FALSE
+  }
+  return(check)
+}
+
 
 domain_translate <- function(domain) {
   tt <- switch(domain,

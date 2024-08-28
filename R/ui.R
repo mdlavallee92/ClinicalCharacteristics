@@ -23,24 +23,26 @@ generateTableShell <- function(tableShell, executionSettings, buildOptions = NUL
   DatabaseConnector::executeSql(connection = executionSettings$getConnection(), sql = sql)
 
   # Step 4: Transform results (continuous => categorical; categorical => continuous)
-  tableShell$categorizeItems(executionSettings)
+  # tableShell$categorizeItems(executionSettings)
   # tableShell$scoreItems(executionSettings)
 
   # Step 5: Aggregate Results Table
   # step 5a: aggregate categorical results first
-  categoricalResultsRaw <- tableShell$aggregateCategorical(executionSettings)
-  categoricalResultsFormatted <- formatCategoricalResult(categoricalResultsRaw)
+  categoricalResultsRaw <- tableShell$aggregateTableShell(executionSettings, type = "categorical")
+  categoricalResultsFormatted <- .formatCategoricalResult(categoricalResultsRaw)
+
   #step 5b: aggregate continuous results second
   continuousResultsRaw <- tableShell$aggregateContinuous(executionSettings)
-  continuousResultsFormatted <- formatCategoricalResult(continuousResultsRaw)
+  continuousResultsFormatted <- .formatCategoricalResult(continuousResultsRaw)
+
   # keep dat Temp table for future use
   if (buildOptions$keepDatTable) {
     # TODO create ctas to save temp table
   }
 
   tableShellResults <- list(
-    'categorical' = categoricalResults,
-    'continuous' = continuousResults
+    'categorical' = categoricalResultsFormatted,
+    'continuous' = continuousResultsFormatted
   )
 
   return(tableShellResults)
