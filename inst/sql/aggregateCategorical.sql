@@ -1,5 +1,5 @@
 WITH T1 AS (
-  SELECT * FROM @dataTable WHERE category_id IN ({cat_ids})
+  SELECT * FROM @dataTable WHERE category_id IN ({categoricalIds})
 ),
 T2 AS (
   SELECT cohort_definition_id AS cohort_id, COUNT(subject_id) AS tot
