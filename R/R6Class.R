@@ -199,7 +199,12 @@ TableShell <- R6::R6Class("TableShell",
         # get sql from package
         sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", sqlFile)) |>
           readr::read_file() |>
-          glue::glue()
+          glue::glue() |>
+          SqlRender::render(
+            workDatabaseSchema = executionSettings$workDatabaseSchema,
+            cohortTable = executionSettings$targetCohortTable,
+            dataTable = buildOptions$resultsTempTable
+          )
       }
 
       # get sql for continuous
@@ -211,15 +216,13 @@ TableShell <- R6::R6Class("TableShell",
         # get sql from package
         sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", sqlFile)) |>
           readr::read_file() |>
-          glue::glue()
+          glue::glue() |>
+          SqlRender::render(
+            dataTable = buildOptions$resultsTempTable
+          )
       }
 
       finalSql <- sql |>
-        SqlRender::render(
-          workDatabaseSchema = executionSettings$workDatabaseSchema,
-          cohortTable = executionSettings$targetCohortTable,
-          dataTable = buildOptions$resultsTempTable
-        ) |>
         SqlRender::translate(
           targetDialect = executionSettings$getDbms(),
           tempEmulationSchema = executionSettings$tempEmulationSchema
@@ -228,12 +231,13 @@ TableShell <- R6::R6Class("TableShell",
       # get aggregateTable
       aggregateTable <- DatabaseConnector::querySql(
         connection = executionSettings$getConnection(),
-        sql = sql) |>
+        sql = sql
+      ) |>
         tibble::as_tibble() |>
         dplyr::rename_with(tolower) |>
         dplyr::arrange(cohort_id, category_id, time_id, value_id)
 
-
+      return(aggregateTable)
 
     }
 
@@ -360,12 +364,6 @@ TableShell <- R6::R6Class("TableShell",
 
         # step 3: transform extraction based on stat
         statTb <- csMeta |>
-          dplyr::select(tsCsId, tempTableName, sql) |>
-          dplyr::group_by(tempTableName, sql) |>
-          dplyr::summarize(
-            categoryId = 2^sum(tsCsId),
-            .groups = "keep"
-          ) |>
           dplyr::select(categoryId, tempTableName, sql)
 
         csTransformSql <- purrr::pmap_chr(
