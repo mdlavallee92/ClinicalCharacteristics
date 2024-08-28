@@ -132,6 +132,23 @@
       statTb , by = c("tsOrd" = "ord")
     )
 
+  # create the bitwise id
+  bitId <- csMeta |>
+    dplyr::select(tsCsId, tempTableName, sql) |>
+    dplyr::group_by(tempTableName, sql) |>
+    dplyr::summarize(
+      categoryId = 2^sum(tsCsId),
+      .groups = "keep"
+    ) |>
+    dplyr::select(categoryId, tempTableName, sql)
+
+
+  # add back to csMeta
+  csMeta <- csMeta |>
+    dplyr::left_join(
+      bitId , by = c("tempTableName", "sql")
+    )
+
   return(csMeta)
 
 }
