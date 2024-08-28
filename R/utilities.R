@@ -228,11 +228,11 @@ domain_translate <- function(domain) {
   return(sql)
 }
 
-.prepCsTransform <- function(tempTableName, sql) {
+.prepCsTransform <- function(categoryId, tempTableName, sql) {
 
   # change names for glue
   csTempTableName <- tempTableName
-
+  catId <- categoryId
   # get conceptSet Sql
   sql <- sql |>
     glue::glue()
