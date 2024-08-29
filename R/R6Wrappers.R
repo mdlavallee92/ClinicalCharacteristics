@@ -116,6 +116,11 @@ createPresence <- function(operator = "at_least", occurrences = 1) {
 }
 
 
+createCount <- function(breaks = NULL) {
+  occurrenceCount <- Count$new(breaks = breaks)
+  return(occurrenceCount)
+}
+
 #' @title
 #' Create a concept set line item and set its attributes
 #'
