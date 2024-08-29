@@ -166,7 +166,7 @@ TableShell <- R6::R6Class("TableShell",
         vocabularyDatabaseSchema = executionSettings$cdmDatabaseSchema,
         workDatabaseSchema = executionSettings$workDatabaseSchema,
         cohortTable = executionSettings$targetCohortTable,
-        dataTable = buildOptions$datTempTable,
+        dataTable = buildOptions$resultsTempTable,
         codesetTable = buildOptions$codesetTempTable,
         targetTable = buildOptions$targetCohortTempTable,
         timeWindowTable = buildOptions$timeWindowTempTable
@@ -187,13 +187,14 @@ TableShell <- R6::R6Class("TableShell",
     aggregateTableShell = function(executionSettings, type) {
 
       #identify which lineItems are continuous or categorical
-      statTypeIds <- self$getLineItems() |>
-        purrr::map_chr(~.x$identifyStatType())
+      idList <- private$.identifyCategoryIds()
 
       # get sql for categorical
       if (type == "categorical") {
-        categoricalIds <- which(statTypeIds == "categorical") |>
-          glue::glue_collapse(sep = ", ")
+
+        categoricalIds <- idList$categorical |>
+          paste(collapse = ", ")
+
 
         sqlFile <- "aggregateCategorical.sql"
         # get sql from package
@@ -209,8 +210,8 @@ TableShell <- R6::R6Class("TableShell",
 
       # get sql for continuous
       if (type == "continuous") {
-        continuousIds <- which(statTypeIds == "continuous") |>
-          glue::glue_collapse(sep = ", ")
+
+        continuousIds <- idList$categorical
 
         sqlFile <- "aggregateContinuous.sql"
         # get sql from package
@@ -231,7 +232,7 @@ TableShell <- R6::R6Class("TableShell",
       # get aggregateTable
       aggregateTable <- DatabaseConnector::querySql(
         connection = executionSettings$getConnection(),
-        sql = sql
+        sql = finalSql
       ) |>
         tibble::as_tibble() |>
         dplyr::rename_with(tolower) |>
@@ -276,16 +277,32 @@ TableShell <- R6::R6Class("TableShell",
 
     # pluck Concept Set Line Items
     .pluckLineItems = function(classType) {
-      lineItems <- self$getLineItems()
-      lineClasses <- purrr::map_chr(lineItems, ~class(.x)[1])
-      lineItems <- lineItems[which(lineClasses == classType)]
+      lineItems <- self$getLineItems() |>
+        .getLineItemClassType(classType)
       return(lineItems)
     },
 
-    .identifyStatType = function() {
-      lineItems <- self$getLineItems()
-      statTypeId <- purrr::map_chr(li, ~.x$identifyStatType())
-      return(statTypeId)
+    .identifyCategoryIds = function() {
+      # get line items
+      li <- self$getLineItems()
+      #figure if base stat is continuous or categorical
+      statTypeIds <- purrr::map_chr(li, ~.x$identifyStatType())
+
+      #id the base categoicals
+      categoricalIds <- which(statTypeIds == "categorical")
+      # id the base continuous
+      continuousIds <- which(statTypeIds == "continuous")
+
+      # of the categorical, find the unique cs group ids
+      conceptSetCategoricaIds <- .findConceptSetCategoryIds(li, categoricalIds)
+      demographicsCategoricalIds <- .findDemographicCategoryIds(li, categoricalIds)
+
+      categoryIdList <- list(
+        'categorical' = c(demographicsCategoricalIds, conceptSetCategoricaIds) |> sort(),
+        'continuous' = continuousIds
+      )
+
+      return(categoryIdList)
     },
 
     # function to prep demographics sql
@@ -364,7 +381,8 @@ TableShell <- R6::R6Class("TableShell",
 
         # step 3: transform extraction based on stat
         statTb <- csMeta |>
-          dplyr::select(categoryId, tempTableName, sql)
+          dplyr::select(categoryId, tempTableName, sql) |>
+          dplyr::distinct()
 
         csTransformSql <- purrr::pmap_chr(
           statTb,
