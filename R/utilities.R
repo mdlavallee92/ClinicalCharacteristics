@@ -162,6 +162,11 @@
   return(check)
 }
 
+.getLineItemClassType <- function(li, classType) {
+  lineClasses <- purrr::map_chr(li, ~class(.x)[1])
+  li <- li[which(lineClasses == classType)]
+  return(li)
+}
 
 domain_translate <- function(domain) {
   tt <- switch(domain,
@@ -266,3 +271,26 @@ domain_translate <- function(domain) {
   return(sql)
 }
 
+#TODO fix this to work with counts on a break
+.findConceptSetCategoryIds <- function(li, categoricalIds) {
+  # of the categorical, find the unique cs group ids
+  csCatIds <- li[categoricalIds] |>
+    .getLineItemClassType(classType = "ConceptSetDefinition") |>
+    .conceptSetMeta() |>
+    dplyr::distinct(categoryId) |>
+    dplyr::pull() |>
+    as.integer()
+
+  return(csCatIds)
+}
+
+#TODO find regular categorical and those with breaks
+.findDemographicCategoryIds <- function(li, categoricalIds) {
+  # of the categorical, find the unique demo ids
+  demoCatLi <- li[categoricalIds] |>
+    .getLineItemClassType(classType = "DemographicDefinition")
+
+  demoCatIds <- purrr::map_int(demoCatLi, ~.x$ordinal)
+
+  return(demoCatIds)
+}
