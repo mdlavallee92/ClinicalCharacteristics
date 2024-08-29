@@ -2,8 +2,8 @@
 INSERT INTO @dataTable (cohort_id, subject_id, category_id, time_id, value_id, value)
 SELECT
   a.cohort_id,
-  CAST({{catId}} AS INT) AS category_id,
   a.subject_id,
+  CAST('{{catId}}' AS INT) AS category_id,
   a.time_id,
   a.value_id,
   1 AS value
