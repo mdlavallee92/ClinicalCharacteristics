@@ -137,7 +137,7 @@
     dplyr::select(tsCsId, tempTableName, sql) |>
     dplyr::group_by(tempTableName, sql) |>
     dplyr::summarize(
-      categoryId = 2^sum(tsCsId),
+      categoryId = sum(2^tsCsId),
       .groups = "keep"
     ) |>
     dplyr::select(categoryId, tempTableName, sql)
@@ -272,25 +272,36 @@ domain_translate <- function(domain) {
 }
 
 #TODO fix this to work with counts on a break
-.findConceptSetCategoryIds <- function(li, categoricalIds) {
+.findConceptSetCategoryIds <- function(li) {
+
   # of the categorical, find the unique cs group ids
-  csCatIds <- li[categoricalIds] |>
+  csCatIds <- li |>
     .getLineItemClassType(classType = "ConceptSetDefinition") |>
     .conceptSetMeta() |>
-    dplyr::distinct(categoryId) |>
-    dplyr::pull() |>
-    as.integer()
+    dplyr::select(statType, categoryId) |>
+    dplyr::distinct() |>
+    dplyr::mutate(
+      distributionType = ifelse(statType == "Presence", "categorical", "continuous"),
+      tsClass = "ConceptSetDefinition"
+    ) |>
+    dplyr::select(categoryId, tsClass, distributionType)
 
   return(csCatIds)
 }
 
 #TODO find regular categorical and those with breaks
-.findDemographicCategoryIds <- function(li, categoricalIds) {
+.findDemographicCategoryIds <- function(li) {
   # of the categorical, find the unique demo ids
-  demoCatLi <- li[categoricalIds] |>
+  demoCatLi <- li|>
     .getLineItemClassType(classType = "DemographicDefinition")
 
-  demoCatIds <- purrr::map_int(demoCatLi, ~.x$ordinal)
+
+  demoCatIds <- tibble::tibble(
+    'categoryId' = purrr::map_int(demoCatLi, ~.x$ordinal),
+    'tsClass' = "DemographicDefinition",
+    'distributionType' = purrr::map_chr(demoCatLi, ~.x$identifyStatType())
+  )
+
 
   return(demoCatIds)
 }
