@@ -184,7 +184,7 @@ TableShell <- R6::R6Class("TableShell",
     },
 
     # function to aggregate categorical vars into table
-    aggregateTableShell = function(executionSettings, type) {
+    aggregateTableShell = function(executionSettings, type, buildOptions) {
 
       #identify which lineItems are continuous or categorical
       idList <- private$.identifyCategoryIds()
@@ -243,7 +243,13 @@ TableShell <- R6::R6Class("TableShell",
         dplyr::rename_with(tolower) |>
         dplyr::arrange(cohort_id, category_id, time_id, value_id)
 
-      return(aggregateTable)
+      # format results
+      formattedTable <- private$.labelResults(
+        results = aggregateTable,
+        type = type
+      )
+
+      return(formattedTable)
 
     }
 
@@ -461,32 +467,36 @@ TableShell <- R6::R6Class("TableShell",
       return(dropTmpTb)
     },
 
-    .labelResults = function(categoricalResultsRaw) {
+    .labelResults = function(results, type) {
 
       #get target Cohort labels
       targetCohortKey <- .makeTargetCohortLabels(private$targetCohorts)
 
-      # get conceptSet Labels
-      csLabels <- .makeConceptSetLabels(
+
+      # label the demographic results
+      resultsDemoLabelled <- .formatDemographics(
+        results = results,
+        type = type,
+        targetCohortKey = targetCohortKey,
+        demoMeta = private$.grabDemographicsMetaTable())
+
+      # get Concept Set Labels
+      resultsCsLabelled <- .formatConceptSets(
+        results = results,
+        type = type,
+        targetCohortKey = targetCohortKey,
         categoryKey = private$.identifyCategoryIds(),
         conceptSetMeta = private$.grabConceptSetMetaTable()
       )
 
+      # Bind for output
+      labelledResults <- dplyr::bind_rows(
+        resultsDemoLabelled,
+        resultsCsLabelled
+        #add others
+      )
 
-      # get demographic Labels
-      demoLabels <- private$.grabDemographicsMetaTable()
-
-
-      categoricalResultsRaw |>
-        dplyr::rename_with(snakecase::to_lower_camel_case) |>
-        dplyr::left_join(
-          csLabels,
-          by = c("categoryId",
-                 "timeId",
-                 "valueId")
-        )
-
-
+      return(labelledResults)
 
     }
 
