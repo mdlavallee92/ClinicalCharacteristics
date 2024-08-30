@@ -32,7 +32,7 @@ generateTableShell <- function(tableShell, executionSettings, buildOptions = NUL
   #categoricalResultsFormatted <- .formatCategoricalResult(categoricalResultsRaw)
 
   #step 5b: aggregate continuous results second
-  continuousResultsRaw <- tableShell$aggregateContinuous(executionSettings)
+  continuousResultsRaw <- tableShell$aggregateTableShell(executionSettings, type = "continuous")
   #continuousResultsFormatted <- .formatCategoricalResult(continuousResultsRaw)
 
   # keep dat Temp table for future use

@@ -144,7 +144,7 @@ TableShell <- R6::R6Class("TableShell",
 
           # B) Concept Set
         # create codeset query
-        private$.buildCodesetQueries(),
+        private$.buildCodesetQueries(buildOptions),
         # create concept set query
         private$.buildConceptLineItemQuery(),
 
@@ -192,7 +192,9 @@ TableShell <- R6::R6Class("TableShell",
       # get sql for categorical
       if (type == "categorical") {
 
-        categoricalIds <- idList$categorical |>
+        categoricalIds <- idList |>
+          dplyr::filter(distributionType == "categorical") |>
+          dplyr::pull(categoryId) |>
           paste(collapse = ", ")
 
 
@@ -211,7 +213,10 @@ TableShell <- R6::R6Class("TableShell",
       # get sql for continuous
       if (type == "continuous") {
 
-        continuousIds <- idList$categorical
+        continuousIds <- idList |>
+          dplyr::filter(distributionType == "continuous") |>
+          dplyr::pull(categoryId) |>
+          paste(collapse = ", ")
 
         sqlFile <- "aggregateContinuous.sql"
         # get sql from package
@@ -285,24 +290,35 @@ TableShell <- R6::R6Class("TableShell",
     .identifyCategoryIds = function() {
       # get line items
       li <- self$getLineItems()
+
       #figure if base stat is continuous or categorical
-      statTypeIds <- purrr::map_chr(li, ~.x$identifyStatType())
-
-      #id the base categoicals
-      categoricalIds <- which(statTypeIds == "categorical")
-      # id the base continuous
-      continuousIds <- which(statTypeIds == "continuous")
-
-      # of the categorical, find the unique cs group ids
-      conceptSetCategoricaIds <- .findConceptSetCategoryIds(li, categoricalIds)
-      demographicsCategoricalIds <- .findDemographicCategoryIds(li, categoricalIds)
-
-      categoryIdList <- list(
-        'categorical' = c(demographicsCategoricalIds, conceptSetCategoricaIds) |> sort(),
-        'continuous' = continuousIds
+      categoryIdTbl <- dplyr::bind_rows(
+        .findDemographicCategoryIds(li),
+        .findConceptSetCategoryIds(li)
       )
 
-      return(categoryIdList)
+      return(categoryIdTbl)
+
+    },
+
+    .grabDemographicsMetaTable = function() {
+      demoLineItems <- private$.pluckLineItems(classType = "DemographicDefinition")
+
+      demoMetaTable <- tibble::tibble(
+        'categoryId' = purrr::map_int(demoLineItems, ~.x$ordinal),
+        'catName' = purrr::map_chr(demoLineItems, ~.x$getName()),
+        'timeId' = -999,
+        'twLabel' = "Static at Index"
+      ) |>
+        dplyr::mutate(
+          categoryLabel = glue::glue("Demographics: {catName}")
+        ) |>
+        dplyr::select(
+          -c(catName)
+        )
+
+      return(demoMetaTable)
+
     },
 
     # function to prep demographics sql
@@ -326,10 +342,10 @@ TableShell <- R6::R6Class("TableShell",
 
 
     # function to create sql for codset query
-    .buildCodesetQueries = function() {
+    .buildCodesetQueries = function(buildOptions) {
 
       #temporary change with class
-      codesetTable <- "#Codeset"
+      codesetTable <-  buildOptions$codesetTempTable
 
       # get concept set line items
       csLineItems <- private$.pluckLineItems(classType = "ConceptSetDefinition")
@@ -353,15 +369,27 @@ TableShell <- R6::R6Class("TableShell",
 
     },
 
-    # function to extract concept level information
-    .buildConceptLineItemQuery = function() {
+    .grabConceptSetMetaTable = function() {
       csLineItems <- private$.pluckLineItems(classType = "ConceptSetDefinition")
-
       # only run if CSD in ts
       if (length(csLineItems) >= 1) {
 
         # Step 1: Get the concept set meta
         csMeta <- .conceptSetMeta(csLineItems)
+      } else {
+        csMeta <- NULL
+      }
+      return(csMeta)
+    },
+
+    # function to extract concept level information
+    .buildConceptLineItemQuery = function() {
+
+      # Step 1: Get the concept set meta
+      csMeta <- private$.grabConceptSetMetaTable()
+
+      # only run if CSD in ts
+      if (!is.null(csMeta)) {
 
         # Step 2: Prep the concept set extraction
         csTables <- csMeta |>
@@ -408,10 +436,12 @@ TableShell <- R6::R6Class("TableShell",
     # function to drop all cs Tables
     .dropCsTempTables = function() {
 
-      csLineItems <- private$.pluckLineItems(classType = "ConceptSetDefinition")
+      csMeta <- private$.grabConceptSetMetaTable()
+
       # only run if CSD in ts
-      if (length(csLineItems) >= 1) {
-      tempTables <- .conceptSetMeta(csLineItems) |>
+      if (!is.null(csMeta)) {
+
+      tempTables <- csMeta  |>
         dplyr::select(tempTableName) |>
         dplyr::distinct()
 
@@ -429,6 +459,35 @@ TableShell <- R6::R6Class("TableShell",
       }
 
       return(dropTmpTb)
+    },
+
+    .labelResults = function(categoricalResultsRaw) {
+
+      #get target Cohort labels
+      targetCohortKey <- .makeTargetCohortLabels(private$targetCohorts)
+
+      # get conceptSet Labels
+      csLabels <- .makeConceptSetLabels(
+        categoryKey = private$.identifyCategoryIds(),
+        conceptSetMeta = private$.grabConceptSetMetaTable()
+      )
+
+
+      # get demographic Labels
+      demoLabels <- private$.grabDemographicsMetaTable()
+
+
+      categoricalResultsRaw |>
+        dplyr::rename_with(snakecase::to_lower_camel_case) |>
+        dplyr::left_join(
+          csLabels,
+          by = c("categoryId",
+                 "timeId",
+                 "valueId")
+        )
+
+
+
     }
 
   )
