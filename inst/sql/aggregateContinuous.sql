@@ -1,5 +1,5 @@
 WITH T1 AS (
-  SELECT * FROM @dataTable WHERE category_id IN ({cts_ids})
+  SELECT * FROM @dataTable WHERE category_id IN ({continuousIds})
 )
 SELECT
 cohort_id, category_id, time_id, value_id,
