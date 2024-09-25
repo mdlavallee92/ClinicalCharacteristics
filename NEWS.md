@@ -1,3 +1,7 @@
+# ClinicalCharacteristics 0.3.3
+
+* Hot fix...count distinct subjects in categorical summary
+
 # ClinicalCharacteristics 0.3.2
 
 * Add categorization for count char

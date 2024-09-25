@@ -292,7 +292,7 @@ summarize_categorical<- function(connection, dataTable, workDatabaseSchema, coho
     SELECT * FROM {dataTable} WHERE category_id IN ({cat_ids})
   ),
   T2 AS (
-    SELECT cohort_definition_id AS cohort_id, COUNT(subject_id) AS tot
+    SELECT cohort_definition_id AS cohort_id, COUNT(DISTINCT subject_id) AS tot
     FROM {workDatabaseSchema}.{cohortTable}
     GROUP BY cohort_definition_id
   ),
