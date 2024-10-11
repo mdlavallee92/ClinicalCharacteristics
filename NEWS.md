@@ -1,3 +1,7 @@
+# ClinicalCharacteristics 0.3.4
+
+* Hot fix...count distinct subjects in continuous summary
+
 # ClinicalCharacteristics 0.3.3
 
 * Hot fix...count distinct subjects in categorical summary

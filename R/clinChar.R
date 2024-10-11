@@ -260,7 +260,7 @@ summarize_continuous <- function(connection, dataTable, cts_ids) {
   )
   SELECT
   cohort_id, category_id, time_id, value_id,
-    COUNT(subject_id) AS N,
+    COUNT(DISTINCT subject_id) AS N,
     SUM(value) As occ_cnt,
     STDDEV(value) AS sd,
     min(value) AS min,
