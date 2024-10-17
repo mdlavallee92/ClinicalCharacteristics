@@ -1,35 +1,172 @@
-# verbose version of execute
-verboseExecute <- function(connection, sql, task, printSql = FALSE) {
+.opConverter <- function(op) {
+  op <- switch(op,
+               'at_least' = '>=',
+               'at_most' = '<=',
+               'exactly' = '=')
+  return(op)
+}
 
-  cli::cat_bullet(
-    glue::glue("Executing Task: {crayon::magenta(task)}"),
-    bullet = "pointer",
-    bullet_col = "yellow"
+
+# function to get timeInterval and concept set combinations
+.permuteCsTi <- function(conceptSets, timeIntervals) {
+
+  # get number of items for each
+  numCs <- length(conceptSets)
+  numTis <- length(timeIntervals)
+
+  # build out permutations
+  csPerm <- rep(conceptSets, times = numTis)
+  tiPerm <- rep(timeIntervals, each = numCs)
+
+  permTiCs <- list(
+    'conceptSets' = csPerm,
+    'timeIntervals' = tiPerm
   )
+  return(permTiCs)
 
-  DatabaseConnector::executeSql(connection = connection, sql = sql)
+}
 
-  if (printSql) {
-    cli::cat_bullet(
-      glue::glue("Task {crayon::magenta(task)} done using:"),
-      bullet = "pointer",
-      bullet_col = "yellow"
+# function to build Concept Set Meta table; route concept set build
+.conceptSetMeta <- function(csLineItems) {
+
+  ord <- tibble::tibble(
+    tsOrd = purrr::map_int(csLineItems, ~.x$ordinal)
+  )
+  # get concept set Ref
+  csMeta <- purrr::map_dfr(csLineItems, ~.x$getConceptSetRef()) |>
+    dplyr::mutate(
+      twLabel = glue::glue("{lb}d to {rb}d")
+    ) |>
+    dplyr::mutate(
+      tsCsId = dplyr::row_number(),
+      .before = 1
     )
-    cli::cat_line(sql, col = "#FFC000")
+  csMeta <- dplyr::bind_cols(ord, csMeta)
+  # get the distinct concept sets
+  distinct_cs <- csMeta |>
+    dplyr::select(
+      name, hash
+    ) |>
+    dplyr::distinct() |>
+    dplyr::mutate(
+      csId = dplyr::row_number(), .before = 1
+    )
+  # add back to csMeta
+  csMeta <- csMeta |>
+    dplyr::left_join(
+      distinct_cs, by = c("name", "hash")
+    )
+
+  # get distinct tw
+  distinct_tw <- csMeta |>
+    dplyr::select(
+      lb, rb, twLabel
+    ) |>
+    dplyr::distinct() |>
+    dplyr::mutate(
+      twId = dplyr::row_number(), .before = 1
+    )
+  # add back to csMeta
+  csMeta <- csMeta |>
+    dplyr::left_join(
+      distinct_tw, by = c("lb", "rb", "twLabel")
+    )
+  # get csId dm combos
+  csDmCombos <- csMeta |>
+    dplyr::select(csId, domain) |>
+    dplyr::distinct() |>
+    dplyr::group_by(domain) |>
+    dplyr::mutate(
+      csIdSet = paste(csId, collapse = ", ")
+    ) |>
+    dplyr::ungroup() |>
+    dplyr::distinct()
+
+  # add back to csMeta
+  csMeta <- csMeta |>
+    dplyr::left_join(
+      csDmCombos, by = c("csId", "domain")
+    )
+
+  # get twId dm combos
+  twDmCombos <- csMeta |>
+    dplyr::select(twId, domain) |>
+    dplyr::distinct() |>
+    dplyr::group_by(domain) |>
+    dplyr::mutate(
+      twIdSet = paste(twId, collapse = ", ")
+    ) |>
+    dplyr::ungroup() |>
+    dplyr::distinct()
+
+  # add back to csMeta
+  csMeta <- csMeta |>
+    dplyr::left_join(
+      twDmCombos, by = c("twId", "domain")
+    )
+
+  # Identify the temp tables
+  csTempTables <- csMeta |>
+    dplyr::select(csIdSet, twIdSet, domain) |>
+    dplyr::distinct() |>
+    dplyr::group_by(
+      domain
+    ) |>
+    dplyr::mutate(
+      'tempTableName' = glue::glue("#{domain}_{dplyr::row_number()}")
+    ) |>
+    dplyr::ungroup()
+
+  # add back to csMeta
+  csMeta <- csMeta |>
+    dplyr::left_join(
+      csTempTables , by = c("csIdSet", "twIdSet", "domain")
+    )
+
+  # Identify the stat type
+  statTb <- purrr::map_dfr(csLineItems, ~.x$getStatisticInfo())
+
+  # add back to csMeta
+  csMeta <- csMeta |>
+    dplyr::left_join(
+      statTb , by = c("tsOrd" = "ord")
+    )
+
+  # create the bitwise id
+  bitId <- csMeta |>
+    dplyr::select(tsCsId, tempTableName, sql) |>
+    dplyr::group_by(tempTableName, sql) |>
+    dplyr::summarize(
+      categoryId = sum(2^tsCsId),
+      .groups = "keep"
+    ) |>
+    dplyr::select(categoryId, tempTableName, sql)
+
+
+  # add back to csMeta
+  csMeta <- csMeta |>
+    dplyr::left_join(
+      bitId , by = c("tempTableName", "sql")
+    )
+
+  return(csMeta)
+
+}
+
+.isLineItemContinuous <- function(statType) {
+  if (statType %in% c("Age", "Year", "Count")) {
+    check <- TRUE
+  } else {
+    check <-FALSE
   }
-
-  invisible(sql)
+  return(check)
 }
 
-pluck_domain_char <- function(clinChar) {
-  es <- clinChar@extractSettings
-  clin_class <- purrr::map_chr(es, ~class(.x))
-  idx <- which(clin_class %in% c("presenceChar", "labChar", "countChar", "costChar",
-                                 "timeToChar", "visitDetailChar"))
-  dd <- es[idx]
-  return(dd)
+.getLineItemClassType <- function(li, classType) {
+  lineClasses <- purrr::map_chr(li, ~class(.x)[1])
+  li <- li[which(lineClasses == classType)]
+  return(li)
 }
-
 
 domain_translate <- function(domain) {
   tt <- switch(domain,
@@ -98,134 +235,73 @@ domain_translate <- function(domain) {
 }
 
 
-find_char <- function(clinChar, type = c("Age")) {
-  type <- match.arg(type)
-  type <- tolower(type)
-  cls <- purrr::map_chr(clinChar@extractSettings, ~.x@domain)
-  idx <- which(type %in% cls)
-  return(idx)
-}
+.prepCsExtract <- function(csIdSet, twIdSet, domain, tempTableName) {
 
+  # change names for glue
+  timeIds <- twIdSet
+  codesetIds <- csIdSet
+  csTempTableName <- tempTableName
 
-grab_concept <- function(clinChar, connection, ids) {
-
-  ids <- paste(ids, collapse = ", ")
-  cdmDatabaseSchema <- clinChar@executionSettings@cdmDatabaseSchema
-  sql <- glue::glue("SELECT c.concept_id, c.concept_name
-  FROM {cdmDatabaseSchema}.concept c WHERE c.concept_id IN ({ids})") |>
-    SqlRender::translate(targetDialect = clinChar@executionSettings@dbms)
-
-  cli::cat_bullet(
-    glue::glue("Database Query: {crayon::green('Grab concept names from CDM')}"),
-    bullet = "pointer",
-    bullet_col = "yellow"
-  )
-
-  concept_tbl <- DatabaseConnector::querySql(connection = connection, sql = sql)
-  names(concept_tbl) <- c("concept_id", "concept_name")
-
-  return(concept_tbl)
-}
-
-grab_locations <- function(clinChar, connection) {
-
-  cdmDatabaseSchema <- clinChar@executionSettings@cdmDatabaseSchema
-  sql <- glue::glue("SELECT l.location_id, l.location_source_value
-  FROM {cdmDatabaseSchema}.location l") |>
-    SqlRender::translate(targetDialect = clinChar@executionSettings@dbms)
-
-  cli::cat_bullet(
-    glue::glue("Database Query: {crayon::green('Grab unique locations from CDM')}"),
-    bullet = "pointer",
-    bullet_col = "yellow"
-  )
-
-  loc_tbl <- DatabaseConnector::querySql(connection = connection, sql = sql)
-  names(loc_tbl) <- c("value_id", "value_name")
-
-  return(loc_tbl)
-}
-
-
-cost_categories <- function() {
-  tibble::tribble(
-    ~value_id, ~value_name,
-    44818668, "USD",
-    44818568, "EUR",
-    44818571, "GBP"
-  )
-}
-
-time_in_label <- function() {
-  tibble::tribble(
-    ~value_id, ~value_name,
-    1001, "Time In Cohort",
-    9201000262, "Length of Inpatient Stay"
-  )
-}
-
-count_label <- function(domain) {
-  lb <- switch(domain,
-               'drug_exposure' = "medication count",
-               'procedure_occurrence' = "procedure count",
-               'measurement' = "measurement count",
-               'condition_occurrence' = "condition count",
-               'visit_occurrence' = "visit count")
-  return(lb)
-}
-
-#' SQL for source concept WHERE clause
-source_concept_sql <- function(domain, sourceConcepts) {
-
+  # translate domains to correct column names
   domain_trans <- domain_translate(domain)
-  if (!all(is.na(sourceConcepts))) {
-    sourceConcepts <- paste(sourceConcepts, collapse = ", ")
-    sourceConceptSql <- glue::glue(
-      "AND {domain_trans$source_concept_id} IN ({sourceConcepts})"
-    )
-  } else {
-    sourceConceptSql <- ""
-  }
 
-  return(sourceConceptSql)
+  # get conceptSet Sql
+  sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", "conceptSetQuery.sql")) |>
+    readr::read_file() |>
+    glue::glue()
+
+  return(sql)
 }
 
 
-#
-# domain_lbl <- function() {
-#   tibble::tribble(
-#     ~domain_id, ~domain_name,
-#     1001, "age",
-#     1002, "gender",
-#     1003, "race",
-#     1004, "ethnicity",
-#     1005, "year",
-#     1006, "location",
-#     1007, "time_in_cohort",
-#     2001, "condition_presence",
-#     2002, "condition_count",
-#     2004, "condition_timeTo",
-#     3001, "drug_presence",
-#     3002, "drug_count",
-#     3003, "drug_cost",
-#     3004, "drug_timeTo",
-#     4001, "procedure_presence",
-#     4002, "procedure_count",
-#     4003, "procedure_cost",
-#     4004, "procedure_timeTo",
-#     5001, "measurement_presence",
-#     5002, "measurement_count",
-#     5004, "measurement_timeTo",
-#     5005, "labs",
-#     6001, "observation_presence",
-#     6002, "observation_count",
-#     6004, "observation_timeTo",
-#     7001, "device_presence",
-#     8001, "visit_presence",
-#     8002, "visit_count",
-#     8003, "visit_cost",
-#     8004, "visit_timeTo",
-#     8005, "time_in_inpatient",
-#     9001, "provider_specialty"
-#   )
-# }
+.truncDropTempTables <- function(tempTableName) {
+  sql <- glue::glue("TRUNCATE TABLE {tempTableName}; DROP TABLE {tempTableName};")
+  return(sql)
+}
+
+.prepCsTransform <- function(categoryId, tempTableName, sql) {
+
+  # change names for glue
+  csTempTableName <- tempTableName
+  catId <- categoryId
+  # get conceptSet Sql
+  sql <- sql |>
+    glue::glue()
+
+  return(sql)
+}
+
+#TODO fix this to work with counts on a break
+.findConceptSetCategoryIds <- function(li) {
+
+  # of the categorical, find the unique cs group ids
+  csCatIds <- li |>
+    .getLineItemClassType(classType = "ConceptSetDefinition") |>
+    .conceptSetMeta() |>
+    dplyr::select(statType, categoryId) |>
+    dplyr::distinct() |>
+    dplyr::mutate(
+      distributionType = ifelse(statType == "Presence", "categorical", "continuous"),
+      tsClass = "ConceptSetDefinition"
+    ) |>
+    dplyr::select(categoryId, tsClass, distributionType)
+
+  return(csCatIds)
+}
+
+#TODO find regular categorical and those with breaks
+.findDemographicCategoryIds <- function(li) {
+  # of the categorical, find the unique demo ids
+  demoCatLi <- li|>
+    .getLineItemClassType(classType = "DemographicDefinition")
+
+
+  demoCatIds <- tibble::tibble(
+    'categoryId' = purrr::map_int(demoCatLi, ~.x$ordinal),
+    'tsClass' = "DemographicDefinition",
+    'distributionType' = purrr::map_chr(demoCatLi, ~.x$identifyStatType())
+  )
+
+
+  return(demoCatIds)
+}
