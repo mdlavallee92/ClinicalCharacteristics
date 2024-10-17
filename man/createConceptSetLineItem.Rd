@@ -33,7 +33,7 @@ createConceptSetLineItem(
 \item{visitOccurrenceConceptIds}{(OPTIONAL) A list of visit occurrence concept IDs to use to limit the concept set}
 }
 \value{
-A ConceptSetDefinition object
+A ConceptSetLineItem object
 }
 \description{
 Create a concept set line item and set its attributes

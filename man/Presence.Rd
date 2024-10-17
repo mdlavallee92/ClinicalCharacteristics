@@ -13,6 +13,7 @@ Child of Statistic. The Presence statistic is a binary metric the indicates the 
 \subsection{Public methods}{
 \itemize{
 \item \href{#method-Presence-new}{\code{Presence$new()}}
+\item \href{#method-Presence-getSql}{\code{Presence$getSql()}}
 \item \href{#method-Presence-clone}{\code{Presence$clone()}}
 }
 }
@@ -29,6 +30,15 @@ Child of Statistic. The Presence statistic is a binary metric the indicates the 
 \subsection{Method \code{new()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Presence$new(operator, occurrences)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Presence-getSql"></a>}}
+\if{latex}{\out{\hypertarget{method-Presence-getSql}{}}}
+\subsection{Method \code{getSql()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Presence$getSql()}\if{html}{\out{</div>}}
 }
 
 }
