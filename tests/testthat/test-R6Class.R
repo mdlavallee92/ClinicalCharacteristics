@@ -58,9 +58,9 @@ test_that("ExecutionSettings object creates", {
   expect_true(inherits(es, "ExecutionSettings"), info = "es should be an ExecutionSettings object")
 })
 
-test_that("ConceptSetDefinition object initializes correctly", {
-  conceptSet <- ConceptSetDefinition$new("concept_set_name", 1, Statistic$new("statistic_type"), Capr::cs(1335471, name = "test"), "domain", Capr::cs(1335471, name = "test_source"), c(67890), c(12345, 67890))
-  expect_true(inherits(conceptSet, "ConceptSetDefinition"))
+test_that("ConceptSetLineItem object initializes correctly", {
+  conceptSet <- ConceptSetLineItem$new("concept_set_name", 1, Statistic$new("statistic_type"), Capr::cs(1335471, name = "test"), "domain", Capr::cs(1335471, name = "test_source"), c(67890), c(12345, 67890))
+  expect_true(inherits(conceptSet, "ConceptSetLineItem"))
   expect_true(inherits(conceptSet, "LineItem"))
 })
 

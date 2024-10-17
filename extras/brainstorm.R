@@ -59,9 +59,9 @@ createItemDefinition <- function(domain,
   return(ItemDefinition$new(domain = domain,
                             limit = limit,
                             definition))
-                            # conceptSetDefinition = conceptSetDefinition,
+                            # ConceptSetLineItem = ConceptSetLineItem,
                             # cohortDefinition = cohortDefinition,
-                            # demographicDefinition = demographicDefinition))
+                            # DemographicLineItem = DemographicLineItem))
 }
 
 createCohortDefinition <- function() {

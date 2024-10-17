@@ -4,14 +4,12 @@
 \alias{createTableShell}
 \title{Create an empty TableShell object and set its title}
 \usage{
-createTableShell(title, targetCohorts, executionSettings, lineItems)
+createTableShell(title, targetCohorts, lineItems)
 }
 \arguments{
 \item{title}{The title of the TableShell}
 
 \item{targetCohorts}{A list of TargetCohort objects}
-
-\item{executionSettings}{An ExecutionSettings object}
 
 \item{lineItems}{A list of lineItem objects}
 }

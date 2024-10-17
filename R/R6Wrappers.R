@@ -133,7 +133,7 @@ createCount <- function(breaks = NULL) {
 #' @param typeConceptIds (OPTIONAL) A list of type concept IDs to use to limit the concept set
 #' @param visitOccurrenceConceptIds (OPTIONAL) A list of visit occurrence concept IDs to use to limit the concept set
 #'
-#' @return A ConceptSetDefinition object
+#' @return A ConceptSetLineItem object
 #'
 #' @export
 createConceptSetLineItem <- function(name,
@@ -144,7 +144,7 @@ createConceptSetLineItem <- function(name,
                                      sourceConceptSet = NULL,
                                      typeConceptIds = c(),
                                      visitOccurrenceConceptIds = c()) {
-  csDefinition <- ConceptSetDefinition$new(name = name,
+  csDefinition <- ConceptSetLineItem$new(name = name,
                                            statistic = statistic,
                                            domain = domain,
                                            conceptSet = conceptSet,
@@ -171,7 +171,7 @@ createConceptSetLineItem <- function(name,
 #' @param typeConceptIds (OPTIONAL) A list of type concept IDs to use to limit the concept set
 #' @param visitOccurrenceConceptIds (OPTIONAL) A list of visit occurrence concept IDs to use to limit the concept set
 #'
-#' @return A list of ConceptSetDefinition objects
+#' @return A list of ConceptSetLineItem objects
 #'
 #' @export
 createConceptSetLineItemBatch <- function(
@@ -216,7 +216,7 @@ createConceptSetLineItemBatch <- function(
 #' @export
 createGenderLineItem <- function() {
 
-  gender <- DemographicDefinition$new(
+  gender <- DemographicLineItem$new(
     name = "Gender",
     statistic = DemographicConcept$new(conceptColumn = "gender_concept_id")
   )
@@ -233,7 +233,7 @@ createGenderLineItem <- function() {
 #' @export
 createRaceLineItem <- function() {
 
-  gender <- DemographicDefinition$new(
+  gender <- DemographicLineItem$new(
     name = "Race",
     statistic = DemographicConcept$new(conceptColumn = "race_concept_id")
   )
@@ -249,7 +249,7 @@ createRaceLineItem <- function() {
 #' @export
 createEthnicityLineItem <- function() {
 
-  gender <- DemographicDefinition$new(
+  gender <- DemographicLineItem$new(
     name = "Ethnicity",
     statistic = DemographicConcept$new(conceptColumn = "ethnicity_concept_id")
   )
@@ -266,7 +266,7 @@ createEthnicityLineItem <- function() {
 #' @export
 createAgeLineItem <- function(breaks = NULL) {
 
-  age <- DemographicDefinition$new(
+  age <- DemographicLineItem$new(
     name = "Age",
     statistic = DemographicAge$new(breaks = breaks)
   )
