@@ -53,24 +53,24 @@ test_that("createSection returns a Section object with the correct attributes", 
   expect_equal(section$getOrdinal(), 1)
 })
 
-test_that("createConceptSetLineItem creates a ConceptSetDefinition object", {
+test_that("createConceptSetLineItem creates a ConceptSetLineItem object", {
   csDefinition <- createConceptSetLineItem(name = "Concept Set 1",
                                            ordinal = 1,
                                            statistic = Presence$new("equal", 1),
                                            conceptSet = Capr::cs(1335471, name = "test"),
                                            domain = "Drug")
-  expect_true(inherits(csDefinition, "ConceptSetDefinition"))
+  expect_true(inherits(csDefinition, "ConceptSetLineItem"))
   expect_true(inherits(csDefinition, "LineItem"))
   expect_equal(csDefinition$getDefinitionType(), "conceptSet")
 })
 
-test_that("createConceptSetLineItemBatch creates a list of ConceptSetDefinition objects", {
+test_that("createConceptSetLineItemBatch creates a list of ConceptSetLineItem objects", {
   conceptSets <- list(Capr::cs(1335471, name = "A"), Capr::cs(1340128, name = "B"), Capr::cs(1341927, name = "C"))
   csDefinitions <- createConceptSetLineItemBatch(statistic = Presence$new("equal", 1),
                                                  conceptSets = conceptSets,
                                                  domain = "Drug")
   expect_equal(length(csDefinitions), 3)
-  expect_true(inherits(csDefinitions[[1]], "ConceptSetDefinition"))
+  expect_true(inherits(csDefinitions[[1]], "ConceptSetLineItem"))
   expect_true(inherits(csDefinitions[[1]], "LineItem"))
   expect_equal(csDefinitions[[1]]$getName(), "A")
   expect_equal(csDefinitions[[1]]$getOrdinal(), 1)

@@ -61,7 +61,7 @@ tableShell:
           - Cardiovascular:
             ordinal: 0
             LineItems:
-              - ConceptSetDefinition:
+              - ConceptSetLineItem:
                 name: Hypertension
                 id: 123 # do we want this?
                 jsonFile: 

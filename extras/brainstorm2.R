@@ -2,10 +2,10 @@ targetCohorts <- list(TargetCohort$new(id = 1, name = "someCondition"))
 lineItems <- list(
   GenderDefinition$new(name = "Female", genderConceptIds = c(8532)),
   GenderDefinition$new(name = "Male", genderConceptIds = c(8507)),
-  ConceptSetGroupDefinition$new(conceptSetDefinitions =
-                                  list(ConceptSetDefinition$new(name = "Tobacco", domainIds = c("Condition", "Observation"), conceptSetId = 99,
+  ConceptSetGroupDefinition$new(ConceptSetLineItems =
+                                  list(ConceptSetLineItem$new(name = "Tobacco", domainIds = c("Condition", "Observation"), conceptSetId = 99,
                                                                 caprConceptSet = Capr::cs(12345, name = "Tobacco")),
-                                       ConceptSetDefinition$new(name = "Alcohol", domainIds = c("Condition", "Observation"), conceptSetId = 100,
+                                       ConceptSetLineItem$new(name = "Alcohol", domainIds = c("Condition", "Observation"), conceptSetId = 100,
                                                                 caprConceptSet = Capr::cs(99999, name = "Alcohol")))
                                 ),
   CohortDefinition$new(name = "Major bleeding", cohortDefinitionId = 123,

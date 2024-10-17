@@ -1,6 +1,6 @@
 definitionType,categorical,continuous
 CohortDefinition,TRUE,TRUE
-ConceptSetDefinition,TRUE,TRUE
+ConceptSetLineItem,TRUE,TRUE
 GenderDefinition,TRUE,FALSE
 AgeDefinition,TRUE,TRUE
 YearDefinition,TRUE,FALSE

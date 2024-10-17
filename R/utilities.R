@@ -276,13 +276,13 @@ domain_translate <- function(domain) {
 
   # of the categorical, find the unique cs group ids
   csCatIds <- li |>
-    .getLineItemClassType(classType = "ConceptSetDefinition") |>
+    .getLineItemClassType(classType = "ConceptSetLineItem") |>
     .conceptSetMeta() |>
     dplyr::select(statType, categoryId) |>
     dplyr::distinct() |>
     dplyr::mutate(
       distributionType = ifelse(statType == "Presence", "categorical", "continuous"),
-      tsClass = "ConceptSetDefinition"
+      tsClass = "ConceptSetLineItem"
     ) |>
     dplyr::select(categoryId, tsClass, distributionType)
 
@@ -293,12 +293,12 @@ domain_translate <- function(domain) {
 .findDemographicCategoryIds <- function(li) {
   # of the categorical, find the unique demo ids
   demoCatLi <- li|>
-    .getLineItemClassType(classType = "DemographicDefinition")
+    .getLineItemClassType(classType = "DemographicLineItem")
 
 
   demoCatIds <- tibble::tibble(
     'categoryId' = purrr::map_int(demoCatLi, ~.x$ordinal),
-    'tsClass' = "DemographicDefinition",
+    'tsClass' = "DemographicLineItem",
     'distributionType' = purrr::map_chr(demoCatLi, ~.x$identifyStatType())
   )
 

@@ -32,7 +32,7 @@ createConceptSetLineItemBatch(
 \item{sourceConceptSet}{(OPTIONAL) A Capr concept set of source concept IDs to use to limit the concept set}
 }
 \value{
-A list of ConceptSetDefinition objects
+A list of ConceptSetLineItem objects
 }
 \description{
 The name of each line item will be set to the name of its Capr concept set, and the ordinal will be set to the index of the Capr concept set in the list. All line items will use the same statistic, domain, type concepts, and visit concepts. It is not possible to specify source concept IDs.

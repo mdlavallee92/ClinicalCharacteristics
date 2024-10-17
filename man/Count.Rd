@@ -13,6 +13,7 @@ Child of Statistic. The Count statistic is a poisson metric the indicates the nu
 \subsection{Public methods}{
 \itemize{
 \item \href{#method-Count-new}{\code{Count$new()}}
+\item \href{#method-Count-getSql}{\code{Count$getSql()}}
 \item \href{#method-Count-clone}{\code{Count$clone()}}
 }
 }
@@ -29,6 +30,15 @@ Child of Statistic. The Count statistic is a poisson metric the indicates the nu
 \subsection{Method \code{new()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Count$new(breaks = NULL)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Count-getSql"></a>}}
+\if{latex}{\out{\hypertarget{method-Count-getSql}{}}}
+\subsection{Method \code{getSql()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Count$getSql()}\if{html}{\out{</div>}}
 }
 
 }
