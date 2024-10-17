@@ -76,7 +76,7 @@ TableShell <- R6::R6Class("TableShell",
       checkmate::assert_class(executionSettings, classes = "ExecutionSettings", null.ok = FALSE)
 
       # get concept set line items
-      csLineItems <- private$.pluckLineItems(classType = "ConceptSetDefinition")
+      csLineItems <- private$.pluckLineItems(classType = "ConceptSetLineItem")
 
       # make the time windows table
       time_tbl <- purrr::map_dfr(csLineItems, ~.x$getTimeInterval()) |>
@@ -308,7 +308,7 @@ TableShell <- R6::R6Class("TableShell",
     },
 
     .grabDemographicsMetaTable = function() {
-      demoLineItems <- private$.pluckLineItems(classType = "DemographicDefinition")
+      demoLineItems <- private$.pluckLineItems(classType = "DemographicLineItem")
 
       demoMetaTable <- tibble::tibble(
         'categoryId' = purrr::map_int(demoLineItems, ~.x$ordinal),
@@ -331,7 +331,7 @@ TableShell <- R6::R6Class("TableShell",
     .buildDemographicsQuery = function() {
 
       # get concept set line items
-      demoLineItems <- private$.pluckLineItems(classType = "DemographicDefinition")
+      demoLineItems <- private$.pluckLineItems(classType = "DemographicLineItem")
       if (length(demoLineItems) >= 1) {
         demoSql <- purrr::map(
           demoLineItems,
@@ -354,7 +354,7 @@ TableShell <- R6::R6Class("TableShell",
       codesetTable <-  buildOptions$codesetTempTable
 
       # get concept set line items
-      csLineItems <- private$.pluckLineItems(classType = "ConceptSetDefinition")
+      csLineItems <- private$.pluckLineItems(classType = "ConceptSetLineItem")
       if (length(csLineItems) >= 1) {
         # retrieve each concept set from the line items and flatten
         csCapr <- purrr::map(
@@ -376,7 +376,7 @@ TableShell <- R6::R6Class("TableShell",
     },
 
     .grabConceptSetMetaTable = function() {
-      csLineItems <- private$.pluckLineItems(classType = "ConceptSetDefinition")
+      csLineItems <- private$.pluckLineItems(classType = "ConceptSetLineItem")
       # only run if CSD in ts
       if (length(csLineItems) >= 1) {
 
@@ -1009,13 +1009,13 @@ LineItem <- R6::R6Class("LineItem",
 
 )
 
-## ConceptSetDefinition ----
+## ConceptSetLineItem ----
 
 #' @description
-#' An R6 class to define a ConceptSetDefinition
+#' An R6 class to define a ConceptSetLineItem
 #'
 #' @export
-ConceptSetDefinition <- R6::R6Class("ConceptSetDefinition",
+ConceptSetLineItem <- R6::R6Class("ConceptSetLineItem",
   inherit = LineItem,
   public = list(
 
@@ -1112,13 +1112,13 @@ ConceptSetDefinition <- R6::R6Class("ConceptSetDefinition",
   )
 )
 
-# DemographicDefinition -----
+# DemographicLineItem -----
 
 #' @description
 #' An R6 class to handle the ...
 #'
 #' @export
-DemographicDefinition <- R6::R6Class("DemographicDefinition",
+DemographicLineItem <- R6::R6Class("DemographicLineItem",
   inherit = LineItem,
   public = list(
     initialize = function(name,
@@ -1187,8 +1187,6 @@ DemographicDefinition <- R6::R6Class("DemographicDefinition",
     }
   )
 )
-
-
 
 # Helper Classes -----
 
@@ -1356,18 +1354,18 @@ TimeInterval <- R6::R6Class(
 # ConceptSetGroupDefinition <- R6::R6Class("ConceptSetGroupDefinition",
 #  inherit = LineItem,
 #  public = list(
-#    initialize = function(conceptSetDefinitions) {
-#      .setListofClasses(private = private, key = "conceptSetDefinitions",
-#                        value = conceptSetDefinitions,
-#                        classes = c("ConceptSetDefinition"))
+#    initialize = function(ConceptSetLineItems) {
+#      .setListofClasses(private = private, key = "ConceptSetLineItems",
+#                        value = ConceptSetLineItems,
+#                        classes = c("ConceptSetLineItem"))
 #    },
-#    getConceptSetDefinitions = function() {
-#      conceptSetDefinitions <- private$conceptSetDefinitions
-#      return(conceptSetDefinitions)
+#    getConceptSetLineItems = function() {
+#      ConceptSetLineItems <- private$ConceptSetLineItems
+#      return(ConceptSetLineItems)
 #     }
 #   ),
 #   private = list(
-#     conceptSetDefinitions = c()
+#     ConceptSetLineItems = c()
 #   )
 # ))
 
