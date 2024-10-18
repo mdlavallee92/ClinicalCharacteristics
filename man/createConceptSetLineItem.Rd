@@ -5,7 +5,7 @@
 \title{Create a concept set line item and set its attributes}
 \usage{
 createConceptSetLineItem(
-  name,
+  name = NULL,
   statistic,
   domain,
   conceptSet,
