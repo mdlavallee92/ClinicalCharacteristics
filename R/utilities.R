@@ -7,22 +7,22 @@
 }
 
 
-# function to get timeInterval and concept set combinations
-.permuteCsTi <- function(conceptSets, timeIntervals) {
+# function to get timeInterval and concept set / cohort combinations
+.permuteTi <- function(lineItemObjects, timeIntervals) {
 
   # get number of items for each
-  numCs <- length(conceptSets)
+  numObj <- length(lineItemObjects)
   numTis <- length(timeIntervals)
 
   # build out permutations
-  csPerm <- rep(conceptSets, times = numTis)
-  tiPerm <- rep(timeIntervals, each = numCs)
+  objPerm <- rep(lineItemObjects, times = numTis)
+  tiPerm <- rep(timeIntervals, each = numObj)
 
-  permTiCs <- list(
-    'conceptSets' = csPerm,
+  permTiObj <- list(
+    'objects' = objPerm,
     'timeIntervals' = tiPerm
   )
-  return(permTiCs)
+  return(permTiObj)
 
 }
 
