@@ -953,7 +953,7 @@ Count <- R6::R6Class("Count",
 #' Derived classes exist off of LineItems
 #'
 #' @export
-LineItem <- R6::R6Class("LineItem",
+LineItem_old <- R6::R6Class("LineItem",
   public = list(
     initialize = function(name,
                           #ordinal,
@@ -1015,7 +1015,7 @@ LineItem <- R6::R6Class("LineItem",
 #' An R6 class to define a ConceptSetLineItem
 #'
 #' @export
-ConceptSetLineItem <- R6::R6Class("ConceptSetLineItem",
+ConceptSetLineItem_old <- R6::R6Class("ConceptSetLineItem",
   inherit = LineItem,
   public = list(
 
@@ -1188,6 +1188,95 @@ DemographicLineItem <- R6::R6Class("DemographicLineItem",
   )
 )
 
+<<<<<<< Updated upstream
+=======
+## CohortLineItem ----
+
+#' @description
+#' An R6 class to define a CohortLineItem
+#'
+#' @export
+CohortLineItem <- R6::R6Class("CohortLineItem",
+  inherit = LineItem,
+  public = list(
+
+    # initialize the class
+    initialize = function(name,
+                          #ordinal,
+                          statistic,
+                          cohort,
+                          timeInterval) {
+      super$initialize(name = name,
+                       definitionType = "Cohort",
+                       statistic = statistic)
+      .setClass(private = private, key = "cohort", value = cohort, class = "CohortInfo")
+      .setClass(private = private, key = "timeInterval", value = timeInterval, class = "TimeInterval")
+    },
+
+    # gather information for print
+    lineItemDetails = function() {
+
+      ord <- self$ordinal |>
+        tibble::as_tibble() |>
+        dplyr::rename(
+          ordinal = value
+          )
+
+      info <- self$getCohortRef() |>
+        dplyr::select(
+          -c(hash)
+        ) |>
+        dplyr::bind_cols(
+          ord
+        ) |>
+        glue::glue_data_col(
+          "{ordinal}) \\
+          CohortName: {green {name}}; \\
+          TimeWindow: {magenta {lb}d} to {magenta {rb}d}"
+        )
+
+      return(info)
+    },
+
+    # helper to pull cohort items
+    grabCohort = function() {
+      c <- private$cohort
+      return(c)
+    },
+
+    # helper to retrieve the time windows in the class
+    getTimeInterval = function() {
+      tw <- private$timeInterval$getTimeInterval()
+      return(tw)
+    },
+
+    # helper to get reference table of the cohorts in the class
+    getCohortRef = function() {
+      cTbl <- tibble::tibble(
+        'name' = private$name,
+        'lb' = private$timeInterval$getLb(),
+        'rb' = private$timeInterval$getRb()
+      )
+      return(cTbl)
+    },
+
+    getStatisticInfo = function() {
+      tb <- tibble::tibble(
+        'ord' = self$ordinal,
+        'statType' = private$statistic$getStatType(),
+        'sql' = private$statistic$getSql()
+      )
+      return(tb)
+    }
+  ),
+  private = list(
+    cohort = NULL,
+    timeInterval = NULL
+  )
+)
+
+
+>>>>>>> Stashed changes
 # Helper Classes -----
 
 ## TimeInterval ------

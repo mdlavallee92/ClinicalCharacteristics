@@ -136,14 +136,20 @@ createCount <- function(breaks = NULL) {
 #' @return A ConceptSetLineItem object
 #'
 #' @export
+<<<<<<< Updated upstream
 createConceptSetLineItem <- function(name,
                                      statistic,
+=======
+createConceptSetLineItem <- function(sectionLabel = NA_character_,
+>>>>>>> Stashed changes
                                      domain,
                                      conceptSet,
                                      timeInterval,
+                                     statistic,
                                      sourceConceptSet = NULL,
                                      typeConceptIds = c(),
                                      visitOccurrenceConceptIds = c()) {
+<<<<<<< Updated upstream
   csDefinition <- ConceptSetLineItem$new(name = name,
                                            statistic = statistic,
                                            domain = domain,
@@ -152,6 +158,19 @@ createConceptSetLineItem <- function(name,
                                            sourceConceptSet = sourceConceptSet,
                                            typeConceptIds = typeConceptIds,
                                            visitOccurrenceConceptIds = visitOccurrenceConceptIds)
+=======
+  # if (is.null(name)) {
+  #   name = conceptSet@Name
+  # }
+  csDefinition <- ConceptSetLineItem$new(sectionLabel = sectionLabel,
+                                         domainTable = domain,
+                                         conceptSet = conceptSet,
+                                         timeInterval = timeInterval,
+                                         statistic = statistic,
+                                         sourceConceptSet = sourceConceptSet,
+                                         typeConceptIds = typeConceptIds,
+                                         visitOccurrenceConceptIds = visitOccurrenceConceptIds)
+>>>>>>> Stashed changes
   return(csDefinition)
 }
 
