@@ -38,11 +38,11 @@ createConceptSetLineItemBatch <- function(
   checkmate::assert_list(x = timeIntervals, types = c("TimeInterval"), null.ok = FALSE, min.len = 1)
 
   # build permutations of concepts and timeIntervals
-  permDf <- .permuteCsTi(conceptSets, timeIntervals)
+  permDf <- .permuteTi(conceptSets, timeIntervals)
 
   # create batch of concept set line items
   csLiBatch <- purrr::map2(
-    permDf$conceptSets,
+    permDf$objects,
     permDf$timeIntervals,
     ~createConceptSetLineItem(
       sectionLabel = sectionLabel,
@@ -104,3 +104,16 @@ femaleGender <- function() {
   return(femaleConcept)
 }
 
+lineItems <- function(...) {
+  listOfLineItems <- list(...) |>
+    purrr::list_flatten()
+  # ensure that all elements are lineItems
+  checkmate::assert_list(x = listOfLineItems, types = "LineItem", null.ok = FALSE, min.len = 1)
+
+  # add in ordinals
+  ii <- seq_along(listOfLineItems)
+  for(i in ii) {
+    listOfLineItems[[i]]$ordinalId <- ii[i]
+  }
+  return(listOfLineItems)
+}
