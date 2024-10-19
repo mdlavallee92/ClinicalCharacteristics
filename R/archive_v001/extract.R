@@ -63,9 +63,6 @@ stowTable <- function(connection, tempTable) {
   return(tbl)
 }
 
-
-
-
 getTargetCohort <- function(connection,
                             workDatabaseSchema,
                             cohortTable,

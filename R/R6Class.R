@@ -10,7 +10,7 @@ TableShell <- R6::R6Class("TableShell",
                           targetCohorts,
                           lineItems) {
       .setString(private = private, key = "name", value = name)
-      .setListofClasses(private = private, key = "targetCohorts", value = targetCohorts, classes = c("TargetCohort"))
+      .setListofClasses(private = private, key = "targetCohorts", value = targetCohorts, classes = c("CohortInfo"))
       #.setClass(private = private, key = "executionSettings", value = executionSettings, class = "ExecutionSettings")
       .setListofClasses(private = private, key = "lineItems", value = lineItems, classes = c("LineItem"))
     },
@@ -729,28 +729,28 @@ ExecutionSettings <- R6::R6Class(
 )
 
 
-# Target Cohort -----
+# Cohort Info -----
 
 #' @description
-#' An R6 class to define a Target Cohort object
-#' TargetCohort objects do not maintain any execution settings, just the id and name
+#' An R6 class to define a Cohort Info object
+#' CohortInfo objects do not maintain any execution settings, just the id and name
 #'
 #' @export
-TargetCohort <- R6::R6Class("TargetCohort",
+CohortInfo <- R6::R6Class("CohortInfo",
   public = list(
     initialize = function(id, name) {
       .setNumber(private = private, key = "id", value = id)
       .setString(private = private, key = "name", value = name)
     },
     getId = function() {
-      tcId <- private$id
-      return(tcId)
+      cId <- private$id
+      return(cId)
     },
     getName = function(name) {
-      tcName <- private$name
-      return(tcName)
+      cName <- private$name
+      return(cName)
     },
-    targetCohortDetails = function(){
+    cohortDetails = function(){
       id <- self$getId()
       name <- self$getName()
 
@@ -1084,7 +1084,7 @@ ConceptSetLineItem_old <- R6::R6Class("ConceptSetLineItem",
 
       # # make key for cs use
       csTbl <- tibble::tibble(
-        'name' = private$conceptSet@Name,
+        'name' = private$name,
         'hash' = private$conceptSet@id,
         'domain' = private$domain,
         'lb' = private$timeInterval$getLb(),
@@ -1187,7 +1187,6 @@ DemographicLineItem <- R6::R6Class("DemographicLineItem",
     }
   )
 )
-
 
 ## CohortLineItem ----
 

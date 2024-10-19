@@ -18,32 +18,32 @@ createTableShell <- function(title,
 }
 
 #' @title
-#' Parse target cohorts from a data frame
+#' Parse cohort info from a data frame
 #'
-#' @param df The data frame containing the information for the target cohorts (id and name)
+#' @param df The data frame containing the information for the cohorts (id and name)
 #'
-#' @return A list of TargetCohort objects
+#' @return A list of CohortInfo objects
 #'
 #' @export
-parseTargetCohortsFromDf <- function(df) {
-    targetCohorts <- purrr::pmap(df, function(id, name) {
-        createTargetCohort(id, name)
+parseCohortInfoFromDf <- function(df) {
+    cohortInfo <- purrr::pmap(df, function(id, name) {
+        createCohortInfo(id, name)
     })
-    return(targetCohorts)
+    return(cohortInfo)
 }
 
 #' @title
-#' Create a TargetCohort object and set its attributes
+#' Create a CohortInfo object for a cohort and set its attributes
 #'
-#' @param id The ID of the TargetCohort
-#' @param name The name of the TargetCohort
+#' @param id The ID of the cohort
+#' @param name The name of the cohort
 #'
-#' @return A TargetCohort object
+#' @return A CohortInfo object
 #'
 #' @export
-createTargetCohort <- function(id, name) {
-  targetCohort <- TargetCohort$new(id, name)
-  return(targetCohort)
+createCohortInfo <- function(id, name) {
+  cohortInfo <- CohortInfo$new(id, name)
+  return(cohortInfo)
 }
 
 #' @title
@@ -109,7 +109,6 @@ timeInterval <- function(lb, rb) {
 }
 
 
-
 createPresence <- function(operator = "at_least", occurrences = 1) {
   pres <- Presence$new(operator = operator, occurrences = occurrences)
   return(pres)
@@ -163,13 +162,12 @@ createConceptSetLineItem <- function(sectionLabel = NA_character_,
 #' Create a batch of concept set line items from a list of Capr concept sets.
 #'
 #' @description
-#' The name of each line item will be set to the name of its Capr concept set, and the ordinal will be set to the index of the Capr concept set in the list. All line items will use the same statistic, domain, type concepts, and visit concepts. It is not possible to specify source concept IDs.
+#' The name of each line item will be set to the name of its Capr concept set. All line items will use the same statistic, domain, type concepts, and visit concepts. It is not possible to specify source concept IDs.
 #' @param name The name of the concept set batch
 #' @param statistic The Statistic object to be used to evaluate the line items
 #' @param domain The domain of the concept sets (must be one of 'Condition', 'Drug', 'Procedure', 'Observation', 'Measurement', 'Device')
 #' @param conceptSets A list of concept set Capr objects
 #' @param timeIntervals A list of TimeInterval class objects
-#' @param sourceConceptSet (OPTIONAL) A Capr concept set of source concept IDs to use to limit the concept set
 #' @param typeConceptIds (OPTIONAL) A list of type concept IDs to use to limit the concept set
 #' @param visitOccurrenceConceptIds (OPTIONAL) A list of visit occurrence concept IDs to use to limit the concept set
 #'
@@ -189,14 +187,14 @@ createConceptSetLineItemBatch <- function(
   checkmate::assert_list(x = timeIntervals, types = c("TimeInterval"), null.ok = FALSE, min.len = 1)
 
   # build permutations of concepts and timeIntervals
-  permDf <- .permuteCsTi(conceptSets, timeIntervals)
+  permDf <- .permuteTi(conceptSets, timeIntervals)
 
   # create batch of concept set line items
   csLiBatch <- purrr::map2(
-    permDf$conceptSets,
+    permDf$objects,
     permDf$timeIntervals,
     ~createConceptSetLineItem(
-      name = name,
+      name = .x@Name,
       statistic = statistic,
       domain = domain,
       conceptSet = .x,
@@ -278,6 +276,73 @@ createAgeLineItem <- function(breaks = NULL) {
 }
 
 #' @title
+#' Create a cohort line item and set its attributes
+#'
+#' @param name (OPTIONAL) The name of the line item (if not provided, the name will be set to the cohort name from the CohortInfo object)
+#' @param statistic The Statistic object to be used to evaluate the line item
+#' @param cohort A CohortInfo object
+#' @param timeInterval The TimeInterval object used for the line item
+#'
+#' @return A CohortLineItem object
+#'
+#' @export
+createCohortLineItem <- function(name = NULL,
+                                 statistic,
+                                 cohort,
+                                 timeInterval) {
+  if (is.null(name)) {
+    name = cohort$getName()
+  }
+  cohortLineItem <- CohortLineItem$new(name = name,
+                                       statistic = statistic,
+                                       cohort = cohort,
+                                       timeInterval = timeInterval)
+  return(cohortLineItem)
+}
+
+#' @title
+#' Create a batch of cohort line items from a list of CohortInfo objects.
+#'
+#' @description
+#' The name of each line item will be set to the name of its cohort from the CohortInfo object.
+#' @param name The name of the cohort batch
+#' @param statistic The Statistic object to be used to evaluate the line items
+#' @param cohorts A list of CohortInfo objects
+#' @param timeIntervals A list of TimeInterval class objects
+#'
+#' @return A list of CohortLineItem objects
+#'
+#' @export
+createCohortLineItemBatch <- function(
+    name,
+    statistic,
+    cohorts,
+    timeIntervals) {
+
+  checkmate::assert_list(x = cohorts, types = c("CohortInfo"), null.ok = FALSE, min.len = 1)
+  checkmate::assert_list(x = timeIntervals, types = c("TimeInterval"), null.ok = FALSE, min.len = 1)
+
+  # build permutations of concepts and timeIntervals
+  permDf <- .permuteTi(cohorts, timeIntervals)
+
+  # create batch of concept set line items
+  cLiBatch <- purrr::map2(
+    permDf$objects,
+    permDf$timeIntervals,
+    ~createCohortLineItem(
+      name = .x$name,
+      statistic = statistic,
+      cohort = .x,
+      timeInterval = .y
+    )
+  ) |>
+    unname()
+
+  return(cLiBatch)
+}
+
+
+#' @title
 #' Combine all lineItems to enter into the tableShell slot
 #'
 #' @param ... A list of lineItems created from various calls
@@ -296,6 +361,3 @@ lineItems <- function(...) {
   }
   return(listOfLineItems)
 }
-
-
-

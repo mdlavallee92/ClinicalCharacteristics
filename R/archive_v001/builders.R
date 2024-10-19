@@ -177,14 +177,14 @@ build_score_covariates <- function(con,
 # function to build clinical covariates based on cohorts
 build_cohort_covariates <- function(con,
                                     tempEmulationSchema,
-                                   cohortDatabaseSchema,
-                                   cohortTable,
-                                   cdmDatabaseSchema,
-                                   targetCohortIds,
-                                   covariateCohorts,
-                                   timeA,
-                                   timeB,
-                                   outputFolder) {
+                                    cohortDatabaseSchema,
+                                    cohortTable,
+                                    cdmDatabaseSchema,
+                                    targetCohortIds,
+                                    covariateCohorts,
+                                    timeA,
+                                    timeB,
+                                    outputFolder) {
 
 
   ii <- seq_along(timeA)
