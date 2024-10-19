@@ -790,7 +790,7 @@ TargetCohort <- R6::R6Class("TargetCohort",
 #' Specific types of statistics are defined in derived classes
 #'
 #' @export
-Statistic <- R6::R6Class("Statistic",
+Statistic_old <- R6::R6Class("Statistic",
                          public = list(
                            initialize = function(type) {
                              .setString(private = private , key = "type", value = type)
@@ -1188,8 +1188,7 @@ DemographicLineItem <- R6::R6Class("DemographicLineItem",
   )
 )
 
-<<<<<<< Updated upstream
-=======
+
 ## CohortLineItem ----
 
 #' @description
@@ -1276,12 +1275,11 @@ CohortLineItem <- R6::R6Class("CohortLineItem",
 )
 
 
->>>>>>> Stashed changes
 # Helper Classes -----
 
 ## TimeInterval ------
 
-TimeInterval <- R6::R6Class(
+TimeInterval_old <- R6::R6Class(
   "TimeInterval",
   public = list(
     initialize = function(lb, rb) {

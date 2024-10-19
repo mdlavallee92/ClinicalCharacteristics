@@ -136,12 +136,8 @@ createCount <- function(breaks = NULL) {
 #' @return A ConceptSetLineItem object
 #'
 #' @export
-<<<<<<< Updated upstream
-createConceptSetLineItem <- function(name,
-                                     statistic,
-=======
+
 createConceptSetLineItem <- function(sectionLabel = NA_character_,
->>>>>>> Stashed changes
                                      domain,
                                      conceptSet,
                                      timeInterval,
@@ -149,19 +145,7 @@ createConceptSetLineItem <- function(sectionLabel = NA_character_,
                                      sourceConceptSet = NULL,
                                      typeConceptIds = c(),
                                      visitOccurrenceConceptIds = c()) {
-<<<<<<< Updated upstream
-  csDefinition <- ConceptSetLineItem$new(name = name,
-                                           statistic = statistic,
-                                           domain = domain,
-                                           conceptSet = conceptSet,
-                                           timeInterval = timeInterval,
-                                           sourceConceptSet = sourceConceptSet,
-                                           typeConceptIds = typeConceptIds,
-                                           visitOccurrenceConceptIds = visitOccurrenceConceptIds)
-=======
-  # if (is.null(name)) {
-  #   name = conceptSet@Name
-  # }
+
   csDefinition <- ConceptSetLineItem$new(sectionLabel = sectionLabel,
                                          domainTable = domain,
                                          conceptSet = conceptSet,
@@ -170,7 +154,6 @@ createConceptSetLineItem <- function(sectionLabel = NA_character_,
                                          sourceConceptSet = sourceConceptSet,
                                          typeConceptIds = typeConceptIds,
                                          visitOccurrenceConceptIds = visitOccurrenceConceptIds)
->>>>>>> Stashed changes
   return(csDefinition)
 }
 
