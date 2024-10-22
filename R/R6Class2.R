@@ -264,3 +264,35 @@ ConceptSetLineItem <- R6::R6Class(
   ),
   active = list()
 )
+
+
+CohortLineItem <- R6::R6Class(
+  classname = "CohortLineItem",
+  inherit = LineItem,
+  public = list(
+    initialize = function(
+    sectionLabel,
+    domainTable,
+    covariateCohort,
+    timeInterval,
+    statistic
+    ) {
+      super$initialize(
+        sectionLabel = sectionLabel,
+        domainTable = domainTable,
+        lineItemClass = "Cohort",
+        valueDescription = "cohort_definition_id",
+        statistic = statistic,
+        lineItemLabel = covariateCohort$getName(),
+        timeInterval = timeInterval
+      )
+      # add cohortInfo class object
+      .setClass(private = private, key = "covariateCohort", value = covariateCohort, class = "CohortInfo")
+
+    }
+  ),
+  private = list(
+    covariateCohort = NULL
+  ),
+  active = list()
+)

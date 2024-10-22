@@ -286,7 +286,7 @@ createAgeLineItem <- function(breaks = NULL) {
 #' @return A CohortLineItem object
 #'
 #' @export
-createCohortLineItem <- function(name = NULL,
+createCohortLineItem_old <- function(name = NULL,
                                  statistic,
                                  cohort,
                                  timeInterval) {

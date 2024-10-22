@@ -18,6 +18,15 @@ TableShell <- R6::R6Class("TableShell",
       tsName <- private$name
       return(tsName)
     },
+
+    getTableShellMeta = function() {
+      tsLi <- self$getLineItems()
+      tsMeta <- purrr::map_dfr(
+        tsLi, ~.x$getLineItemMeta()
+      )
+      return(tsMeta)
+    },
+
     getTargetCohorts = function() {
       tsTargetCohorts <- private$targetCohorts
       return(tsTargetCohorts)

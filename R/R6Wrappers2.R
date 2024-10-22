@@ -61,6 +61,25 @@ createConceptSetLineItemBatch <- function(
 }
 
 
+createCohortLineItem <- function(sectionLabel = NA_character_,
+                                 covariateCohort,
+                                 cohortTable,
+                                 timeInterval,
+                                 statistic) {
+
+  if(is.na(sectionLabel)) {
+    sectionLabel <- covariateCohort$getName()
+  }
+
+  chDefinition <- CohortLineItem$new(sectionLabel = sectionLabel,
+                                         domainTable = cohortTable,
+                                         covariateCohort = covariateCohort,
+                                         timeInterval = timeInterval,
+                                         statistic = statistic)
+  return(chDefinition)
+
+}
+
 createPresence <- function(operator = "at_least", occurrences = 1) {
   pres <- CategoricalPresence$new(operator = operator, occurrences = occurrences)
   return(pres)
