@@ -109,11 +109,15 @@ timeInterval <- function(lb, rb) {
 }
 
 
+# createPresence <- function(operator = "at_least", occurrences = 1) {
+#   pres <- Presence$new(operator = operator, occurrences = occurrences)
+#   return(pres)
+# }
+
 createPresence <- function(operator = "at_least", occurrences = 1) {
-  pres <- Presence$new(operator = operator, occurrences = occurrences)
+  pres <- CategoricalPresence$new(operator = operator, occurrences = occurrences)
   return(pres)
 }
-
 
 createCount <- function(breaks = NULL) {
   occurrenceCount <- Count$new(breaks = breaks)
@@ -135,27 +139,51 @@ createCount <- function(breaks = NULL) {
 #' @return A ConceptSetLineItem object
 #'
 #' @export
-createConceptSetLineItem <- function(name = NULL,
-                                     statistic,
+
+
+createConceptSetLineItem <- function(sectionLabel = NA_character_,
                                      domain,
                                      conceptSet,
                                      timeInterval,
+                                     statistic,
                                      sourceConceptSet = NULL,
                                      typeConceptIds = c(),
                                      visitOccurrenceConceptIds = c()) {
-  if (is.null(name)) {
-    name = conceptSet@Name
+
+  if(is.na(sectionLabel)) {
+    sectionLabel <- conceptSet@Name
   }
-  csDefinition <- ConceptSetLineItem$new(name = name,
-                                         statistic = statistic,
-                                         domain = domain,
+
+  csDefinition <- ConceptSetLineItem$new(sectionLabel = sectionLabel,
+                                         domainTable = domain,
                                          conceptSet = conceptSet,
                                          timeInterval = timeInterval,
+                                         statistic = statistic,
                                          sourceConceptSet = sourceConceptSet,
                                          typeConceptIds = typeConceptIds,
                                          visitOccurrenceConceptIds = visitOccurrenceConceptIds)
   return(csDefinition)
 }
+#
+# createConceptSetLineItem <- function(sectionLabel = NA_character_,
+#                                      domain,
+#                                      conceptSet,
+#                                      timeInterval,
+#                                      statistic,
+#                                      sourceConceptSet = NULL,
+#                                      typeConceptIds = c(),
+#                                      visitOccurrenceConceptIds = c()) {
+#
+#   csDefinition <- ConceptSetLineItem$new(sectionLabel = sectionLabel,
+#                                          domainTable = domain,
+#                                          conceptSet = conceptSet,
+#                                          timeInterval = timeInterval,
+#                                          statistic = statistic,
+#                                          sourceConceptSet = sourceConceptSet,
+#                                          typeConceptIds = typeConceptIds,
+#                                          visitOccurrenceConceptIds = visitOccurrenceConceptIds)
+#   return(csDefinition)
+# }
 
 
 
@@ -175,12 +203,14 @@ createConceptSetLineItem <- function(name = NULL,
 #' @return A list of ConceptSetLineItem objects
 #'
 #' @export
+
+
 createConceptSetLineItemBatch <- function(
-    name,
-    statistic,
+    sectionLabel,
     domain,
     conceptSets,
     timeIntervals,
+    statistic,
     typeConceptIds = c(),
     visitOccurrenceConceptIds = c()) {
 
@@ -195,7 +225,7 @@ createConceptSetLineItemBatch <- function(
     permDf$objects,
     permDf$timeIntervals,
     ~createConceptSetLineItem(
-      name = .x@Name,
+      sectionLabel = sectionLabel,
       statistic = statistic,
       domain = domain,
       conceptSet = .x,
@@ -209,6 +239,41 @@ createConceptSetLineItemBatch <- function(
 
   return(csLiBatch)
 }
+#
+# createConceptSetLineItemBatch <- function(
+#     name,
+#     statistic,
+#     domain,
+#     conceptSets,
+#     timeIntervals,
+#     typeConceptIds = c(),
+#     visitOccurrenceConceptIds = c()) {
+#
+#   checkmate::assert_list(x = conceptSets, types = c("ConceptSet"), null.ok = FALSE, min.len = 1)
+#   checkmate::assert_list(x = timeIntervals, types = c("TimeInterval"), null.ok = FALSE, min.len = 1)
+#
+#   # build permutations of concepts and timeIntervals
+#   permDf <- .permuteTi(conceptSets, timeIntervals)
+#
+#   # create batch of concept set line items
+#   csLiBatch <- purrr::map2(
+#     permDf$objects,
+#     permDf$timeIntervals,
+#     ~createConceptSetLineItem(
+#       name = .x@Name,
+#       statistic = statistic,
+#       domain = domain,
+#       conceptSet = .x,
+#       timeInterval = .y,
+#       sourceConceptSet = NULL,
+#       typeConceptIds = typeConceptIds,
+#       visitOccurrenceConceptIds = visitOccurrenceConceptIds
+#     )
+#   ) |>
+#     unname()
+#
+#   return(csLiBatch)
+# }
 
 #' @title
 #' Create gender demographic line item
@@ -226,6 +291,44 @@ createGenderLineItem <- function() {
 
 }
 
+
+createDemographicLineItem <- function(statistic) {
+  dcli <- DemographicLineItem$new(
+    statistic = statistic
+  )
+  statLabel <- class(statistic)[[1]]
+
+  if (statLabel %in% c("CategoricalAge", "ContinuousAge")) {
+    dcli$valueId <- -999
+    dcli$valueDescription <- "year_of_birth"
+  }
+
+  if (statLabel == "CategoricalDemographic") {
+    dcli$valueId <- statistic$getConceptId()
+    dcli$valueDescription <- statistic$getConceptColumn()
+  }
+
+  return(dcli)
+}
+
+
+maleGender <- function() {
+  maleConcept <- CategoricalDemographic$new(
+    label = "Gender: Male",
+    conceptColumn = "gender_concept_id",
+    conceptId = 8507L
+  )
+  return(maleConcept)
+}
+
+femaleGender <- function() {
+  femaleConcept <- CategoricalDemographic$new(
+    label = "Gender: Female",
+    conceptColumn = "gender_concept_id",
+    conceptId = 8532L
+  )
+  return(femaleConcept)
+}
 
 #' @title
 #' Create race demographic line item
@@ -287,19 +390,38 @@ createAgeLineItem <- function(breaks = NULL) {
 #' @return A CohortLineItem object
 #'
 #' @export
-createCohortLineItem <- function(name = NULL,
-                                 statistic,
-                                 cohort,
-                                 timeInterval) {
-  if (is.null(name)) {
-    name = cohort$getName()
+createCohortLineItem <- function(sectionLabel = NA_character_,
+                                 covariateCohort,
+                                 cohortTable,
+                                 timeInterval,
+                                 statistic) {
+
+  if(is.na(sectionLabel)) {
+    sectionLabel <- covariateCohort$getName()
   }
-  cohortLineItem <- CohortLineItem$new(name = name,
-                                       statistic = statistic,
-                                       cohort = cohort,
-                                       timeInterval = timeInterval)
-  return(cohortLineItem)
+
+  chDefinition <- CohortLineItem$new(sectionLabel = sectionLabel,
+                                     domainTable = cohortTable,
+                                     covariateCohort = covariateCohort,
+                                     timeInterval = timeInterval,
+                                     statistic = statistic)
+  return(chDefinition)
+
 }
+#
+# createCohortLineItem_old <- function(name = NULL,
+#                                  statistic,
+#                                  cohort,
+#                                  timeInterval) {
+#   if (is.null(name)) {
+#     name = cohort$getName()
+#   }
+#   cohortLineItem <- CohortLineItem$new(name = name,
+#                                        statistic = statistic,
+#                                        cohort = cohort,
+#                                        timeInterval = timeInterval)
+#   return(cohortLineItem)
+# }
 
 #' @title
 #' Create a batch of cohort line items from a list of CohortInfo objects.
@@ -343,6 +465,29 @@ createCohortLineItemBatch <- function(
 }
 
 
+createConceptSetGroupLineItem <- function(sectionLabel = NA_character_,
+                                          groupLabel,
+                                          conceptSets,
+                                          domainTables,
+                                          timeInterval,
+                                          statistic) {
+
+  if(is.na(sectionLabel)) {
+    sectionLabel <- groupLabel
+  }
+
+  csgDefinition <- ConceptSetGroupLineItem$new(
+    sectionLabel = sectionLabel,
+    groupLabel = groupLabel,
+    domainTables = domainTables,
+    conceptSets = conceptSets,
+    timeInterval = timeInterval,
+    statistic = statistic
+  )
+  return(csgDefinition)
+
+}
+
 #' @title
 #' Combine all lineItems to enter into the tableShell slot
 #'
@@ -358,7 +503,20 @@ lineItems <- function(...) {
   # add in ordinals
   ii <- seq_along(listOfLineItems)
   for(i in ii) {
-    listOfLineItems[[i]]$ordinal <- ii[i]
+    listOfLineItems[[i]]$ordinalId <- ii[i]
   }
   return(listOfLineItems)
 }
+# lineItems <- function(...) {
+#   listOfLineItems <- list(...) |>
+#     purrr::list_flatten()
+#   # ensure that all elements are lineItems
+#   checkmate::assert_list(x = listOfLineItems, types = "LineItem", null.ok = FALSE, min.len = 1)
+#
+#   # add in ordinals
+#   ii <- seq_along(listOfLineItems)
+#   for(i in ii) {
+#     listOfLineItems[[i]]$ordinal <- ii[i]
+#   }
+#   return(listOfLineItems)
+# }
