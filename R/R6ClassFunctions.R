@@ -18,6 +18,12 @@
   invisible(private)
 }
 
+.setCharacter <- function(private, key, value) {
+  checkmate::assert_character(x = value, min.chars = 1, null.ok = FALSE)
+  private[[key]] <- value
+  invisible(private)
+}
+
 .setNumber <- function(private, key, value, nullable = FALSE) {
   checkmate::assert_numeric(x = value, null.ok = nullable)
   private[[key]] <- value

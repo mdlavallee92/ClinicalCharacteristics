@@ -14,7 +14,7 @@ LineItem <- R6::R6Class(
     ) {
       .setString(private = private, key = ".sectionLabel", value = sectionLabel)
       .setString(private = private, key = ".lineItemLabel", value = lineItemLabel, naOk = TRUE)
-      .setString(private = private, key = ".domainTable", value = domainTable)
+      .setCharacter(private = private, key = ".domainTable", value = domainTable)
       .setString(private = private, key = ".lineItemClass", value = lineItemClass)
       .setInteger(private = private, key = ".valueId", value = valueId)
       .setString(private = private, key = ".valueDescription", value = valueDescription, naOk = TRUE)
@@ -293,6 +293,38 @@ CohortLineItem <- R6::R6Class(
   ),
   private = list(
     covariateCohort = NULL
+  ),
+  active = list()
+)
+
+ConceptSetGroupLineItem <- R6::R6Class(
+  classname = "ConceptSetGroupLineItem",
+  inherit = LineItem,
+  public = list(
+    initialize = function(
+    sectionLabel,
+    groupLabel,
+    conceptSets,
+    domainTables,
+    timeInterval,
+    statistic
+    ) {
+      super$initialize(
+        sectionLabel = sectionLabel,
+        domainTable = domainTables,
+        lineItemClass = "ConceptSetGroup",
+        valueDescription = "codeset_id",
+        statistic = statistic,
+        lineItemLabel = groupLabel,
+        timeInterval = timeInterval
+      )
+      csClasses <- rep("ConceptSet", length(conceptSets))
+      .setListofClasses(private = private, key = "conceptSets", value = conceptSets, classes = csClasses)
+
+    }
+  ),
+  private = list(
+    conceptSets = NULL
   ),
   active = list()
 )

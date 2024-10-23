@@ -80,6 +80,30 @@ createCohortLineItem <- function(sectionLabel = NA_character_,
 
 }
 
+
+createConceptSetGroupLineItem <- function(sectionLabel = NA_character_,
+                                          groupLabel,
+                                          conceptSets,
+                                          domainTables,
+                                          timeInterval,
+                                          statistic) {
+
+  if(is.na(sectionLabel)) {
+    sectionLabel <- groupLabel
+  }
+
+  csgDefinition <- ConceptSetGroupLineItem$new(
+    sectionLabel = sectionLabel,
+    groupLabel = groupLabel,
+    domainTables = domainTables,
+    conceptSets = conceptSets,
+    timeInterval = timeInterval,
+    statistic = statistic
+  )
+  return(csgDefinition)
+
+}
+
 createPresence <- function(operator = "at_least", occurrences = 1) {
   pres <- CategoricalPresence$new(operator = operator, occurrences = occurrences)
   return(pres)
