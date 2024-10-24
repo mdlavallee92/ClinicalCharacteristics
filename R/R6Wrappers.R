@@ -503,8 +503,12 @@ lineItems <- function(...) {
   # add in ordinals
   ii <- seq_along(listOfLineItems)
   for(i in ii) {
-    listOfLineItems[[i]]$ordinalId <- ii[i]
+    listOfLineItems[[i]]$ordinalId <- i
   }
+
+  # add value ids for the concept sets
+  listOfLineItems <- setCsValueId(listOfLineItems)
+
   return(listOfLineItems)
 }
 # lineItems <- function(...) {
