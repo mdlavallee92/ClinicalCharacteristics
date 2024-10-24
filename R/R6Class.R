@@ -271,6 +271,39 @@ TableShell <- R6::R6Class("TableShell",
 
 
     ### private methods ---------------
+    # function to insert tsMeta
+    insertTsMeta = function(executionSettings, buildOptions) {
+      # ensure that executionSettings R6 object used
+      checkmate::assert_class(executionSettings, classes = "ExecutionSettings", null.ok = FALSE)
+
+      # get tsMeta
+      tsMeta <- self$getTableShellMeta() |>
+        dplyr::rename_with(snakecase::to_snake_case)
+
+      cli::cat_bullet(
+        glue::glue("Insert #ts_meta table to route characterization"),
+        bullet = "pointer",
+        bullet_col = "yellow"
+      )
+
+      # establish connection to database
+      connection <- executionSettings$getConnection()
+
+      if (is.null(connection)) {
+        connection <- executionSettings$connect()
+      }
+
+      # insert the time windows into the database
+      DatabaseConnector::insertTable(
+        connection = connection,
+        tableName = buildOptions$tsMetaTempTable,
+        tempEmulationSchema = executionSettings$tempEmulationSchema,
+        data = tsMeta,
+        tempTable = TRUE
+      )
+
+      invisible(tsMeta)
+    },
 
     #function to create dat table
     .makeDatTable = function(){
@@ -526,11 +559,13 @@ BuildOptions <- R6::R6Class(
                           resultsTempTable = NULL,
                           codesetTempTable = NULL,
                           timeWindowTempTable = NULL,
-                          targetCohortTempTable = NULL) {
+                          targetCohortTempTable = NULL,
+                          tsMetaTempTable = NULL) {
       .setLogical(private = private, key = ".keepResultsTable", value = keepResultsTable)
       .setString(private = private, key = ".resultsTempTable", value = resultsTempTable)
       .setString(private = private, key = ".codesetTempTable", value = codesetTempTable)
       .setString(private = private, key = ".timeWindowTempTable", value = timeWindowTempTable)
+      .setString(private = private, key = ".tsMetaTempTable", value = tsMetaTempTable)
       .setString(private = private, key = ".targetCohortTempTable", value = targetCohortTempTable)
     }
   ),
@@ -539,7 +574,8 @@ BuildOptions <- R6::R6Class(
     .resultsTempTable = NULL,
     .codesetTempTable = NULL,
     .timeWindowTempTable = NULL,
-    .targetCohortTempTable = NULL
+    .targetCohortTempTable = NULL,
+    .tsMetaTempTable = NULL
   ),
 
   active = list(
@@ -565,6 +601,10 @@ BuildOptions <- R6::R6Class(
 
     targetCohortTempTable = function(value) {
       .setActiveString(private = private, key = ".targetCohortTempTable", value = value)
+    },
+
+    tsMetaTempTable = function(value) {
+      .setActiveString(private = private, key = ".tsMetaTempTable", value = value)
     }
 
   )
@@ -1199,14 +1239,14 @@ ConceptSetLineItem <- R6::R6Class(
   inherit = LineItem,
   public = list(
     initialize = function(
-    sectionLabel,
-    domainTable,
-    conceptSet,
-    timeInterval,
-    statistic,
-    sourceConceptSet = NULL,
-    typeConceptIds = c(),
-    visitOccurrenceConceptIds = c()
+      sectionLabel,
+      domainTable,
+      conceptSet,
+      timeInterval,
+      statistic,
+      sourceConceptSet = NULL,
+      typeConceptIds = c(),
+      visitOccurrenceConceptIds = c()
     ) {
       super$initialize(
         sectionLabel = sectionLabel,
@@ -1225,7 +1265,13 @@ ConceptSetLineItem <- R6::R6Class(
       .setNumber(private = private, key = "typeConceptIds", value = typeConceptIds, nullable = TRUE)
       .setNumber(private = private, key = "visitOccurrenceConceptIds", value = visitOccurrenceConceptIds, nullable = TRUE)
 
-    }
+    },
+
+        # helper to pull concept Capr class items
+     grabConceptSet = function() {
+        cs <- private$conceptSet
+        return(cs)
+     }
   ),
   private = list(
     conceptSet = NULL,
@@ -1286,11 +1332,7 @@ ConceptSetLineItem <- R6::R6Class(
 #       return(info)
 #     },
 #
-#     # helper to pull concept Capr class items
-#     grabConceptSet = function() {
-#       cs <- private$conceptSet
-#       return(cs)
-#     },
+
 #
 #     # helper to retrieve the time windows in the clas
 #     getTimeInterval = function() {
@@ -1568,6 +1610,11 @@ ConceptSetGroupLineItem <- R6::R6Class(
       csClasses <- rep("ConceptSet", length(conceptSets))
       .setListofClasses(private = private, key = "conceptSets", value = conceptSets, classes = csClasses)
 
+    },
+
+    grabConceptSet = function() {
+      cs <- private$conceptSets
+      return(cs)
     }
   ),
   private = list(
