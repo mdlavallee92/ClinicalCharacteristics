@@ -6,6 +6,71 @@
   return(op)
 }
 
+findLineItemId <- function(lineItems, classType) {
+  # get the class types
+  lineClasses <- purrr::map_chr(lineItems, ~.x$lineItemClass)
+  lineItemIds <- which(lineClasses == classType)
+  return(lineItemIds)
+}
+
+getCsFromR6 <- function(lineItems, classType) {
+  # get the class types
+  lineItemIds <- findLineItemId(lineItems, classType)
+  #subset the line items to those with a concept set
+  li2 <- lineItems[lineItemIds]
+
+  # grab concept set meta
+  if (classType == "ConceptSet") {
+    csHash <- purrr::map_chr(li2, ~.x$grabConceptSet()@id)
+    csName <- purrr::map_chr(li2, ~.x$grabConceptSet()@Name)
+  }
+
+  if (classType == "ConceptSetGroup") {
+    csg <- purrr::map(li2, ~.x$grabConceptSet()) |> purrr::list_flatten()
+    csHash <- purrr::map_chr(csg, ~.x@id)
+    csName <- purrr::map_chr(csg, ~.x@Name)
+  }
+
+
+  tb <- tibble::tibble(
+    id = csHash,
+    name = csName
+  )
+
+  return(tb)
+}
+
+setCsValueId <- function(lineItems) {
+
+  tsMeta <- purrr::map_dfr(
+    lineItems, ~.x$getLineItemMeta()
+  ) |>
+    dplyr::filter(
+      grepl("ConceptSet", lineItemClass)
+    )
+
+  ordId <- tsMeta$ordinalId
+
+  # get the cs id
+  csId <- getCsFromR6(lineItems, classType = "ConceptSet") |>
+    dplyr::bind_rows(getCsFromR6(lineItems, classType = "ConceptSetGroup")) |>
+    dplyr::mutate(
+      csId = dplyr::dense_rank(id)
+    ) |>
+    dplyr::pull(csId)
+
+
+  for (i in seq_along(ordId)) {
+    ii <- ordId[i]
+    newValueId <- csId[i]
+    lineItems[[ii]]$valueId <- newValueId
+  }
+
+  return(lineItems)
+
+}
+
+
 
 # function to get timeInterval and concept set / cohort combinations
 .permuteTi <- function(lineItemObjects, timeIntervals) {
