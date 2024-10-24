@@ -4,6 +4,8 @@ SELECT
   a.cohort_id,
   a.subject_id,
   CAST('{{catId}}' AS INT) AS category_id,
+  --ordinal_id,
+  --aggregation_type,
   a.time_id,
   a.value_id,
   1 AS value
