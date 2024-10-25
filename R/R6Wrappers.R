@@ -507,7 +507,7 @@ lineItems <- function(...) {
   }
 
   # add value ids for the concept sets
-  listOfLineItems <- setCsValueId(listOfLineItems)
+  listOfLineItems <- .setCsValueId(listOfLineItems)
 
   return(listOfLineItems)
 }

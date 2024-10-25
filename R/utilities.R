@@ -6,16 +6,16 @@
   return(op)
 }
 
-findLineItemId <- function(lineItems, classType) {
+.findLineItemId <- function(lineItems, classType) {
   # get the class types
   lineClasses <- purrr::map_chr(lineItems, ~.x$lineItemClass)
   lineItemIds <- which(lineClasses == classType)
   return(lineItemIds)
 }
 
-getCsFromR6 <- function(lineItems, classType) {
+.getCsFromR6 <- function(lineItems, classType) {
   # get the class types
-  lineItemIds <- findLineItemId(lineItems, classType)
+  lineItemIds <- .findLineItemId(lineItems, classType)
   #subset the line items to those with a concept set
   li2 <- lineItems[lineItemIds]
 
@@ -40,7 +40,7 @@ getCsFromR6 <- function(lineItems, classType) {
   return(tb)
 }
 
-setCsValueId <- function(lineItems) {
+.setCsValueId <- function(lineItems) {
 
   tsMeta <- purrr::map_dfr(
     lineItems, ~.x$getLineItemMeta()
@@ -52,7 +52,7 @@ setCsValueId <- function(lineItems) {
   ordId <- tsMeta$ordinalId
 
   # get the cs id
-  csId <- getCsFromR6(lineItems, classType = "ConceptSet") |>
+  csId <- .getCsFromR6(lineItems, classType = "ConceptSet") |>
     dplyr::bind_rows(getCsFromR6(lineItems, classType = "ConceptSetGroup")) |>
     dplyr::mutate(
       csId = dplyr::dense_rank(id)
@@ -90,6 +90,77 @@ setCsValueId <- function(lineItems) {
   return(permTiObj)
 
 }
+
+
+
+# function that translates the columns per domain
+.domainTranslate <- function(domain) {
+  # read domainTranslation file
+  dt <- readr::read_csv(
+    fs::path_package(package = "ClinicalCharacteristics", fs::path("csv", "domainTranslation.csv")),
+    show_col_types = FALSE
+  ) |>
+    dplyr::filter(
+      domain == !!domain # filter to domain of interest
+    )
+
+  return(dt)
+
+}
+
+.prepConceptSetOccurrenceQuerySql <- function(csTables, domain) {
+
+  domainGroup <- csTables |>
+    dplyr::filter(
+      domainTable == !!domain
+    )
+
+  # get the value ids for the domain of interest and create a character string
+  # to glue into sql
+  codeset_ids <- domainGroup |>
+    dplyr::arrange(valueId) |>
+    dplyr::pull(valueId) |>
+    unique() |>
+    glue::glue_collapse(sep = ", ")
+
+  time_labels <- domainGroup |>
+    dplyr::arrange(timeLabel) |>
+    dplyr::pull(timeLabel) |>
+    unique() |>
+    glue::glue_collapse(sep = "', '")
+
+  domainTranslation <- .domainTranslate(domain)
+
+  sql <- fs::path_package(
+    package = "ClinicalCharacteristics",
+    fs::path("sql", "conceptSetOccurrenceQuery.sql")
+  ) |>
+    readr::read_file() |>
+    glue::glue()
+
+  return(sql)
+
+}
+
+
+# Archive ------------------------
+
+
+.isLineItemContinuous <- function(statType) {
+  if (statType %in% c("Age", "Year", "Count")) {
+    check <- TRUE
+  } else {
+    check <-FALSE
+  }
+  return(check)
+}
+
+.getLineItemClassType <- function(li, classType) {
+  lineClasses <- purrr::map_chr(li, ~class(.x)[1])
+  li <- li[which(lineClasses == classType)]
+  return(li)
+}
+
 
 # function to build Concept Set Meta table; route concept set build
 .conceptSetMeta <- function(csLineItems) {
@@ -218,86 +289,75 @@ setCsValueId <- function(lineItems) {
 
 }
 
-.isLineItemContinuous <- function(statType) {
-  if (statType %in% c("Age", "Year", "Count")) {
-    check <- TRUE
-  } else {
-    check <-FALSE
-  }
-  return(check)
-}
 
-.getLineItemClassType <- function(li, classType) {
-  lineClasses <- purrr::map_chr(li, ~class(.x)[1])
-  li <- li[which(lineClasses == classType)]
-  return(li)
-}
+#
+# domain_translate <- function(domain) {
+#
+#   tt <- switch(domain,
+#                "condition_occurrence" = list(
+#                  'record_id' = "condition_occurrence_id",
+#                  'concept_id' ="condition_concept_id",
+#                  'concept_type_id' = "condition_type_concept_id",
+#                  'event_date' = "condition_start_date",
+#                  'source_concept_id' = "condition_source_concept_id"
+#                ),
+#                "drug_exposure" = list(
+#                  'record_id' = "drug_exposure_id",
+#                  'concept_id' = "drug_concept_id",
+#                  'concept_type_id' = "drug_type_concept_id",
+#                  'event_date' = "drug_exposure_start_date",
+#                  'source_concept_id' = "drug_source_concept_id"
+#                ),
+#                "procedure_occurrence" = list(
+#                  'record_id' = "procedure_occurrence_id",
+#                  'concept_id' = "procedure_concept_id",
+#                  'concept_type_id' = "procedure_type_concept_id",
+#                  'event_date' = "procedure_date",
+#                  'source_concept_id' = "procedure_source_concept_id"
+#                ),
+#                "observation" = list(
+#                  'record_id' = "observation_id",
+#                  'concept_id' = "observation_concept_id",
+#                  'concept_type_id' = "observation_type_concept_id",
+#                  'event_date' = "observation_date",
+#                  'source_concept_id' = "observation_source_concept_id"
+#                ),
+#                "device_exposure" = list(
+#                  'record_id' = "device_exposure_id",
+#                  'concept_id' = "device_concept_id",
+#                  'concept_type_id' = "device_type_concept_id",
+#                  'event_date' = "device_exposure_start_date",
+#                  'source_concept_id' = "device_source_concept_id"
+#                ),
+#                "measurement" = list(
+#                  'record_id' = "measurement_id",
+#                  'concept_id' = "measurement_concept_id",
+#                  'concept_type_id' = "measurement_type_concept_id",
+#                  'event_date' = "measurement_date",
+#                  'source_concept_id' = "measurement_source_concept_id"
+#                ),
+#                "visit_occurrence" = list(
+#                  'record_id' = "visit_occurrence_id",
+#                  'concept_id' = "visit_concept_id",
+#                  'concept_type_id' = "visit_type_concept_id",
+#                  'event_date' = "visit_start_date",
+#                  'source_concept_id' = "visit_source_concept_id"
+#                ),
+#                "provider" = list(
+#                  'concept_id' = "specialty_concept_id",
+#                  'merge_key' = "provider_id"
+#                ),
+#                "care_site" = list(
+#                  'concept_id' = "place_of_service_concept_id",
+#                  'merge_key' = "care_site_id"
+#                ),
+#                "gender" = list('concept_id' ="gender_concept_id"),
+#                "race" = list('concept_id' = "race_concept_id"),
+#                "ethnicity" = list('concept_id' = "ethnicity_concept_id")
+#   )
+#   return(tt)
+# }
 
-domain_translate <- function(domain) {
-  tt <- switch(domain,
-               "condition_occurrence" = list(
-                 'record_id' = "condition_occurrence_id",
-                 'concept_id' ="condition_concept_id",
-                 'concept_type_id' = "condition_type_concept_id",
-                 'event_date' = "condition_start_date",
-                 'source_concept_id' = "condition_source_concept_id"
-               ),
-               "drug_exposure" = list(
-                 'record_id' = "drug_exposure_id",
-                 'concept_id' = "drug_concept_id",
-                 'concept_type_id' = "drug_type_concept_id",
-                 'event_date' = "drug_exposure_start_date",
-                 'source_concept_id' = "drug_source_concept_id"
-               ),
-               "procedure_occurrence" = list(
-                 'record_id' = "procedure_occurrence_id",
-                 'concept_id' = "procedure_concept_id",
-                 'concept_type_id' = "procedure_type_concept_id",
-                 'event_date' = "procedure_date",
-                 'source_concept_id' = "procedure_source_concept_id"
-               ),
-               "observation" = list(
-                 'record_id' = "observation_id",
-                 'concept_id' = "observation_concept_id",
-                 'concept_type_id' = "observation_type_concept_id",
-                 'event_date' = "observation_date",
-                 'source_concept_id' = "observation_source_concept_id"
-               ),
-               "device_exposure" = list(
-                 'record_id' = "device_exposure_id",
-                 'concept_id' = "device_concept_id",
-                 'concept_type_id' = "device_type_concept_id",
-                 'event_date' = "device_exposure_start_date",
-                 'source_concept_id' = "device_source_concept_id"
-               ),
-               "measurement" = list(
-                 'record_id' = "measurement_id",
-                 'concept_id' = "measurement_concept_id",
-                 'concept_type_id' = "measurement_type_concept_id",
-                 'event_date' = "measurement_date",
-                 'source_concept_id' = "measurement_source_concept_id"
-               ),
-               "visit_occurrence" = list(
-                 'record_id' = "visit_occurrence_id",
-                 'concept_id' = "visit_concept_id",
-                 'concept_type_id' = "visit_type_concept_id",
-                 'event_date' = "visit_start_date",
-                 'source_concept_id' = "visit_source_concept_id"
-               ),
-               "provider" = list(
-                 'concept_id' = "specialty_concept_id",
-                 'merge_key' = "provider_id"
-               ),
-               "care_site" = list(
-                 'concept_id' = "place_of_service_concept_id",
-                 'merge_key' = "care_site_id"
-               ),
-               "gender" = list('concept_id' ="gender_concept_id"),
-               "race" = list('concept_id' = "race_concept_id"),
-               "ethnicity" = list('concept_id' = "ethnicity_concept_id")
-  )
-  return(tt)
-}
 
 
 .prepCsExtract <- function(csIdSet, twIdSet, domain, tempTableName) {

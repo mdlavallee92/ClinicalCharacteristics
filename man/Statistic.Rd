@@ -12,6 +12,7 @@ Specific types of statistics are defined in derived classes
 \itemize{
 \item \href{#method-Statistic-new}{\code{Statistic$new()}}
 \item \href{#method-Statistic-getStatType}{\code{Statistic$getStatType()}}
+\item \href{#method-Statistic-getStatLabel}{\code{Statistic$getStatLabel()}}
 \item \href{#method-Statistic-clone}{\code{Statistic$clone()}}
 }
 }
@@ -20,7 +21,7 @@ Specific types of statistics are defined in derived classes
 \if{latex}{\out{\hypertarget{method-Statistic-new}{}}}
 \subsection{Method \code{new()}}{
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Statistic$new(type)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Statistic$new(label, type)}\if{html}{\out{</div>}}
 }
 
 }
@@ -30,6 +31,15 @@ Specific types of statistics are defined in derived classes
 \subsection{Method \code{getStatType()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Statistic$getStatType()}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Statistic-getStatLabel"></a>}}
+\if{latex}{\out{\hypertarget{method-Statistic-getStatLabel}{}}}
+\subsection{Method \code{getStatLabel()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Statistic$getStatLabel()}\if{html}{\out{</div>}}
 }
 
 }
