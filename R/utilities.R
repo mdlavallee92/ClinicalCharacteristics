@@ -15,13 +15,6 @@
 
 .getCsFromR6 <- function(lineItems) {
 
-  csMeta <- purrr::map_dfr(
-    lineItems, ~.x$getLineItemMeta()
-  ) |>
-    dplyr::filter(
-      grepl("ConceptSet", lineItemClass)
-    )
-
   idsToPluck <- c(
     .findLineItemId(lineItems = lineItems, classType = "ConceptSet"),
     .findLineItemId(lineItems = lineItems, classType = "ConceptSetGroup")
@@ -35,16 +28,33 @@
     purrr::list_flatten()
 
 
-  cs_id <- !duplicated(purrr::map_chr(csCapr, ~.x@id))
-  cs_tbl2 <- csCapr[cs_id]
+  # cs_id <- !duplicated(purrr::map_chr(csCapr, ~.x@id))
+  # cs_tbl2 <- csCapr[cs_id]
 
-  return(cs_tbl2)
+  return(csCapr)
 }
 
 .setCsValueId <- function(lineItems) {
 
+  csMeta <- purrr::map_dfr(
+    lineItems, ~.x$getLineItemMeta()
+  ) |>
+    dplyr::filter(
+      grepl("ConceptSet", lineItemClass)
+    )
+
   caprCs <- .getCsFromR6(lineItems)
-  csId <- seq_along(caprCs)
+
+  tb <- tibble::tibble(
+    id = purrr::map_chr(caprCs, ~.x@id),
+    name = purrr::map_chr(caprCs, ~.x@Name)
+  )
+
+  csId <- tb |>
+    dplyr::mutate(
+      csId = dplyr::dense_rank(id)
+    ) |>
+    dplyr::pull(csId)
 
   ordId <- csMeta$ordinalId
 

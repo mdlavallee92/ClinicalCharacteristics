@@ -401,9 +401,9 @@ TableShell <- R6::R6Class("TableShell",
       li <- self$getLineItems()
       caprCs <- .getCsFromR6(li)
 
-      #turn into query
-      cs_query <- .bindCodesetQueries(caprCs, codesetTable = codesetTable)
-
+      if (length(caprCs) >= 1) {
+        #turn into query
+        cs_query <- .bindCodesetQueries(caprCs, codesetTable = codesetTable)
       } else{
         cs_query <- ""
       }
