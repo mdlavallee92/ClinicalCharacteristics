@@ -272,7 +272,7 @@ TableShell <- R6::R6Class("TableShell",
 
     ### private methods ---------------
     # function to insert tsMeta
-    insertTsMeta = function(executionSettings, buildOptions) {
+    .insertTsMeta = function(executionSettings, buildOptions) {
       # ensure that executionSettings R6 object used
       checkmate::assert_class(executionSettings, classes = "ExecutionSettings", null.ok = FALSE)
 
@@ -431,53 +431,40 @@ TableShell <- R6::R6Class("TableShell",
     },
 
     # function to extract concept level information
-    .buildConceptLineItemQuery = function() {
+    .buildConceptSetOccurrenceQuery = function() {
 
       # Step 1: Get the concept set meta
-      csMeta <- private$.grabConceptSetMetaTable()
+      csMeta <- self$getTableShellMeta() |>
+        dplyr::filter(grepl("ConceptSet"), lineItemClass)
 
       # only run if CSD in ts
       if (!is.null(csMeta)) {
 
         # Step 2: Prep the concept set extraction
         csTables <- csMeta |>
-          dplyr::select(csIdSet, twIdSet, domain, tempTableName) |>
-          dplyr::distinct()
-        # Use sql template to create different domain joins
-        csExtractSql <- purrr::pmap_chr(
-          csTables,
-          ~.prepCsExtract(
-            csIdSet = ..1,
-            twIdSet = ..2,
-            domain = ..3,
-            tempTableName = ..4
+          dplyr::select(valueId, valueDescription, timeLabel, domainTable)
+
+        domainTablesInUse <- unique(csTables$domainTable)
+
+        conceptSetOccurrenceSqlGrp <- purrr::map(
+          domainTablesInUse,
+          ~.prepConceptSetOccurrenceQuerySql(
+            csTables = csTables,
+            domain = .x
           )
         ) |>
-          glue::glue_collapse(sep = "\n\n")
+          glue::glue_collapse(sep = "\n\nUNION ALL\n\n")
 
-        # step 3: transform extraction based on stat
-        statTb <- csMeta |>
-          dplyr::select(categoryId, tempTableName, sql) |>
-          dplyr::distinct()
-
-        csTransformSql <- purrr::pmap_chr(
-          statTb,
-          ~.prepCsTransform(
-            categoryId = ..1,
-            tempTableName = ..2,
-            sql = ..3
-          )
-        ) |>
-          glue::glue_collapse(sep = "\n\n")
-
-
-        csSql <- c(csExtractSql, csTransformSql) |>
-          glue::glue_collapse(sep = "\n\n")
-
+        conceptSetOccurrenceSql <- glue::glue(
+          "CREATE TABLE @concept_set_occurrence_table AS
+          {conceptSetOccurrenceSqlGrp}
+          ;
+          "
+        )
       } else {
-        csSql <- ""
+        conceptSetOccurrenceSql <- ""
       }
-      return(csSql)
+      return(conceptSetOccurrenceSql)
 
     },
 
@@ -829,7 +816,7 @@ CohortInfo <- R6::R6Class("CohortInfo",
 
 # Statistic Class ---------------------
 
-# Statistic Super-------------
+## Statistic Super-------------
 
 #' @title
 #' An R6 class to define a Statistic object
@@ -877,8 +864,10 @@ Statistic <- R6::R6Class(
 #                          )
 # )
 
-## Demographic Stats
+## Demographic Stats----------------------
 
+
+### Continuous Age ---------------------
 ContinuousAge <- R6::R6Class(
   classname = "ContinuousAge",
   inherit = Statistic,
@@ -889,6 +878,7 @@ ContinuousAge <- R6::R6Class(
   )
 )
 
+### Categorical Age ---------------------
 CategoricalAge <- R6::R6Class(
   classname = "CategoricalAge",
   inherit = Statistic,
@@ -902,23 +892,6 @@ CategoricalAge <- R6::R6Class(
     breaks = NULL
   )
 )
-
-### Demographic Age -----------------
-# DemographicAge <- R6::R6Class("DemographicAge",
-#                    inherit = Statistic,
-#                    public = list(
-#                      initialize = function(breaks = NULL) {
-#                        super$initialize(type = "Age")
-#                        if (!is.null(breaks)) {
-#                          .setClass(private = private, key = "breaks", value = breaks, class = "Breaks")
-#                        }
-#                        invisible(private)
-#                      }
-#                    ),
-#                    private = list(
-#                      breaks = NULL
-#                    )
-# )
 
 
 ### Demographic Concept -----------------
@@ -989,6 +962,13 @@ DemographicYear <- R6::R6Class("DemographicYear",
 
 ## Presence -----------------------
 
+#' @title
+#' An R6 class to define a Presence object
+#'
+#' @description
+#' Child of Statistic. The Presence statistic is a binary metric the indicates the presence of a variable
+#'
+#' @export
 CategoricalPresence <- R6::R6Class(
   classname = "CategoricalPresence",
   inherit = Statistic,
@@ -1005,41 +985,35 @@ CategoricalPresence <- R6::R6Class(
   )
 )
 
-#' @title
-#' An R6 class to define a Presence object
-#'
-#' @description
-#' Child of Statistic. The Presence statistic is a binary metric the indicates the presence of a variable
-#'
-#' @export
-Presence <- R6::R6Class("Presence",
-                        inherit = Statistic,
-                        public = list(
-                          initialize = function(operator,
-                                                occurrences) {
-                            super$initialize(type = "Presence")
-                            # TODO change this to enforce operator from choice list
-                            .setString(private = private, key = "operator", value = operator)
-                            .setNumber(private = private, key = "occurrences", value = occurrences)
-                            invisible(private)
-                          },
-                          getSql = function() {
 
-                            sqlFile <- "presenceStat.sql"
-                            op <- .opConverter(private$operator)
-                            occurrences <- private$occurrences
-                            # get sql from package
-                            sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", sqlFile)) |>
-                              readr::read_file() |>
-                              glue::glue()
-                            return(sql)
-                          }
-                        ),
-                        private = list(
-                          operator = NULL,
-                          occurrences = NA
-                        )
-)
+# Presence <- R6::R6Class("Presence",
+#                         inherit = Statistic,
+#                         public = list(
+#                           initialize = function(operator,
+#                                                 occurrences) {
+#                             super$initialize(type = "Presence")
+#                             # TODO change this to enforce operator from choice list
+#                             .setString(private = private, key = "operator", value = operator)
+#                             .setNumber(private = private, key = "occurrences", value = occurrences)
+#                             invisible(private)
+#                           },
+#                           getSql = function() {
+#
+#                             sqlFile <- "presenceStat.sql"
+#                             op <- .opConverter(private$operator)
+#                             occurrences <- private$occurrences
+#                             # get sql from package
+#                             sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", sqlFile)) |>
+#                               readr::read_file() |>
+#                               glue::glue()
+#                             return(sql)
+#                           }
+#                         ),
+#                         private = list(
+#                           operator = NULL,
+#                           occurrences = NA
+#                         )
+# )
 
 
 ## Count -----------------------
