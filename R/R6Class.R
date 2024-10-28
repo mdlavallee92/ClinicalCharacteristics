@@ -902,7 +902,7 @@ CategoricalDemographic <- R6::R6Class(
     initialize = function(label, conceptColumn, conceptId) {
       super$initialize(label, type = "Categorical")
       .setString(private = private, key = "conceptColumn", value = conceptColumn)
-      .setInteger(private = private, key = "conceptId", value = conceptId)
+      .setNumber(private = private, key = "conceptId", value = conceptId)
     },
     getConceptColumn = function() {
       rr <- private$conceptColumn
@@ -1122,7 +1122,7 @@ private = list(
 ),
 active = list(
   ordinalId = function(ordinalId) {
-    .setActiveInteger(private = private, key = ".ordinalId", value = ordinalId)
+    .setActiveNumber(private = private, key = ".ordinalId", value = ordinalId)
   },
   sectionLabel = function(sectionLabel) {
     .setActiveString(private = private, key = ".sectionLabel", value = sectionLabel)
@@ -1131,7 +1131,7 @@ active = list(
     .setActiveString(private = private, key = ".lineItemLabel", value = lineItemLabel)
   },
   valueId = function(valueId) {
-    .setActiveInteger(private = private, key = ".valueId", value = valueId)
+    .setActiveNumber(private = private, key = ".valueId", value = valueId)
   },
   valueDescription = function(valueDescription) {
     .setActiveString(private = private, key = ".valueDescription", value = valueDescription)
@@ -1455,13 +1455,14 @@ CohortLineItem <- R6::R6Class(
   public = list(
     initialize = function(
     sectionLabel,
+    domainTable,
     covariateCohort,
     timeInterval,
     statistic
     ) {
       super$initialize(
         sectionLabel = sectionLabel,
-        domainTable = NULL,
+        domainTable = domainTable,
         lineItemClass = "Cohort",
         valueDescription = "cohort_definition_id",
         statistic = statistic,

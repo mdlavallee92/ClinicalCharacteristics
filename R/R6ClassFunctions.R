@@ -82,11 +82,11 @@
 }
 
 
-.setActiveInteger <- function(private, key, value) {
+.setActiveNumber <- function(private, key, value) {
   # return the value if nothing added
   if(missing(value)) {
     vv <- private[[key]]
     return(vv)
   }
-  .setInteger(private = private, key = key, value = value)
+  .setNumber(private = private, key = key, value = value)
 }
