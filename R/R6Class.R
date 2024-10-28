@@ -1067,7 +1067,7 @@ public = list(
   initialize = function(
     sectionLabel,
     lineItemLabel = NA_character_,
-    domainTable = NA_character_,
+    domainTable,
     lineItemClass,
     valueId = NA_integer_,
     valueDescription  = NA_integer_,
@@ -1076,7 +1076,7 @@ public = list(
   ) {
     .setString(private = private, key = ".sectionLabel", value = sectionLabel)
     .setString(private = private, key = ".lineItemLabel", value = lineItemLabel, naOk = TRUE)
-    .setCharacter(private = private, key = ".domainTable", value = domainTable, nullOk = TRUE)
+    .setCharacter(private = private, key = ".domainTable", value = domainTable)
     .setString(private = private, key = ".lineItemClass", value = lineItemClass)
     .setNumber(private = private, key = ".valueId", value = valueId)
     .setString(private = private, key = ".valueDescription", value = valueDescription, naOk = TRUE)

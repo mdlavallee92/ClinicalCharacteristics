@@ -42,7 +42,7 @@ test_that("LineItem class initializes correctly", {
   lineItemLabel <- "Item 1"
   domainTable <- "Table 1"
   lineItemClass <- "Class A"
-  valueId <- as.integer(1)
+  valueId <- 1
   valueDescription <- "Description 1"
   statistic <- Statistic$new(label = "test", type = "test")
   timeInterval <- TimeInterval$new(0,365)
