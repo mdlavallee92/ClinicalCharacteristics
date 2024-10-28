@@ -41,14 +41,14 @@ test_that("createExecutionSettings returns an ExecutionSettings object", {
 })
 
 test_that("createConceptSetLineItem creates a ConceptSetLineItem object", {
-  csLi <- createConceptSetLineItem(name = "Concept Set 1",
-                                   statistic = Presence$new("equal", 1),
-                                   domain = "Drug",
+  csLi <- createConceptSetLineItem(sectionLabel = "Concept Set 1",
+                                   statistic = CategoricalPresence$new(">", 1),
+                                   domain = "drug_exposure",
                                    conceptSet = Capr::cs(1335471, name = "test"),
                                    timeInterval = TimeInterval$new(0,365))
   expect_true(inherits(csLi, "ConceptSetLineItem"))
   expect_true(inherits(csLi, "LineItem"))
-  expect_equal(csLi$getDefinitionType(), "ConceptSet")
+  expect_equal(csLi$lineItemClass, "ConceptSet")
 })
 
 test_that("createConceptSetLineItem creates a ConceptSetLineItem object - no name specified", {
