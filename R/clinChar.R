@@ -289,7 +289,7 @@ summarize_categorical<- function(connection, dataTable, workDatabaseSchema, coho
 
   sql <- glue::glue(
     "WITH T1 AS (
-    SELECT * FROM {dataTable} WHERE category_id IN ({cat_ids})
+    SELECT DISTINCT * FROM {dataTable} WHERE category_id IN ({cat_ids})
   ),
   T2 AS (
     SELECT cohort_definition_id AS cohort_id, COUNT(DISTINCT subject_id) AS tot
