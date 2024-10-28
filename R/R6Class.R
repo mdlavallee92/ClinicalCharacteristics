@@ -1067,18 +1067,18 @@ public = list(
   initialize = function(
     sectionLabel,
     lineItemLabel = NA_character_,
-    domainTable,
+    domainTable = NA_character_,
     lineItemClass,
     valueId = NA_integer_,
     valueDescription  = NA_integer_,
     statistic,
-    timeInterval
+    timeInterval = NULL
   ) {
     .setString(private = private, key = ".sectionLabel", value = sectionLabel)
     .setString(private = private, key = ".lineItemLabel", value = lineItemLabel, naOk = TRUE)
-    .setCharacter(private = private, key = ".domainTable", value = domainTable)
+    .setCharacter(private = private, key = ".domainTable", value = domainTable, nullOk = TRUE)
     .setString(private = private, key = ".lineItemClass", value = lineItemClass)
-    .setInteger(private = private, key = ".valueId", value = valueId)
+    .setNumber(private = private, key = ".valueId", value = valueId)
     .setString(private = private, key = ".valueDescription", value = valueDescription, naOk = TRUE)
     .setClass(private = private, key = "statistic", value = statistic, class = "Statistic")
     .setClass(private = private, key = "timeInterval", value = timeInterval, class = "TimeInterval", nullable = TRUE)
@@ -1455,14 +1455,13 @@ CohortLineItem <- R6::R6Class(
   public = list(
     initialize = function(
     sectionLabel,
-    domainTable,
     covariateCohort,
     timeInterval,
     statistic
     ) {
       super$initialize(
         sectionLabel = sectionLabel,
-        domainTable = domainTable,
+        domainTable = NULL,
         lineItemClass = "Cohort",
         valueDescription = "cohort_definition_id",
         statistic = statistic,
