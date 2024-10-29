@@ -399,7 +399,26 @@ TableShell <- R6::R6Class("TableShell",
 
       # get concept set line items
       li <- self$getLineItems()
-      caprCs <- .getCsFromR6(li)
+
+      # identify line items with concept set or concept set group
+      idsToPluck <- c(
+        .findLineItemId(lineItems = li, classType = "ConceptSet"),
+        .findLineItemId(lineItems = li, classType = "ConceptSetGroup")
+      )
+      filteredLineItems <- li[idsToPluck]
+
+      # pluck the capr concept sets
+      caprCs <- purrr::map(
+        filteredLineItems,
+        ~.x$grabConceptSet()
+      ) |>
+        purrr::list_flatten()
+
+      codesetIds <- purrr::map_int(
+        filteredLineItems,
+        ~.x$valueId
+      )
+
 
       if (length(caprCs) >= 1) {
         #turn into query
