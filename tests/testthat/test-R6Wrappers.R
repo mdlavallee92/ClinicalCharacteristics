@@ -1,20 +1,20 @@
 library(testthat)
 
-# Dependent on R6Class.R change
-# test_that("createTableShell returns a TableShell object with the correct name", {
-#   name <- "Table 1"
-#   targetCohort <- CohortInfo$new(id = 1, name = "Cohort 1")
-#   stat <- Statistic$new(type = "Categorical", label = "test")
-#   lineItem <- LineItem$new(sectionLabel = "test",
-#                            domainTable = "drug_exposure",
-#                            lineItemClass = "ConcepSet",
-#                            statistic = stat)
-#   tableShell <- createTableShell(title = "Table 1",
-#                                  targetCohorts = list(targetCohort),
-#                                  lineItems = list(lineItem))
-#   expect_true(inherits(tableShell, "TableShell"))
-#   expect_equal(tableShell$getName(), name)
-# })
+test_that("createTableShell returns a TableShell object with the correct name", {
+  targetCohort <- CohortInfo$new(id = 1, name = "Cohort 1")
+  stat <- Statistic$new(label = "test", type = "test")
+  lineItem <- LineItem$new(
+    sectionLabel = "sectionLabel",
+    domain = "Hello",
+    lineItemClass = "lineItemClass",
+    statistic = stat
+  )
+  tableShell <- createTableShell(title = "Table 1",
+                                 targetCohorts = list(targetCohort),
+                                 lineItems = list(lineItem))
+  expect_true(inherits(tableShell, "TableShell"))
+  expect_equal(tableShell$getName(), "Table 1")
+})
 
 test_that("parseCohortInfoFromDf parses cohort info from a data frame", {
   df <- data.frame(id = c(1, 2), name = c("Cohort 1", "Cohort 2"))

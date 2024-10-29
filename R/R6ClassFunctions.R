@@ -18,8 +18,8 @@
   invisible(private)
 }
 
-.setCharacter <- function(private, key, value) {
-  checkmate::assert_character(x = value, min.chars = 1, null.ok = FALSE)
+.setCharacter <- function(private, key, value, nullOk = FALSE) {
+  checkmate::assert_character(x = value, min.chars = 1, null.ok = nullOk)
   private[[key]] <- value
   invisible(private)
 }
@@ -29,13 +29,6 @@
   private[[key]] <- value
   invisible(private)
 }
-
-.setInteger <- function(private, key, value, nullable = FALSE) {
-  checkmate::assert_integer(x = value, null.ok = nullable)
-  private[[key]] <- value
-  invisible(private)
-}
-
 
 .setLogical <- function(private, key, value) {
   checkmate::assert_logical(x = value, null.ok = FALSE)
@@ -89,11 +82,11 @@
 }
 
 
-.setActiveInteger <- function(private, key, value) {
+.setActiveNumber <- function(private, key, value) {
   # return the value if nothing added
   if(missing(value)) {
     vv <- private[[key]]
     return(vv)
   }
-  .setInteger(private = private, key = key, value = value)
+  .setNumber(private = private, key = key, value = value)
 }
