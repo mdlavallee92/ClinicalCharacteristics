@@ -203,8 +203,6 @@ createConceptSetLineItem <- function(sectionLabel = NA_character_,
 #' @return A list of ConceptSetLineItem objects
 #'
 #' @export
-
-
 createConceptSetLineItemBatch <- function(
     sectionLabel,
     domain,
@@ -428,7 +426,7 @@ createCohortLineItem <- function(sectionLabel = NA_character_,
 #'
 #' @description
 #' The name of each line item will be set to the name of its cohort from the CohortInfo object.
-#' @param name The name of the cohort batch
+#' @param sectionLabel The name of the cohort batch
 #' @param statistic The Statistic object to be used to evaluate the line items
 #' @param cohorts A list of CohortInfo objects
 #' @param timeIntervals A list of TimeInterval class objects
@@ -437,9 +435,10 @@ createCohortLineItem <- function(sectionLabel = NA_character_,
 #'
 #' @export
 createCohortLineItemBatch <- function(
-    name,
+    sectionLabel,
+    covariateCohorts,
+    cohortTable,
     statistic,
-    cohorts,
     timeIntervals) {
 
   checkmate::assert_list(x = cohorts, types = c("CohortInfo"), null.ok = FALSE, min.len = 1)
@@ -449,19 +448,22 @@ createCohortLineItemBatch <- function(
   permDf <- .permuteTi(cohorts, timeIntervals)
 
   # create batch of concept set line items
-  cLiBatch <- purrr::map2(
+  # create batch of concept set line items
+  chLiBatch <- purrr::map2(
     permDf$objects,
     permDf$timeIntervals,
     ~createCohortLineItem(
-      name = .x$name,
-      statistic = statistic,
-      cohort = .x,
-      timeInterval = .y
+      sectionLabel = sectionLabel,
+      covariateCohort = .x,
+      cohortTable,
+      timeInterval= .y,
+      statistic = statistic
     )
   ) |>
     unname()
 
-  return(cLiBatch)
+
+  return(chLiBatch)
 }
 
 
