@@ -441,11 +441,11 @@ createCohortLineItemBatch <- function(
     statistic,
     timeIntervals) {
 
-  checkmate::assert_list(x = cohorts, types = c("CohortInfo"), null.ok = FALSE, min.len = 1)
+  checkmate::assert_list(x = covariateCohorts, types = c("CohortInfo"), null.ok = FALSE, min.len = 1)
   checkmate::assert_list(x = timeIntervals, types = c("TimeInterval"), null.ok = FALSE, min.len = 1)
 
   # build permutations of concepts and timeIntervals
-  permDf <- .permuteTi(cohorts, timeIntervals)
+  permDf <- .permuteTi(covariateCohorts, timeIntervals)
 
   # create batch of concept set line items
   # create batch of concept set line items

@@ -902,7 +902,7 @@ CategoricalDemographic <- R6::R6Class(
     initialize = function(label, conceptColumn, conceptId) {
       super$initialize(label, type = "Categorical")
       .setString(private = private, key = "conceptColumn", value = conceptColumn)
-      .setInteger(private = private, key = "conceptId", value = conceptId)
+      .setNumber(private = private, key = "conceptId", value = conceptId)
     },
     getConceptColumn = function() {
       rr <- private$conceptColumn
@@ -1072,13 +1072,13 @@ public = list(
     valueId = NA_integer_,
     valueDescription  = NA_integer_,
     statistic,
-    timeInterval
+    timeInterval = NULL
   ) {
     .setString(private = private, key = ".sectionLabel", value = sectionLabel)
     .setString(private = private, key = ".lineItemLabel", value = lineItemLabel, naOk = TRUE)
     .setCharacter(private = private, key = ".domainTable", value = domainTable)
     .setString(private = private, key = ".lineItemClass", value = lineItemClass)
-    .setInteger(private = private, key = ".valueId", value = valueId)
+    .setNumber(private = private, key = ".valueId", value = valueId)
     .setString(private = private, key = ".valueDescription", value = valueDescription, naOk = TRUE)
     .setClass(private = private, key = "statistic", value = statistic, class = "Statistic")
     .setClass(private = private, key = "timeInterval", value = timeInterval, class = "TimeInterval", nullable = TRUE)
@@ -1122,7 +1122,7 @@ private = list(
 ),
 active = list(
   ordinalId = function(ordinalId) {
-    .setActiveInteger(private = private, key = ".ordinalId", value = ordinalId)
+    .setActiveNumber(private = private, key = ".ordinalId", value = ordinalId)
   },
   sectionLabel = function(sectionLabel) {
     .setActiveString(private = private, key = ".sectionLabel", value = sectionLabel)
@@ -1131,7 +1131,7 @@ active = list(
     .setActiveString(private = private, key = ".lineItemLabel", value = lineItemLabel)
   },
   valueId = function(valueId) {
-    .setActiveInteger(private = private, key = ".valueId", value = valueId)
+    .setActiveNumber(private = private, key = ".valueId", value = valueId)
   },
   valueDescription = function(valueDescription) {
     .setActiveString(private = private, key = ".valueDescription", value = valueDescription)
