@@ -78,51 +78,6 @@ TableShell <- R6::R6Class("TableShell",
 
     },
 
-    # function to insert time windows
-    insertTimeWindows = function(executionSettings, buildOptions) {
-
-      # ensure that executionSettings R6 object used
-      checkmate::assert_class(executionSettings, classes = "ExecutionSettings", null.ok = FALSE)
-
-      # get concept set line items
-      csLineItems <- private$.pluckLineItems(classType = "ConceptSetLineItem")
-
-      # make the time windows table
-      time_tbl <- purrr::map_dfr(csLineItems, ~.x$getTimeInterval()) |>
-        dplyr::distinct() |>
-        dplyr::mutate(
-          time_id = dplyr::row_number(), .before = 1
-        ) |>
-        dplyr::rename(
-          time_a = lb,
-          time_b = rb
-        )
-
-      cli::cat_bullet(
-        glue::glue("Insert time window tables for characterization"),
-        bullet = "pointer",
-        bullet_col = "yellow"
-      )
-
-      # establish connection to database
-      connection <- executionSettings$getConnection()
-
-      if (is.null(connection)) {
-        connection <- executionSettings$connect()
-      }
-
-      # insert the time windows into the database
-      DatabaseConnector::insertTable(
-        connection = connection,
-        tableName = buildOptions$timeWindowTempTable,
-        tempEmulationSchema = executionSettings$tempEmulationSchema,
-        data = time_tbl,
-        tempTable = TRUE
-      )
-
-      invisible(time_tbl)
-
-    },
 
     #key function to generate the table shell
     buildTableShellSql = function(executionSettings, buildOptions) {
@@ -305,6 +260,58 @@ TableShell <- R6::R6Class("TableShell",
       invisible(tsMeta)
     },
 
+    .insertTimeWindows = function(executionSettings, buildOptions) {
+      # ensure that executionSettings R6 object used
+      checkmate::assert_class(executionSettings, classes = "ExecutionSettings", null.ok = FALSE)
+
+      # get concept set line items
+      csLineItems <- self$getTableShellMeta() |>
+        dplyr::filter(grepl("ConceptSet", lineItemClass))
+
+      # make the time windows table
+      time_tbl <- tibble::tibble(
+        time_label = csLineItems$timeLabel
+        ) |>
+        dplyr::distinct() |>
+        tidyr::separate_wider_delim(
+          time_label,
+          delim = " to ",
+          names = c("time_a", "time_b"),
+          cols_remove = FALSE
+        ) |>
+        dplyr::mutate(
+          time_a = as.integer(gsub("d", "", time_a)),
+          time_b = as.integer(gsub("d", "", time_b))
+        ) |>
+        dplyr::select(
+          time_label, time_a, time_b
+        )
+
+      cli::cat_bullet(
+        glue::glue("Insert time window tables for characterization"),
+        bullet = "pointer",
+        bullet_col = "yellow"
+      )
+
+      # establish connection to database
+      connection <- executionSettings$getConnection()
+
+      if (is.null(connection)) {
+        connection <- executionSettings$connect()
+      }
+
+      # insert the time windows into the database
+      DatabaseConnector::insertTable(
+        connection = connection,
+        tableName = buildOptions$timeWindowTempTable,
+        tempEmulationSchema = executionSettings$tempEmulationSchema,
+        data = time_tbl,
+        tempTable = TRUE
+      )
+
+      invisible(time_tbl)
+    },
+
     #function to create dat table
     .makeDatTable = function(){
       sqlFile <- "datTable.sql"
@@ -433,7 +440,7 @@ TableShell <- R6::R6Class("TableShell",
 
       # Step 1: Get the concept set meta
       csMeta <- self$getTableShellMeta() |>
-        dplyr::filter(grepl("ConceptSet"), lineItemClass)
+        dplyr::filter(grepl("ConceptSet", lineItemClass))
 
       # only run if CSD in ts
       if (!is.null(csMeta)) {
