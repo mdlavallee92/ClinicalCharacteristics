@@ -13,55 +13,78 @@
   return(lineItemIds)
 }
 
-.getCsFromR6 <- function(lineItems) {
+# .getCsFromR6 <- function(lineItems) {
+#
+#   idsToPluck <- c(
+#     .findLineItemId(lineItems = lineItems, classType = "ConceptSet"),
+#     .findLineItemId(lineItems = lineItems, classType = "ConceptSetGroup")
+#   )
+#   filteredLineItems <- lineItems[idsToPluck]
+#
+#   csCapr <- purrr::map(
+#     filteredLineItems,
+#     ~.x$grabConceptSet()
+#   ) |>
+#     purrr::list_flatten()
+#
+#
+#   # cs_id <- !duplicated(purrr::map_chr(csCapr, ~.x@id))
+#   # cs_tbl2 <- csCapr[cs_id]
+#
+#   return(csCapr)
+# }
 
-  idsToPluck <- c(
-    .findLineItemId(lineItems = lineItems, classType = "ConceptSet"),
-    .findLineItemId(lineItems = lineItems, classType = "ConceptSetGroup")
-  )
+.setCsValueId <- function(lineItems) {
+  # get list ids for class types
+  conceptSetLineItems <- .findLineItemId(lineItems = lineItems, classType = "ConceptSet")
+  conceptSetGroupLineItems <- .findLineItemId(lineItems = lineItems, classType = "ConceptSetGroup")
+
+  #make a subsetting vector of list ids
+  idsToPluck <- c(conceptSetLineItems, conceptSetGroupLineItems)
+  #filted line items to those with concepts
   filteredLineItems <- lineItems[idsToPluck]
 
-  csCapr <- purrr::map(
+  # get the capr concept sets for all the concepts
+  caprCs <- purrr::map(
     filteredLineItems,
     ~.x$grabConceptSet()
   ) |>
     purrr::list_flatten()
 
-
-  # cs_id <- !duplicated(purrr::map_chr(csCapr, ~.x@id))
-  # cs_tbl2 <- csCapr[cs_id]
-
-  return(csCapr)
-}
-
-.setCsValueId <- function(lineItems) {
-
-  csMeta <- purrr::map_dfr(
-    lineItems, ~.x$getLineItemMeta()
-  ) |>
-    dplyr::filter(
-      grepl("ConceptSet", lineItemClass)
-    )
-
-  caprCs <- .getCsFromR6(lineItems)
-
+  # make a table identifying the codeset id for the query, unique to each cs
   tb <- tibble::tibble(
     id = purrr::map_chr(caprCs, ~.x@id),
     name = purrr::map_chr(caprCs, ~.x@Name)
-  )
-
-  csId <- tb |>
+  ) |>
     dplyr::mutate(
       csId = dplyr::dense_rank(id)
-    ) |>
-    dplyr::pull(csId)
+    )
 
-  ordId <- csMeta$ordinalId
+  # get length of each conceptSetGroup
+  csgLiLength <- lineItems[conceptSetGroupLineItems] |>
+    purrr::map_int(~length(.x$grabConceptSet()))
+  # make full list of ord ids
+  fullListOfIds <- c(
+    conceptSetLineItems,
+    rep(conceptSetGroupLineItems, each = csgLiLength) # rep each group by num of concepts in group
+  )
+# add the full list to tb to identify the ordinal of csId
+  tb <- tb |>
+    dplyr::mutate(
+      ord = fullListOfIds
+    )
 
-  for (i in seq_along(ordId)) {
-    ii <- ordId[i]
-    newValueId <- csId[i]
-    lineItems[[ii]]$valueId <- newValueId
+
+  for (i in 1:nrow(tb)) {
+
+    ordId <- tb$ord[i] # plock ord
+    csId <- tb |> # get vector of csId corresponding to ord slot. if cs only 1 if csg more than 1
+      dplyr::filter(
+        ord == ordId
+      ) |>
+      dplyr::pull(csId)
+
+    lineItems[[ordId]]$valueId <- csId
   }
 
   return(lineItems)

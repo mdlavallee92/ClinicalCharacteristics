@@ -143,6 +143,7 @@ build_codeset_query <- function(tb, id){
 
   #make ids for concept sets
   ids <- seq_along(conceptSet)
+
   #turn into list of tables
   ll <- purrr::map2(conceptSet, ids, ~exp_to_table(.x) |> build_codeset_query(id = .y))
   set <- paste(ll, collapse = "\nUNION ALL\n")
