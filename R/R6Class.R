@@ -1095,7 +1095,7 @@ public = list(
     tb <- tibble::tibble(
       ordinalId = private$.ordinalId,
       sectionLabel = private$.sectionLabel,
-      linetItemLabel = private$.lineItemLabel,
+      lineItemLabel = private$.lineItemLabel,
       valueId = private$.valueId,
       valueDescription = private$.valueDescription,
       timeLabel = timeLabel,

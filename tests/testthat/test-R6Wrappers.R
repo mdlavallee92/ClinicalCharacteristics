@@ -113,3 +113,62 @@ test_that("createCohorttLineItemBatch creates a list of CohortLineItem objects",
   expect_true(inherits(cohortList[[1]], "LineItem"))
   expect_equal(cohortList[[1]]$lineItemLabel, "A")
 })
+
+
+test_that("create a set of lineItems", {
+
+  cs1 <- list(
+    't2d' = Capr::cs(Capr::descendants(201826), name = "t2d"),
+    'ckd' = Capr::cs(Capr::descendants(46271022), name = "ckd")
+  )
+
+  cs2 <- list(
+    'sglt2' = Capr::cs(Capr::descendants(1123627), name = "sglt2"),
+    'glp1' = Capr::cs(Capr::descendants(1123618), name = "glp1")
+  )
+
+  tw1 <- list(
+    timeInterval(lb = -365, rb = -1)
+  )
+  tw2 <- list(
+    timeInterval(lb = 0, rb = 90),
+    timeInterval(lb = 0, rb = 365)
+  )
+
+  lineItems = lineItems(
+    createDemographicLineItem(maleGender()),
+    createConceptSetLineItemBatch(
+      sectionLabel = "Baseline Conditions",
+      domain = "condition_occurrence",
+      statistic = createPresence(),
+      conceptSets = cs1,
+      timeIntervals = tw1
+    ),
+    createConceptSetLineItemBatch(
+      sectionLabel = "Post-Index Drugs",
+      domain = "drug_exposure",
+      statistic = createPresence(),
+      conceptSets = cs2,
+      timeIntervals = tw2
+    )
+  )
+
+  # check demo meta
+  demoMeta <- lineItems[[1]]$getLineItemMeta()
+  expect_equal(demoMeta$valueId, 8507L)
+
+  # check t2d meta
+  t2dMeta <- lineItems[[2]]$getLineItemMeta()
+  expect_equal(t2dMeta$valueId, 1)
+  expect_equal(t2dMeta$lineItemLabel, "t2d")
+
+  # check drug meta
+  glp1Meta1 <- lineItems[[5]]$getLineItemMeta()
+  glp1Meta2 <- lineItems[[7]]$getLineItemMeta()
+  expect_equal(glp1Meta1$valueId, glp1Meta2$valueId)
+  expect_equal(glp1Meta1$ordinalId, 5L)
+  expect_equal(glp1Meta2$ordinalId, 7L)
+  expect_equal(glp1Meta1$timeLabel, "0d to 90d")
+  expect_equal(glp1Meta2$timeLabel, "0d to 365d")
+
+})

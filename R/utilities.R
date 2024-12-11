@@ -78,14 +78,22 @@
   # make a table identifying the codeset id for the query, unique to each cs
   tb <- .caprToMetaTable(caprCs)
 
-  # get length of each conceptSetGroup
-  csgLiLength <- lineItems[conceptSetGroupLineItems] |>
-    purrr::map_int(~length(.x$grabConceptSet()))
-  # make full list of ord ids
-  fullListOfIds <- c(
-    conceptSetLineItems,
-    rep(conceptSetGroupLineItems, each = csgLiLength) # rep each group by num of concepts in group
-  )
+  if (length(conceptSetGroupLineItems) > 0) {
+    # get length of each conceptSetGroup
+    csgLiLength <- lineItems[conceptSetGroupLineItems] |>
+      purrr::map_int(~length(.x$grabConceptSet()))
+    # make full list of ord ids
+    fullListOfIds <- c(
+      conceptSetLineItems,
+      rep(conceptSetGroupLineItems, each = csgLiLength) # rep each group by num of concepts in group
+    )
+  } else {
+    fullListOfIds <- c(
+      conceptSetLineItems
+    )
+  }
+
+
 # add the full list to tb to identify the ordinal of csId
   tb <- tb |>
     dplyr::mutate(
