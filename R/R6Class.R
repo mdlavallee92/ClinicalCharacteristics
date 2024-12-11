@@ -329,13 +329,13 @@ TableShell <- R6::R6Class("TableShell",
     },
 
     # pluck Concept Set Line Items
-    .pluckLineItems = function(classType) {
-      lineItems <- self$getLineItems()
-      idsToPluck <- .findLineItemId(lineItems = lineItems, classType = classType)
-
-      filteredLineItems <- lineItems[idsToPluck]
-      return(filteredLineItems)
-    },
+    # .pluckLineItems = function(classType) {
+    #   lineItems <- self$getLineItems()
+    #   idsToPluck <- .findLineItemId(lineItems = lineItems, classType = classType)
+    #
+    #   filteredLineItems <- lineItems[idsToPluck]
+    #   return(filteredLineItems)
+    # },
 
     .identifyCategoryIds = function() {
       # get line items
@@ -415,18 +415,18 @@ TableShell <- R6::R6Class("TableShell",
 
     },
 
-    .grabConceptSetMetaTable = function() {
-      csLineItems <- private$.pluckLineItems(classType = "ConceptSetLineItem")
-      # only run if CSD in ts
-      if (length(csLineItems) >= 1) {
-
-        # Step 1: Get the concept set meta
-        csMeta <- .conceptSetMeta(csLineItems)
-      } else {
-        csMeta <- NULL
-      }
-      return(csMeta)
-    },
+    # .grabConceptSetMetaTable = function() {
+    #   csLineItems <- private$.pluckLineItems(classType = "ConceptSetLineItem")
+    #   # only run if CSD in ts
+    #   if (length(csLineItems) >= 1) {
+    #
+    #     # Step 1: Get the concept set meta
+    #     csMeta <- .conceptSetMeta(csLineItems)
+    #   } else {
+    #     csMeta <- NULL
+    #   }
+    #   return(csMeta)
+    # },
 
     # function to extract concept level information
     .buildConceptSetOccurrenceQuery = function() {
