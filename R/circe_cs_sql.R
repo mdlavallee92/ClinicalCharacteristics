@@ -141,8 +141,28 @@ build_codeset_query <- function(tb, id){
 
 .bindCodesetQueries <- function(conceptSet, codesetTable) {
 
-  #make ids for concept sets
-  ids <- seq_along(conceptSet)
+  # get distinct concept sets from capr
+  distinctConceptSetsMeta <- .CaprToMetaTable(conceptSet) |>
+    dplyr::distinct(id, csId, .keep_all = TRUE)
+
+  # get ids to pluck
+  idsToPluck <- distinctConceptSetsMeta |>
+    dplyr::pull(rowId) |>
+    as.integer()
+
+  # csIds to Use
+  csIdsToUse <- distinctConceptSetsMeta |>
+    dplyr::pull(csId) |>
+    as.integer()
+
+  #pluch concept sets to the unique ones
+  distinctConceptSetsToUse <- conceptSet[idsToPluck]
+
+  # turn list of caprs to list of dfs with descendants
+  csTb <- purrr::map(distinctConceptSetsToUse, ~exp_to_table(.x))
+
+  # turn list of dfs into query
+  ll <- purrr::map2(csTb, csIdsToUse, ~build_codeset_query(tb = .x, id = .y))
 
   #turn into list of tables
   ll <- purrr::map2(conceptSet, ids, ~exp_to_table(.x) |> build_codeset_query(id = .y))

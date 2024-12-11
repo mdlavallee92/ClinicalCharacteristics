@@ -34,7 +34,7 @@
 #   return(csCapr)
 # }
 
-.setCsValueId <- function(lineItems) {
+.getCaprCs <- function(lineItems) {
   # get list ids for class types
   conceptSetLineItems <- .findLineItemId(lineItems = lineItems, classType = "ConceptSet")
   conceptSetGroupLineItems <- .findLineItemId(lineItems = lineItems, classType = "ConceptSetGroup")
@@ -50,7 +50,10 @@
     ~.x$grabConceptSet()
   ) |>
     purrr::list_flatten()
+  return(caprCs)
+}
 
+.caprToMetaTable <- function(caprCs) {
   # make a table identifying the codeset id for the query, unique to each cs
   tb <- tibble::tibble(
     id = purrr::map_chr(caprCs, ~.x@id),
@@ -58,7 +61,22 @@
   ) |>
     dplyr::mutate(
       csId = dplyr::dense_rank(id)
-    )
+    ) |>
+    tibble::rownames_to_column(var = "rowId")
+  return(tb)
+}
+
+
+.setCsValueId <- function(lineItems) {
+  # get list ids for class types
+  conceptSetLineItems <- .findLineItemId(lineItems = lineItems, classType = "ConceptSet")
+  conceptSetGroupLineItems <- .findLineItemId(lineItems = lineItems, classType = "ConceptSetGroup")
+
+  # get the capr concept sets for all the concepts
+  caprCs <- .getCaprCs(lineItems)
+
+  # make a table identifying the codeset id for the query, unique to each cs
+  tb <- .caprToMetaTable(caprCs)
 
   # get length of each conceptSetGroup
   csgLiLength <- lineItems[conceptSetGroupLineItems] |>
