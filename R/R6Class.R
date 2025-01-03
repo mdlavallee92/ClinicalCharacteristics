@@ -322,17 +322,31 @@ TableShell <- R6::R6Class("TableShell",
     },
 
     # function to get target cohort sql
-    .getTargetCohortSql = function() {
+    .makeTargetCohortTable = function(executionSettings, buildOptions) {
+
       sqlFile <- "targetCohort.sql"
       cohortIds <- purrr::map_int(
         private$targetCohorts,
         ~.x$getId()
       )
+
       # get sql from package
       sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", sqlFile)) |>
         readr::read_file() |>
         glue::glue()
-      return(sql)
+
+      renderedSql <- sql |>
+        SqlRender::render(
+          target_table = buildOptions$targetCohortTempTable,
+          work_database_schema = executionSettings$workDatabaseSchema,
+          cohort_table = executionSettings$targetCohortTable
+        ) |>
+        SqlRender::translate(
+          targetDialect = executionSettings$getDbms(),
+          tempEmulationSchema = executionSettings$tempEmulationSchema
+        )
+
+      return(renderedSql)
     },
 
     # pluck Concept Set Line Items
@@ -399,7 +413,7 @@ TableShell <- R6::R6Class("TableShell",
 
 
     # function to create sql for codset query
-    .buildCodesetQueries = function(buildOptions) {
+    .buildCodesetQueries = function(executionSettings, buildOptions) {
 
       #temporary change with class
       codesetTable <-  buildOptions$codesetTempTable
@@ -413,7 +427,14 @@ TableShell <- R6::R6Class("TableShell",
 
       if (length(caprCs) >= 1) {
         #turn into query
-        cs_query <- .bindCodesetQueries(caprCs, codesetTable = codesetTable)
+        cs_query <- .bindCodesetQueries(caprCs, codesetTable = codesetTable) |>
+          SqlRender::render(
+            vocabulary_database_schema = executionSettings$cdmDatabaseSchema
+          ) |>
+          SqlRender::translate(
+            targetDialect = executionSettings$getDbms(),
+            tempEmulationSchema = executionSettings$tempEmulationSchema
+          )
       } else{
         cs_query <- ""
       }
@@ -436,7 +457,7 @@ TableShell <- R6::R6Class("TableShell",
     # },
 
     # function to extract concept level information
-    .buildConceptSetOccurrenceQuery = function() {
+    .buildConceptSetOccurrenceQuery = function(executionSettings, buildOptions) {
 
       # Step 1: Get the concept set meta
       csMeta <- self$getTableShellMeta() |>
@@ -467,6 +488,19 @@ TableShell <- R6::R6Class("TableShell",
           ;
           "
         )
+        conceptSetOccurrenceSql <- conceptSetOccurrenceSql |>
+          SqlRender::render(
+            target_cohort_table = buildOptions$targetCohortTempTable,
+            concept_set_occurrence_table = buildOptions$conceptSetOccurrenceTempTable,
+            time_window_table = buildOptions$timeWindowTempTable,
+            codeset_table = buildOptions$codesetTempTable,
+            cdm_database_schema = executionSettings$cdmDatabaseSchema
+          ) |>
+          SqlRender::translate(
+            targetDialect = executionSettings$getDbms(),
+            tempEmulationSchema = executionSettings$tempEmulationSchema
+          )
+
       } else {
         conceptSetOccurrenceSql <- ""
       }
@@ -553,13 +587,15 @@ BuildOptions <- R6::R6Class(
                           codesetTempTable = NULL,
                           timeWindowTempTable = NULL,
                           targetCohortTempTable = NULL,
-                          tsMetaTempTable = NULL) {
+                          tsMetaTempTable = NULL,
+                          conceptSetOccurrenceTempTable = NULL) {
       .setLogical(private = private, key = ".keepResultsTable", value = keepResultsTable)
       .setString(private = private, key = ".resultsTempTable", value = resultsTempTable)
       .setString(private = private, key = ".codesetTempTable", value = codesetTempTable)
       .setString(private = private, key = ".timeWindowTempTable", value = timeWindowTempTable)
       .setString(private = private, key = ".tsMetaTempTable", value = tsMetaTempTable)
       .setString(private = private, key = ".targetCohortTempTable", value = targetCohortTempTable)
+      .setString(private = private, key = ".conceptSetOccurrenceTempTable", value = conceptSetOccurrenceTempTable)
     }
   ),
   private = list(
@@ -568,7 +604,8 @@ BuildOptions <- R6::R6Class(
     .codesetTempTable = NULL,
     .timeWindowTempTable = NULL,
     .targetCohortTempTable = NULL,
-    .tsMetaTempTable = NULL
+    .tsMetaTempTable = NULL,
+    .conceptSetOccurrenceTempTable = NULL
   ),
 
   active = list(
@@ -598,7 +635,12 @@ BuildOptions <- R6::R6Class(
 
     tsMetaTempTable = function(value) {
       .setActiveString(private = private, key = ".tsMetaTempTable", value = value)
+    },
+
+    conceptSetOccurrenceTempTable = function(value) {
+      .setActiveString(private = private, key = ".conceptSetOccurrenceTempTable", value = value)
     }
+
 
   )
 )
