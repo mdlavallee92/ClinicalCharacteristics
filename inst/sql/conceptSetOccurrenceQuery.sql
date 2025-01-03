@@ -4,12 +4,12 @@ SELECT
   t.subject_id,
   t.cohort_start_date,
   t.cohort_end_date,
-  {domain} AS domain_table,
+  '{domain}' AS domain_table,
   tw.time_label,
   cs.codeset_id AS raw_occurrence_id,
   'codeset_id' AS raw_occurrence_description,
   {domainTranslation$event_date} AS event_date
-FROM @work_database_schema.@target_cohort_table t
+FROM @target_cohort_table t
 JOIN @cdm_database_schema.{domain} d ON t.subject_id = d.person_id
 JOIN (
   /* Get codesets */

@@ -78,51 +78,6 @@ TableShell <- R6::R6Class("TableShell",
 
     },
 
-    # function to insert time windows
-    insertTimeWindows = function(executionSettings, buildOptions) {
-
-      # ensure that executionSettings R6 object used
-      checkmate::assert_class(executionSettings, classes = "ExecutionSettings", null.ok = FALSE)
-
-      # get concept set line items
-      csLineItems <- private$.pluckLineItems(classType = "ConceptSetLineItem")
-
-      # make the time windows table
-      time_tbl <- purrr::map_dfr(csLineItems, ~.x$getTimeInterval()) |>
-        dplyr::distinct() |>
-        dplyr::mutate(
-          time_id = dplyr::row_number(), .before = 1
-        ) |>
-        dplyr::rename(
-          time_a = lb,
-          time_b = rb
-        )
-
-      cli::cat_bullet(
-        glue::glue("Insert time window tables for characterization"),
-        bullet = "pointer",
-        bullet_col = "yellow"
-      )
-
-      # establish connection to database
-      connection <- executionSettings$getConnection()
-
-      if (is.null(connection)) {
-        connection <- executionSettings$connect()
-      }
-
-      # insert the time windows into the database
-      DatabaseConnector::insertTable(
-        connection = connection,
-        tableName = buildOptions$timeWindowTempTable,
-        tempEmulationSchema = executionSettings$tempEmulationSchema,
-        data = time_tbl,
-        tempTable = TRUE
-      )
-
-      invisible(time_tbl)
-
-    },
 
     #key function to generate the table shell
     buildTableShellSql = function(executionSettings, buildOptions) {
@@ -305,6 +260,58 @@ TableShell <- R6::R6Class("TableShell",
       invisible(tsMeta)
     },
 
+    .insertTimeWindows = function(executionSettings, buildOptions) {
+      # ensure that executionSettings R6 object used
+      checkmate::assert_class(executionSettings, classes = "ExecutionSettings", null.ok = FALSE)
+
+      # get concept set line items
+      csLineItems <- self$getTableShellMeta() |>
+        dplyr::filter(grepl("ConceptSet", lineItemClass))
+
+      # make the time windows table
+      time_tbl <- tibble::tibble(
+        time_label = csLineItems$timeLabel
+        ) |>
+        dplyr::distinct() |>
+        tidyr::separate_wider_delim(
+          time_label,
+          delim = " to ",
+          names = c("time_a", "time_b"),
+          cols_remove = FALSE
+        ) |>
+        dplyr::mutate(
+          time_a = as.integer(gsub("d", "", time_a)),
+          time_b = as.integer(gsub("d", "", time_b))
+        ) |>
+        dplyr::select(
+          time_label, time_a, time_b
+        )
+
+      cli::cat_bullet(
+        glue::glue("Insert time window tables for characterization"),
+        bullet = "pointer",
+        bullet_col = "yellow"
+      )
+
+      # establish connection to database
+      connection <- executionSettings$getConnection()
+
+      if (is.null(connection)) {
+        connection <- executionSettings$connect()
+      }
+
+      # insert the time windows into the database
+      DatabaseConnector::insertTable(
+        connection = connection,
+        tableName = buildOptions$timeWindowTempTable,
+        tempEmulationSchema = executionSettings$tempEmulationSchema,
+        data = time_tbl,
+        tempTable = TRUE
+      )
+
+      invisible(time_tbl)
+    },
+
     #function to create dat table
     .makeDatTable = function(){
       sqlFile <- "datTable.sql"
@@ -315,25 +322,41 @@ TableShell <- R6::R6Class("TableShell",
     },
 
     # function to get target cohort sql
-    .getTargetCohortSql = function() {
+    .makeTargetCohortTable = function(executionSettings, buildOptions) {
+
       sqlFile <- "targetCohort.sql"
       cohortIds <- purrr::map_int(
         private$targetCohorts,
         ~.x$getId()
       )
+
       # get sql from package
       sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", sqlFile)) |>
         readr::read_file() |>
         glue::glue()
-      return(sql)
+
+      renderedSql <- sql |>
+        SqlRender::render(
+          target_table = buildOptions$targetCohortTempTable,
+          work_database_schema = executionSettings$workDatabaseSchema,
+          cohort_table = executionSettings$targetCohortTable
+        ) |>
+        SqlRender::translate(
+          targetDialect = executionSettings$getDbms(),
+          tempEmulationSchema = executionSettings$tempEmulationSchema
+        )
+
+      return(renderedSql)
     },
 
     # pluck Concept Set Line Items
-    .pluckLineItems = function(classType) {
-      lineItems <- self$getLineItems() |>
-        .getLineItemClassType(classType)
-      return(lineItems)
-    },
+    # .pluckLineItems = function(classType) {
+    #   lineItems <- self$getLineItems()
+    #   idsToPluck <- .findLineItemId(lineItems = lineItems, classType = classType)
+    #
+    #   filteredLineItems <- lineItems[idsToPluck]
+    #   return(filteredLineItems)
+    # },
 
     .identifyCategoryIds = function() {
       # get line items
@@ -390,25 +413,28 @@ TableShell <- R6::R6Class("TableShell",
 
 
     # function to create sql for codset query
-    .buildCodesetQueries = function(buildOptions) {
+    .buildCodesetQueries = function(executionSettings, buildOptions) {
 
       #temporary change with class
       codesetTable <-  buildOptions$codesetTempTable
 
       # get concept set line items
-      csLineItems <- private$.pluckLineItems(classType = "ConceptSetLineItem")
-      if (length(csLineItems) >= 1) {
-        # retrieve each concept set from the line items and flatten
-        csCapr <- purrr::map(
-          csLineItems,
-          ~.x$grabConceptSet()
-        )
-        # remove duplicated ids
-        cs_id <- !duplicated(purrr::map_chr(csCapr, ~.x@id))
-        cs_tbl2 <- csCapr[cs_id]
+      li <- self$getLineItems()
 
-        # change function name to .camel
-        cs_query <- bind_codeset_queries(cs_tbl2, codesetTable = codesetTable)
+      # pluck the capr concept sets
+      caprCs <- .getCaprCs(li)
+
+
+      if (length(caprCs) >= 1) {
+        #turn into query
+        cs_query <- .bindCodesetQueries(caprCs, codesetTable = codesetTable) |>
+          SqlRender::render(
+            vocabulary_database_schema = executionSettings$cdmDatabaseSchema
+          ) |>
+          SqlRender::translate(
+            targetDialect = executionSettings$getDbms(),
+            tempEmulationSchema = executionSettings$tempEmulationSchema
+          )
       } else{
         cs_query <- ""
       }
@@ -417,25 +443,25 @@ TableShell <- R6::R6Class("TableShell",
 
     },
 
-    .grabConceptSetMetaTable = function() {
-      csLineItems <- private$.pluckLineItems(classType = "ConceptSetLineItem")
-      # only run if CSD in ts
-      if (length(csLineItems) >= 1) {
-
-        # Step 1: Get the concept set meta
-        csMeta <- .conceptSetMeta(csLineItems)
-      } else {
-        csMeta <- NULL
-      }
-      return(csMeta)
-    },
+    # .grabConceptSetMetaTable = function() {
+    #   csLineItems <- private$.pluckLineItems(classType = "ConceptSetLineItem")
+    #   # only run if CSD in ts
+    #   if (length(csLineItems) >= 1) {
+    #
+    #     # Step 1: Get the concept set meta
+    #     csMeta <- .conceptSetMeta(csLineItems)
+    #   } else {
+    #     csMeta <- NULL
+    #   }
+    #   return(csMeta)
+    # },
 
     # function to extract concept level information
-    .buildConceptSetOccurrenceQuery = function() {
+    .buildConceptSetOccurrenceQuery = function(executionSettings, buildOptions) {
 
       # Step 1: Get the concept set meta
       csMeta <- self$getTableShellMeta() |>
-        dplyr::filter(grepl("ConceptSet"), lineItemClass)
+        dplyr::filter(grepl("ConceptSet", lineItemClass))
 
       # only run if CSD in ts
       if (!is.null(csMeta)) {
@@ -444,8 +470,9 @@ TableShell <- R6::R6Class("TableShell",
         csTables <- csMeta |>
           dplyr::select(valueId, valueDescription, timeLabel, domainTable)
 
+        # Step 3: get the domains to join
         domainTablesInUse <- unique(csTables$domainTable)
-
+        # step 4: make the concept set occurrence sql
         conceptSetOccurrenceSqlGrp <- purrr::map(
           domainTablesInUse,
           ~.prepConceptSetOccurrenceQuerySql(
@@ -461,6 +488,19 @@ TableShell <- R6::R6Class("TableShell",
           ;
           "
         )
+        conceptSetOccurrenceSql <- conceptSetOccurrenceSql |>
+          SqlRender::render(
+            target_cohort_table = buildOptions$targetCohortTempTable,
+            concept_set_occurrence_table = buildOptions$conceptSetOccurrenceTempTable,
+            time_window_table = buildOptions$timeWindowTempTable,
+            codeset_table = buildOptions$codesetTempTable,
+            cdm_database_schema = executionSettings$cdmDatabaseSchema
+          ) |>
+          SqlRender::translate(
+            targetDialect = executionSettings$getDbms(),
+            tempEmulationSchema = executionSettings$tempEmulationSchema
+          )
+
       } else {
         conceptSetOccurrenceSql <- ""
       }
@@ -547,13 +587,15 @@ BuildOptions <- R6::R6Class(
                           codesetTempTable = NULL,
                           timeWindowTempTable = NULL,
                           targetCohortTempTable = NULL,
-                          tsMetaTempTable = NULL) {
+                          tsMetaTempTable = NULL,
+                          conceptSetOccurrenceTempTable = NULL) {
       .setLogical(private = private, key = ".keepResultsTable", value = keepResultsTable)
       .setString(private = private, key = ".resultsTempTable", value = resultsTempTable)
       .setString(private = private, key = ".codesetTempTable", value = codesetTempTable)
       .setString(private = private, key = ".timeWindowTempTable", value = timeWindowTempTable)
       .setString(private = private, key = ".tsMetaTempTable", value = tsMetaTempTable)
       .setString(private = private, key = ".targetCohortTempTable", value = targetCohortTempTable)
+      .setString(private = private, key = ".conceptSetOccurrenceTempTable", value = conceptSetOccurrenceTempTable)
     }
   ),
   private = list(
@@ -562,7 +604,8 @@ BuildOptions <- R6::R6Class(
     .codesetTempTable = NULL,
     .timeWindowTempTable = NULL,
     .targetCohortTempTable = NULL,
-    .tsMetaTempTable = NULL
+    .tsMetaTempTable = NULL,
+    .conceptSetOccurrenceTempTable = NULL
   ),
 
   active = list(
@@ -592,7 +635,12 @@ BuildOptions <- R6::R6Class(
 
     tsMetaTempTable = function(value) {
       .setActiveString(private = private, key = ".tsMetaTempTable", value = value)
+    },
+
+    conceptSetOccurrenceTempTable = function(value) {
+      .setActiveString(private = private, key = ".conceptSetOccurrenceTempTable", value = value)
     }
+
 
   )
 )
@@ -1096,7 +1144,7 @@ public = list(
     tb <- tibble::tibble(
       ordinalId = private$.ordinalId,
       sectionLabel = private$.sectionLabel,
-      linetItemLabel = private$.lineItemLabel,
+      lineItemLabel = private$.lineItemLabel,
       valueId = private$.valueId,
       valueDescription = private$.valueDescription,
       timeLabel = timeLabel,
