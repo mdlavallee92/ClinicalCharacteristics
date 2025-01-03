@@ -3,8 +3,7 @@ SELECT
     a.subject_id,
     a.domain_table,
     a.time_label,
-    --ordinal_id,
-    '{aggregation_type}' AS aggregation_type,
+    'CategoricalPresence' AS aggregation_type,
     a.raw_occurrence_id AS value_id,
     1 AS value
 FROM (
