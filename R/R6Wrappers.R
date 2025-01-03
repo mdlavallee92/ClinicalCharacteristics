@@ -82,7 +82,8 @@ defaultTableShellBuildOptions <- function(keepResultsTable = FALSE,
                                           codesetTempTable = "#codeset",
                                           timeWindowTempTable = "#time_windows",
                                           targetCohortTempTable = "#target_cohorts",
-                                          tsMetaTempTable = "#ts_meta") {
+                                          tsMetaTempTable = "#ts_meta",
+                                          conceptSetOccurrenceTempTable = "#concept_set_occ") {
 
   buildOpts <- BuildOptions$new(
     keepResultsTable = keepResultsTable,
@@ -90,7 +91,8 @@ defaultTableShellBuildOptions <- function(keepResultsTable = FALSE,
     codesetTempTable = codesetTempTable,
     timeWindowTempTable = timeWindowTempTable,
     tsMetaTempTable = tsMetaTempTable,
-    targetCohortTempTable = targetCohortTempTable
+    targetCohortTempTable = targetCohortTempTable,
+    conceptSetOccurrenceTempTable = conceptSetOccurrenceTempTable
   )
   return(buildOpts)
 
