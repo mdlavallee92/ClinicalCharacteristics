@@ -508,6 +508,41 @@ TableShell <- R6::R6Class("TableShell",
 
     },
 
+    .transformToPatientLineData = function(executionSettings, buildOptions) {
+
+      # Step 1: make patient level data table
+      ptDatTbSql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", "patientLevelData.sql")) |>
+        readr::read_file() |>
+        SqlRender::render(
+          patient_level_data = buildOptions$patientLevelDataTable
+        ) |>
+        SqlRender::translate(
+          targetDialect = executionSettings$getDbms(),
+          tempEmulationSchema = executionSettings$tempEmulationSchema
+        )
+
+      # Step 2: identify the types of statistics
+
+
+      # Step 3: run patient level queries
+
+      # step 3a demographics
+
+      demoPatientLevelSql <- .buildDemoPatientLevelSql(statTypes)
+
+      # step 3b concept set pat level
+      csPatientLevelSql <- .buildOccurrencePatientLevelSql(statTypes)
+
+      # step 3c cohort pat level
+      chPatientLevelSql <- .buildCohortPatientLevelSql(statTypes)
+
+      # full sql for sql
+      ptFullSql <- c(ptDatTbSql, demoPatientLevelSql, csPatientLevelSql, chPatientLevelSql) |>
+        glue::glue_collapse(sep = "\n\n")
+
+
+    },
+
     # function to drop all cs Tables
     .dropCsTempTables = function() {
 
@@ -916,56 +951,56 @@ Statistic <- R6::R6Class(
 
 
 ### Continuous Age ---------------------
-ContinuousAge <- R6::R6Class(
-  classname = "ContinuousAge",
-  inherit = Statistic,
-  public = list(
-    initialize = function() {
-      super$initialize(label = "Age", type = "Continuous")
-    }
-  )
-)
+# ContinuousAge <- R6::R6Class(
+#   classname = "ContinuousAge",
+#   inherit = Statistic,
+#   public = list(
+#     initialize = function() {
+#       super$initialize(label = "Age", type = "Continuous")
+#     }
+#   )
+# )
 
 ### Categorical Age ---------------------
-CategoricalAge <- R6::R6Class(
-  classname = "CategoricalAge",
-  inherit = Statistic,
-  public = list(
-    initialize = function(breaks) {
-      super$initialize(label = "Age", type = "Categorical")
-      .setClass(private = private, key = "breaks", value = breaks, class = "Breaks")
-    }
-  ),
-  private = list(
-    breaks = NULL
-  )
-)
+# CategoricalAge <- R6::R6Class(
+#   classname = "CategoricalAge",
+#   inherit = Statistic,
+#   public = list(
+#     initialize = function(breaks) {
+#       super$initialize(label = "Age", type = "Categorical")
+#       .setClass(private = private, key = "breaks", value = breaks, class = "Breaks")
+#     }
+#   ),
+#   private = list(
+#     breaks = NULL
+#   )
+# )
 
 
 ### Demographic Concept -----------------
-CategoricalDemographic <- R6::R6Class(
-  classname = "CategoricalDemographic",
-  inherit = Statistic,
-  public = list(
-    initialize = function(label, conceptColumn, conceptId) {
-      super$initialize(label, type = "Categorical")
-      .setString(private = private, key = "conceptColumn", value = conceptColumn)
-      .setNumber(private = private, key = "conceptId", value = conceptId)
-    },
-    getConceptColumn = function() {
-      rr <- private$conceptColumn
-      return(rr)
-    },
-    getConceptId = function() {
-      rr <- private$conceptId
-      return(rr)
-    }
-  ),
-  private = list(
-    conceptColumn = NA_character_,
-    conceptId = NA_integer_
-  )
-)
+# CategoricalDemographic <- R6::R6Class(
+#   classname = "CategoricalDemographic",
+#   inherit = Statistic,
+#   public = list(
+#     initialize = function(label, conceptColumn, conceptId) {
+#       super$initialize(label, type = "Categorical")
+#       .setString(private = private, key = "conceptColumn", value = conceptColumn)
+#       .setNumber(private = private, key = "conceptId", value = conceptId)
+#     },
+#     getConceptColumn = function() {
+#       rr <- private$conceptColumn
+#       return(rr)
+#     },
+#     getConceptId = function() {
+#       rr <- private$conceptId
+#       return(rr)
+#     }
+#   ),
+#   private = list(
+#     conceptColumn = NA_character_,
+#     conceptId = NA_integer_
+#   )
+# )
 #
 # DemographicConcept <- R6::R6Class("DemographicConcept",
 #                            inherit = Statistic,
@@ -988,24 +1023,24 @@ CategoricalDemographic <- R6::R6Class(
 
 
 ### Demographic Year -----------------
-DemographicYear <- R6::R6Class("DemographicYear",
-                           inherit = Statistic,
-                           public = list(
-                             initialize = function(breaks = NULL) {
-                               super$initialize(type = "Year")
-                               if (!is.null(breaks)) {
-                                 .setClass(private = private,
-                                           key = "breaks",
-                                           value = breaks,
-                                           class = "Breaks")
-                               }
-                               invisible(private)
-                             }
-                           ),
-                           private = list(
-                             breaks = NULL
-                           )
-)
+# DemographicYear <- R6::R6Class("DemographicYear",
+#                            inherit = Statistic,
+#                            public = list(
+#                              initialize = function(breaks = NULL) {
+#                                super$initialize(type = "Year")
+#                                if (!is.null(breaks)) {
+#                                  .setClass(private = private,
+#                                            key = "breaks",
+#                                            value = breaks,
+#                                            class = "Breaks")
+#                                }
+#                                invisible(private)
+#                              }
+#                            ),
+#                            private = list(
+#                              breaks = NULL
+#                            )
+# )
 
 
 ## Presence -----------------------

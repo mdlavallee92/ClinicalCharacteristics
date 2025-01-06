@@ -190,6 +190,86 @@
 }
 
 
+.buildOccurrencePatientLevelSql <- function(statTypes) {
+
+  # limit statTYpes to only concept set
+  statType <- statTypes |>
+    dplyr::filter(
+      grepl("ConceptSet", lineItemClass)
+    ) |>
+    dplyr::pull(statisticType) |>
+    unique()
+
+  sqlConceptSetPath <- fs::path_package(
+    package = "ClinicalCharacteristics",
+    fs::path("sql", "conceptSet")
+  )
+
+  # concept set Presence
+  if (any(statType == "CategoricalPresence")) { # this label will change
+    presSql <- fs::path(sqlConceptSetPath, "presence.sql") |>
+      readr::read_file()
+  } else{
+    presSql <- ""
+  }
+
+  # concept set timeTo
+  if (any(statType == "TimeTo")) {
+    timeToSql <- fs::path(sqlConceptSetPath, "timeTo.sql") |>
+      readr::read_file()
+  } else{
+    timeToSql <- ""
+  }
+
+  sql <- c(presSql, timeToSql) |>
+    glue::glue_collapse(sep = "\n\n")
+
+  return(sql)
+
+
+}
+
+
+
+.buildCohortPatientLevelSql <- function(statTypes) {
+
+  # limit statTYpes to only concept set
+  statType <- statTypes |>
+    dplyr::filter(
+      grepl("Cohort", lineItemClass)
+    ) |>
+    dplyr::pull(statisticType) |>
+    unique()
+
+  sqlConceptSetPath <- fs::path_package(
+    package = "ClinicalCharacteristics",
+    fs::path("sql", "cohort")
+  )
+
+  # cohort Presence
+  if (any(statType == "CategoricalPresence")) { # this label will change
+    presSql <- fs::path(sqlConceptSetPath, "presence.sql") |>
+      readr::read_file()
+  } else{
+    presSql <- ""
+  }
+
+  # cohort timeTo
+  if (any(statType == "TimeTo")) {
+    timeToSql <- fs::path(sqlConceptSetPath, "timeTo.sql") |>
+      readr::read_file()
+  } else{
+    timeToSql <- ""
+  }
+
+  sql <- c(presSql, timeToSql) |>
+    glue::glue_collapse(sep = "\n\n")
+
+  return(sql)
+
+
+}
+
 # Archive ------------------------
 #
 #
