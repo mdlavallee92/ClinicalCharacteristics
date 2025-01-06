@@ -512,35 +512,35 @@ TableShell <- R6::R6Class("TableShell",
 
       # Step 1: make patient level data table
       ptDatTbSql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", "patientLevelData.sql")) |>
-        readr::read_file() |>
+        readr::read_file()
+
+      # Step 2: run patient level queries
+      tsm <- self$getTableShellMeta()
+      # step 2a demographics
+
+      demoPatientLevelSql <- .buildDemoPatientLevelSql(tsm)
+
+      # step 2b concept set pat level
+      csPatientLevelSql <- .buildOccurrencePatientLevelSql(tsm)
+
+      # step 2c cohort pat level
+      chPatientLevelSql <- .buildCohortPatientLevelSql(tsm)
+
+      # full sql for sql
+      ptFullSql <- c(ptDatTbSql, demoPatientLevelSql, csPatientLevelSql, chPatientLevelSql) |>
+        glue::glue_collapse(sep = "\n\n") |>
         SqlRender::render(
-          patient_level_data = buildOptions$patientLevelDataTable
+          patient_level_data = buildOptions$patientLevelDataTempTable,
+          concept_set_occurrence_table = buildOptions$conceptSetOccurrenceTempTable,
+          target_table = buildOptions$targetCohortTempTable,
+          cdm_database_schema = executionSettings$cdmDatabaseSchema
         ) |>
         SqlRender::translate(
           targetDialect = executionSettings$getDbms(),
           tempEmulationSchema = executionSettings$tempEmulationSchema
         )
 
-      # Step 2: identify the types of statistics
-
-
-      # Step 3: run patient level queries
-
-      # step 3a demographics
-
-      demoPatientLevelSql <- .buildDemoPatientLevelSql(statTypes)
-
-      # step 3b concept set pat level
-      csPatientLevelSql <- .buildOccurrencePatientLevelSql(statTypes)
-
-      # step 3c cohort pat level
-      chPatientLevelSql <- .buildCohortPatientLevelSql(statTypes)
-
-      # full sql for sql
-      ptFullSql <- c(ptDatTbSql, demoPatientLevelSql, csPatientLevelSql, chPatientLevelSql) |>
-        glue::glue_collapse(sep = "\n\n")
-
-
+      return(ptFullSql)
     },
 
     # function to drop all cs Tables
@@ -623,7 +623,8 @@ BuildOptions <- R6::R6Class(
                           timeWindowTempTable = NULL,
                           targetCohortTempTable = NULL,
                           tsMetaTempTable = NULL,
-                          conceptSetOccurrenceTempTable = NULL) {
+                          conceptSetOccurrenceTempTable = NULL,
+                          patientLevelDataTempTable = NULL) {
       .setLogical(private = private, key = ".keepResultsTable", value = keepResultsTable)
       .setString(private = private, key = ".resultsTempTable", value = resultsTempTable)
       .setString(private = private, key = ".codesetTempTable", value = codesetTempTable)
@@ -631,6 +632,7 @@ BuildOptions <- R6::R6Class(
       .setString(private = private, key = ".tsMetaTempTable", value = tsMetaTempTable)
       .setString(private = private, key = ".targetCohortTempTable", value = targetCohortTempTable)
       .setString(private = private, key = ".conceptSetOccurrenceTempTable", value = conceptSetOccurrenceTempTable)
+      .setString(private = private, key = ".patientLevelDataTempTable", value = patientLevelDataTempTable)
     }
   ),
   private = list(
@@ -640,7 +642,8 @@ BuildOptions <- R6::R6Class(
     .timeWindowTempTable = NULL,
     .targetCohortTempTable = NULL,
     .tsMetaTempTable = NULL,
-    .conceptSetOccurrenceTempTable = NULL
+    .conceptSetOccurrenceTempTable = NULL,
+    .patientLevelDataTempTable = NULL
   ),
 
   active = list(
@@ -674,6 +677,10 @@ BuildOptions <- R6::R6Class(
 
     conceptSetOccurrenceTempTable = function(value) {
       .setActiveString(private = private, key = ".conceptSetOccurrenceTempTable", value = value)
+    },
+
+    patientLevelDataTempTable = function(value) {
+      .setActiveString(private = private, key = ".patientLevelDataTempTable", value = value)
     }
 
 
@@ -978,29 +985,29 @@ Statistic <- R6::R6Class(
 
 
 ### Demographic Concept -----------------
-# CategoricalDemographic <- R6::R6Class(
-#   classname = "CategoricalDemographic",
-#   inherit = Statistic,
-#   public = list(
-#     initialize = function(label, conceptColumn, conceptId) {
-#       super$initialize(label, type = "Categorical")
-#       .setString(private = private, key = "conceptColumn", value = conceptColumn)
-#       .setNumber(private = private, key = "conceptId", value = conceptId)
-#     },
-#     getConceptColumn = function() {
-#       rr <- private$conceptColumn
-#       return(rr)
-#     },
-#     getConceptId = function() {
-#       rr <- private$conceptId
-#       return(rr)
-#     }
-#   ),
-#   private = list(
-#     conceptColumn = NA_character_,
-#     conceptId = NA_integer_
-#   )
-# )
+CategoricalDemographic <- R6::R6Class(
+  classname = "CategoricalDemographic",
+  inherit = Statistic,
+  public = list(
+    initialize = function(label, conceptColumn, conceptId) {
+      super$initialize(label, type = "Categorical")
+      .setString(private = private, key = "conceptColumn", value = conceptColumn)
+      .setNumber(private = private, key = "conceptId", value = conceptId)
+    },
+    getConceptColumn = function() {
+      rr <- private$conceptColumn
+      return(rr)
+    },
+    getConceptId = function() {
+      rr <- private$conceptId
+      return(rr)
+    }
+  ),
+  private = list(
+    conceptColumn = NA_character_,
+    conceptId = NA_integer_
+  )
+)
 #
 # DemographicConcept <- R6::R6Class("DemographicConcept",
 #                            inherit = Statistic,

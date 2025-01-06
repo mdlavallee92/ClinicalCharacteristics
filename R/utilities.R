@@ -189,8 +189,54 @@
 
 }
 
+.buildDemoPatientLevelSql <- function(tsm){
 
-.buildOccurrencePatientLevelSql <- function(statTypes) {
+  demoLines <- tsm |>
+    dplyr::filter(
+      grepl("Demographic", lineItemClass)
+    )
+
+
+  statType <- demoLines |>
+    dplyr::pull(statisticType) |>
+    unique()
+
+  sqlDemographicsPath <- fs::path_package(
+    package = "ClinicalCharacteristics",
+    fs::path("sql", "demographics")
+  )
+
+  # concept demographic
+  if (any(statType == "CategoricalDemographic")) { # this label will change
+    valueId <- demoLines$valueId
+    valueDescription <- demoLines$valueDescription
+    demoConceptSql <- readr::read_file(file = fs::path(sqlDemographicsPath, "demoConcept.sql")) |>
+      glue::glue() |>
+      glue::glue_collapse("\n\n")
+  } else{
+    demoConceptSql <- ""
+  }
+
+  # concept age
+  if (any(statType == "AgeDemographic")) { # this label will change
+    demoAgeSql <- readr::read_file(file = fs::path(sqlDemographicsPath, "demoAge.sql")) |>
+      glue::glue() |>
+      glue::glue_collapse("\n\n")
+  } else{
+    demoAgeSql <- ""
+  }
+
+  sql <- c(demoConceptSql, demoAgeSql) |>
+    glue::glue_collapse(sep = "\n\n")
+
+}
+
+
+.buildOccurrencePatientLevelSql <- function(tsm) {
+
+  statTypes <- tsm |>
+    dplyr::select(statisticType, lineItemClass) |>
+    dplyr::distinct()
 
   # limit statTYpes to only concept set
   statType <- statTypes |>
@@ -231,7 +277,11 @@
 
 
 
-.buildCohortPatientLevelSql <- function(statTypes) {
+.buildCohortPatientLevelSql <- function(tsm) {
+
+  statTypes <- tsm |>
+    dplyr::select(statisticType, lineItemClass) |>
+    dplyr::distinct()
 
   # limit statTYpes to only concept set
   statType <- statTypes |>
