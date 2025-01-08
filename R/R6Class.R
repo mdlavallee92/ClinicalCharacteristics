@@ -945,83 +945,56 @@ CohortInfo <- R6::R6Class("CohortInfo",
 Statistic <- R6::R6Class(
   classname = "Statistic",
   public = list(
-    initialize = function(label, type) {
-      .setString(private = private , key = "label", value = label)
-      .setString(private = private , key = "type", value = type)
+    initialize = function(statType, personLine, aggType) {
+      .setString(private = private , key = "statisticType", value = statType)
+      .setString(private = private , key = "personLineTransformation", value = personLine)
+      .setString(private = private , key = "aggregationType", value = aggType)
+
     },
-    getStatType = function() {
-      statType <- private$type
+    getStatisticType = function() {
+      statType <- private$statisticType
       return(statType)
     },
-    getStatLabel = function() {
-      statLabel <- private$label
-      return(statLabel)
+    getAggregationType = function() {
+      aggType <- private$aggregationType
+      return(aggType)
+    },
+    getPersonLineTransformation = function() {
+      plt <- private$personLineTransformation
+      return(plt)
     }
   ),
   private = list(
-    label = NA_character_,
-    type = NA_character_
+    statisticType = NA_character_,
+    personLineTransformation = NA_character_,
+    aggregationType = NA_character_
   )
 )
-# Statistic_old <- R6::R6Class("Statistic",
-#                          public = list(
-#                            initialize = function(type) {
-#                              .setString(private = private , key = "type", value = type)
-#                            },
-#
-#                            # helper to get state type from class
-#                            getStatType = function() {
-#                              statType <- private$type
-#                              return(statType)
-#                            }
-#                          ),
-#                          private = list(
-#                            type = NULL
-#                          )
-# )
 
 ## Demographic Stats----------------------
 
 
-### Continuous Age ---------------------
-# ContinuousAge <- R6::R6Class(
-#   classname = "ContinuousAge",
-#   inherit = Statistic,
-#   public = list(
-#     initialize = function() {
-#       super$initialize(label = "Age", type = "Continuous")
-#     }
-#   )
-# )
-
-### Categorical Age ---------------------
-# CategoricalAge <- R6::R6Class(
-#   classname = "CategoricalAge",
-#   inherit = Statistic,
-#   public = list(
-#     initialize = function(breaks) {
-#       super$initialize(label = "Age", type = "Categorical")
-#       .setClass(private = private, key = "breaks", value = breaks, class = "Breaks")
-#     }
-#   ),
-#   private = list(
-#     breaks = NULL
-#   )
-# )
-
-
 ### Demographic Concept -----------------
-CategoricalDemographic <- R6::R6Class(
-  classname = "CategoricalDemographic",
+DemographicConcept <- R6::R6Class(
+  classname = "DemographicConcept",
   inherit = Statistic,
   public = list(
-    initialize = function(label, conceptColumn, conceptId) {
-      super$initialize(label, type = "Categorical")
+    initialize = function(demoCategory, demoLine, conceptColumn, conceptId) {
+      super$initialize(
+        personLine = "binary",
+        statType = "presence",
+        aggType = "categorical")
+      .setString(private = private, key = "demoCategory", value = demoCategory)
+      .setString(private = private, key = "demoLine", value = demoLine)
       .setString(private = private, key = "conceptColumn", value = conceptColumn)
       .setNumber(private = private, key = "conceptId", value = conceptId)
     },
     getConceptColumn = function() {
       rr <- private$conceptColumn
+      return(rr)
+    },
+    getDemoLabel = function() {
+      rr <- glue::glue("{private$demoCategory}: {private$demoLine}")
       return(rr)
     },
     getConceptId = function() {
@@ -1030,29 +1003,40 @@ CategoricalDemographic <- R6::R6Class(
     }
   ),
   private = list(
+    demoCategory = NA_character_,
+    demoLine = NA_character_,
     conceptColumn = NA_character_,
     conceptId = NA_integer_
   )
 )
-#
-# DemographicConcept <- R6::R6Class("DemographicConcept",
-#                            inherit = Statistic,
-#                            public = list(
-#                              initialize = function(conceptColumn) {
-#                                super$initialize(type = "Concept")
-#                                #TODO make this a setChoics of Concept, Age, Year
-#                                .setString(private = private, key = 'conceptColumn', value = conceptColumn)
-#                                invisible(private)
-#                              },
-#                              getDemoColumn = function() {
-#                                col <- private$conceptColumn
-#                                return(col)
-#                              }
-#                            ),
-#                            private = list(
-#                              conceptColumn = NULL
-#                            )
-# )
+
+### Demographic Age ---------------------
+DemographicAge <- R6::R6Class(
+  classname = "DemographicAge",
+  inherit = Statistic,
+  public = list(
+    initialize = function(statType, aggType, demoCategory, breaks = NULL) {
+      super$initialize(
+        personLine = "age",
+        statType = statType,
+        aggType = aggType)
+      .setString(private = private, key = "demoCategory", value = "Age")
+      .setClass(private = private, key = "breaks", value = breaks, class = "BreaksStrategy")
+    },
+
+    getDemoLabel = function() {
+      rr <- glue::glue("{private$demoCategory}")
+      return(rr)
+    }
+  ),
+  private = list(
+    demoCategory = NA_character_,
+    breaks = NULL
+  )
+)
+
+
+
 
 
 ### Demographic Year -----------------
@@ -1075,96 +1059,107 @@ CategoricalDemographic <- R6::R6Class(
 #                            )
 # )
 
+## CS, CSG, Cohort Stats -----------------------------
 
-## Presence -----------------------
+### Presence -----------------------
 
-#' @title
-#' An R6 class to define a Presence object
-#'
-#' @description
-#' Child of Statistic. The Presence statistic is a binary metric the indicates the presence of a variable
-#'
-#' @export
-CategoricalPresence <- R6::R6Class(
-  classname = "CategoricalPresence",
+Presence <- R6::R6Class(
+  classname = "Presence",
   inherit = Statistic,
   public = list(
-    initialize = function(operator, occurrences) {
-      super$initialize(label = "Presence", type = "Categorical")
-      .setString(private = private, key = "operator", value = operator)
-      .setNumber(private = private, key = "occurrences", value = occurrences)
+    initialize = function(personLine) {
+      super$initialize(
+        personLine = personLine,
+        statType = "presence",
+        aggType = "categorical"
+      )
+    }
+  ),
+  private = list()
+)
+
+### Breaks ------------------------
+Breaks <- R6::R6Class(
+  classname = "Breaks",
+  inherit = Statistic,
+  public = list(
+    initialize = function(personLine, breaks) {
+      super$initialize(
+        personLine = personLine,
+        statType = "breaks",
+        aggType = "categorical"
+      )
+      .setClass(private = private, key = "breaks", value = breaks, class = "BreaksStrategy")
     }
   ),
   private = list(
-    operator = NA_character_,
-    occurrences = NA
+    breaks = NULL
+  )
+)
+
+### Distribution ------------------------
+ContinuousDistribution <- R6::R6Class(
+  classname = "ContinuousDistribution",
+  inherit = Statistic,
+  public = list(
+    initialize = function(personLine) {
+      super$initialize(
+        personLine = personLine,
+        statType = "continuousDistribution",
+        aggType = "continuous"
+      )
+    }
+  ),
+  private = list(
+  )
+)
+
+### Score ------------------------
+Score <- R6::R6Class(
+  classname = "Score",
+  inherit = Statistic,
+  public = list(
+    initialize = function(personLine, score) {
+      super$initialize(
+        personLine = personLine,
+        statType = "scoreTransformation",
+        aggType = "continuous"
+      )
+      .setClass(private = private, key = "score", value = score, class = "ScoreWeight")
+    }
+  ),
+  private = list(
+    score = NULL
   )
 )
 
 
-# Presence <- R6::R6Class("Presence",
-#                         inherit = Statistic,
-#                         public = list(
-#                           initialize = function(operator,
-#                                                 occurrences) {
-#                             super$initialize(type = "Presence")
-#                             # TODO change this to enforce operator from choice list
-#                             .setString(private = private, key = "operator", value = operator)
-#                             .setNumber(private = private, key = "occurrences", value = occurrences)
-#                             invisible(private)
-#                           },
-#                           getSql = function() {
-#
-#                             sqlFile <- "presenceStat.sql"
-#                             op <- .opConverter(private$operator)
-#                             occurrences <- private$occurrences
-#                             # get sql from package
-#                             sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", sqlFile)) |>
-#                               readr::read_file() |>
-#                               glue::glue()
-#                             return(sql)
-#                           }
-#                         ),
-#                         private = list(
-#                           operator = NULL,
-#                           occurrences = NA
-#                         )
-# )
-
-
 ## Count -----------------------
 
-#' @title
-#' An R6 class to define a Count object
-#'
-#' @description
-#' Child of Statistic. The Count statistic is a poisson metric the indicates the number of occurrences of a variable
-#'
-#' @export
-Count <- R6::R6Class("Count",
-                     inherit = Statistic,
-                     public = list(
-                       initialize = function(breaks = NULL) {
-                         super$initialize(type = "Count")
-                         if (!is.null(breaks)) {
-                           .setClass(private = private, key = "breaks", value = breaks, class = "Breaks")
-                         }
-                         invisible(private)
-                       },
-                       getSql = function() {
-
-                         sqlFile <- "countStat.sql"
-                          # get sql from package
-                         sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", sqlFile)) |>
-                           readr::read_file() |>
-                           glue::glue()
-                         return(sql)
-                       }
-                     ),
-                     private = list(
-                       breaks = NULL
-                     )
-)
+# Count <- R6::R6Class("Count",
+#                      inherit = Statistic,
+#                      public = list(
+#                        initialize = function(breaks = NULL) {
+#                          super$initialize(type = "Count")
+#                          if (!is.null(breaks)) {
+#                            .setClass(private = private, key = "breaks", value = breaks, class = "Breaks")
+#                          }
+#                          invisible(private)
+#                        },
+#                        getSql = function() {
+#
+#                          sqlFile <- "countStat.sql"
+#                           # get sql from package
+#                          sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", sqlFile)) |>
+#                            readr::read_file() |>
+#                            glue::glue()
+#                          return(sql)
+#                        }
+#                      ),
+#                      private = list(
+#                        breaks = NULL
+#                      )
+# )
 
 
 # LineItem Classes -----
@@ -1216,7 +1211,9 @@ public = list(
       valueId = private$.valueId,
       valueDescription = private$.valueDescription,
       timeLabel = timeLabel,
-      statisticType = class(private$statistic)[[1]],
+      personLineTransformation = private$statistic$getPersonLineTransformation(),
+      satisticType = private$statistic$getStatisticType(),
+      aggregationType = private$statistic$getAggregationType(),
       domainTable = private$.domainTable,
       lineItemClass = private$.lineItemClass
     )
@@ -1480,7 +1477,7 @@ DemographicLineItem <- R6::R6Class(
       super$initialize(
         sectionLabel = "Demographics",
         domainTable = "person",
-        lineItemLabel = statistic$getStatLabel(),
+        lineItemLabel = statistic$getDemoLabel(),
         lineItemClass = "Demographic",
         statistic = statistic,
         timeInterval = NULL
