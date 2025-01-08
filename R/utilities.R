@@ -189,6 +189,8 @@
 
 }
 
+## Patient level Sql ---------------------
+
 .buildDemoPatientLevelSql <- function(tsm){
 
   demoLines <- tsm |>
@@ -319,6 +321,21 @@
 
 
 }
+
+
+## aggregation sql ------------------
+
+.aggregatePresence <- function(tsm) {
+
+  sqlAggregatePath <- fs::path_package(
+    package = "ClinicalCharacteristics",
+    "sql/aggregate/aggregate_presence.sql"
+  ) |>
+    readr::read_file()
+
+
+}
+
 
 # Archive ------------------------
 #

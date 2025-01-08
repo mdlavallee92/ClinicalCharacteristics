@@ -543,6 +543,32 @@ TableShell <- R6::R6Class("TableShell",
       return(ptFullSql)
     },
 
+    .aggregateAndLabel = function(executionSettings, buildOptions) {
+
+      tsm <- self$getTableShellMeta()
+
+      # Create temp table joining patient date with ts meta
+      patTsSql <- "
+        CREATE TABLE #pat_ts_tab AS
+        SELECT
+          a.*, b.ordinal_id, b.section_label, b.line_item_label,
+          b.value_description, b.statistic_type, b.line_item_class
+        FROM @patient_data a
+        JOIN @ts_meta b
+        ON a.value_id = b.value_id AND a.time_label = b.time_label;" |>
+        SqlRender::render(
+          patient_data = buildOptions$patientLevelDataTempTable,
+          ts_meta = buildOptions$tsMetaTempTable
+        )
+        SqlRender::translate(
+          targetDialect = executionSettings$getDbms(),
+          tempEmulationSchema = executionSettings$tempEmulationSchema
+        )
+
+
+
+    },
+
     # function to drop all cs Tables
     .dropCsTempTables = function() {
 
