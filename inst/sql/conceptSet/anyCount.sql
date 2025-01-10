@@ -4,7 +4,7 @@ SELECT
         d.subject_id,
         d.time_label,
         d.domain_table,
-        'presence' AS aggregation_type,
+        'anyCount' AS patient_line,
         d.raw_occurrence_id as value_id,
         COUNT(DISTINCT d.event_date) AS value
 FROM @concept_set_occurrence_table d

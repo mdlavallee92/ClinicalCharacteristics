@@ -543,28 +543,23 @@ TableShell <- R6::R6Class("TableShell",
       return(ptFullSql)
     },
 
-    .aggregateAndLabel = function(executionSettings, buildOptions) {
+    .aggregateResults = function(executionSettings, buildOptions) {
 
       tsm <- self$getTableShellMeta()
 
       # Create temp table joining patient date with ts meta
-      patTsSql <- "
-        CREATE TABLE #pat_ts_tab AS
-        SELECT
-          a.*, b.ordinal_id, b.section_label, b.line_item_label,
-          b.value_description, b.statistic_type, b.line_item_class
-        FROM @patient_data a
-        JOIN @ts_meta b
-        ON a.value_id = b.value_id AND a.time_label = b.time_label;" |>
-        SqlRender::render(
-          patient_data = buildOptions$patientLevelDataTempTable,
-          ts_meta = buildOptions$tsMetaTempTable
-        )
-        SqlRender::translate(
-          targetDialect = executionSettings$getDbms(),
-          tempEmulationSchema = executionSettings$tempEmulationSchema
-        )
+      patTsSql <- .tempPsDatTable(executionSettings, buildOptions)
 
+      # make temp continuous + categorical table
+      initSummaryTableSql <- .initAggregationTables(executionSettings, buildOptions)
+
+      # make all the aggregate sql queries
+      aggregateSqlQuery <- .aggregateSql(tsm)
+
+      allSql <- c(patTsSql, initSummaryTableSql, aggregateSqlQuery) |>
+        glue::glue_collapse(sep = "\n\n")
+
+      return(allSql)
 
 
     },
@@ -650,7 +645,10 @@ BuildOptions <- R6::R6Class(
                           targetCohortTempTable = NULL,
                           tsMetaTempTable = NULL,
                           conceptSetOccurrenceTempTable = NULL,
-                          patientLevelDataTempTable = NULL) {
+                          patientLevelDataTempTable = NULL,
+                          categoricalSummaryTempTable = NULL,
+                          continuousSummaryTempTable = NULL
+                          ) {
       .setLogical(private = private, key = ".keepResultsTable", value = keepResultsTable)
       .setString(private = private, key = ".resultsTempTable", value = resultsTempTable)
       .setString(private = private, key = ".codesetTempTable", value = codesetTempTable)
@@ -659,6 +657,8 @@ BuildOptions <- R6::R6Class(
       .setString(private = private, key = ".targetCohortTempTable", value = targetCohortTempTable)
       .setString(private = private, key = ".conceptSetOccurrenceTempTable", value = conceptSetOccurrenceTempTable)
       .setString(private = private, key = ".patientLevelDataTempTable", value = patientLevelDataTempTable)
+      .setString(private = private, key = ".categoricalSummaryTempTable", value = categoricalSummaryTempTable)
+      .setString(private = private, key = ".continuousSummaryTempTable", value = continuousSummaryTempTable)
     }
   ),
   private = list(
@@ -669,7 +669,9 @@ BuildOptions <- R6::R6Class(
     .targetCohortTempTable = NULL,
     .tsMetaTempTable = NULL,
     .conceptSetOccurrenceTempTable = NULL,
-    .patientLevelDataTempTable = NULL
+    .patientLevelDataTempTable = NULL,
+    .categoricalSummaryTempTable = NULL,
+    .continuousSummaryTempTable = NULL
   ),
 
   active = list(
@@ -707,6 +709,14 @@ BuildOptions <- R6::R6Class(
 
     patientLevelDataTempTable = function(value) {
       .setActiveString(private = private, key = ".patientLevelDataTempTable", value = value)
+    },
+
+    categoricalSummaryTempTable = function(value) {
+      .setActiveString(private = private, key = ".categoricalSummaryTempTable", value = value)
+    },
+
+    continuousSummaryTempTable = function(value) {
+      .setActiveString(private = private, key = ".continuousSummaryTempTable", value = value)
     }
 
 
@@ -1212,7 +1222,7 @@ public = list(
       valueDescription = private$.valueDescription,
       timeLabel = timeLabel,
       personLineTransformation = private$statistic$getPersonLineTransformation(),
-      satisticType = private$statistic$getStatisticType(),
+      statisticType = private$statistic$getStatisticType(),
       aggregationType = private$statistic$getAggregationType(),
       domainTable = private$.domainTable,
       lineItemClass = private$.lineItemClass

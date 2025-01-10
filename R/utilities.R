@@ -200,7 +200,7 @@
 
 
   statType <- demoLines |>
-    dplyr::pull(statisticType) |>
+    dplyr::pull(personLineTransformation) |>
     unique()
 
   sqlDemographicsPath <- fs::path_package(
@@ -209,7 +209,7 @@
   )
 
   # concept demographic
-  if (any(statType == "CategoricalDemographic")) { # this label will change
+  if (any(statType == "binary")) { # this label will change
     valueId <- demoLines$valueId
     valueDescription <- demoLines$valueDescription
     demoConceptSql <- readr::read_file(file = fs::path(sqlDemographicsPath, "demoConcept.sql")) |>
@@ -237,7 +237,7 @@
 .buildOccurrencePatientLevelSql <- function(tsm) {
 
   statTypes <- tsm |>
-    dplyr::select(statisticType, lineItemClass) |>
+    dplyr::select(personLineTransformation, lineItemClass) |>
     dplyr::distinct()
 
   # limit statTYpes to only concept set
@@ -245,7 +245,7 @@
     dplyr::filter(
       grepl("ConceptSet", lineItemClass)
     ) |>
-    dplyr::pull(statisticType) |>
+    dplyr::pull(personLineTransformation) |>
     unique()
 
   sqlConceptSetPath <- fs::path_package(
@@ -253,23 +253,31 @@
     fs::path("sql", "conceptSet")
   )
 
-  # concept set Presence
-  if (any(statType == "CategoricalPresence")) { # this label will change
-    presSql <- fs::path(sqlConceptSetPath, "presence.sql") |>
+  # concept set anyCount
+  if (any(statType == "anyCount")) { # this label will change
+    anyCountSql <- fs::path(sqlConceptSetPath, "anyCount.sql") |>
       readr::read_file()
   } else{
-    presSql <- ""
+    anyCountSql <- ""
+  }
+
+  # concept set observedCount
+  if (any(statType == "observedCount")) { # this label will change
+    observedCountSql <- fs::path(sqlConceptSetPath, "observedCount.sql") |>
+      readr::read_file()
+  } else{
+    observedCountSql <- ""
   }
 
   # concept set timeTo
-  if (any(statType == "TimeTo")) {
-    timeToSql <- fs::path(sqlConceptSetPath, "timeTo.sql") |>
+  if (any(statType == "timeToFirst")) {
+    timeToFirstSql <- fs::path(sqlConceptSetPath, "timeToFirst.sql") |>
       readr::read_file()
   } else{
-    timeToSql <- ""
+    timeToFirstSql <- ""
   }
 
-  sql <- c(presSql, timeToSql) |>
+  sql <- c(anyCountSql, observedCountSql, timeToFirstSql) |>
     glue::glue_collapse(sep = "\n\n")
 
   return(sql)
@@ -282,7 +290,7 @@
 .buildCohortPatientLevelSql <- function(tsm) {
 
   statTypes <- tsm |>
-    dplyr::select(statisticType, lineItemClass) |>
+    dplyr::select(personLineTransformation, lineItemClass) |>
     dplyr::distinct()
 
   # limit statTYpes to only concept set
@@ -290,7 +298,7 @@
     dplyr::filter(
       grepl("Cohort", lineItemClass)
     ) |>
-    dplyr::pull(statisticType) |>
+    dplyr::pull(personLineTransformation) |>
     unique()
 
   sqlConceptSetPath <- fs::path_package(
@@ -298,40 +306,111 @@
     fs::path("sql", "cohort")
   )
 
-  # cohort Presence
-  if (any(statType == "CategoricalPresence")) { # this label will change
-    presSql <- fs::path(sqlConceptSetPath, "presence.sql") |>
+  # concept set anyCount
+  if (any(statType == "anyCount")) { # this label will change
+    anyCountSql <- fs::path(sqlConceptSetPath, "anyCount.sql") |>
       readr::read_file()
   } else{
-    presSql <- ""
+    anyCountSql <- ""
   }
 
-  # cohort timeTo
-  if (any(statType == "TimeTo")) {
-    timeToSql <- fs::path(sqlConceptSetPath, "timeTo.sql") |>
+  # concept set observedCount
+  if (any(statType == "observedCount")) { # this label will change
+    observedCountSql <- fs::path(sqlConceptSetPath, "observedCount.sql") |>
       readr::read_file()
   } else{
-    timeToSql <- ""
+    observedCountSql <- ""
   }
 
-  sql <- c(presSql, timeToSql) |>
+  # concept set timeTo
+  if (any(statType == "timeToFirst")) {
+    timeToFirstSql <- fs::path(sqlConceptSetPath, "timeToFirst.sql") |>
+      readr::read_file()
+  } else{
+    timeToFirstSql <- ""
+  }
+
+  sql <- c(anyCountSql, observedCountSql, timeToFirstSql) |>
     glue::glue_collapse(sep = "\n\n")
 
   return(sql)
-
 
 }
 
 
 ## aggregation sql ------------------
 
-.aggregatePresence <- function(tsm) {
+.tempPsDatTable <- function(executionSettings, buildOptions) {
 
-  sqlAggregatePath <- fs::path_package(
+   # Create temp table joining patient date with ts meta
+  patTsSql <- "
+        CREATE TABLE #pat_ts_tab AS
+        SELECT
+          a.*, b.ordinal_id, b.section_label, b.line_item_label,
+          b.value_description, b.statistic_type,
+          b.aggregation_type, b.line_item_class
+        FROM @patient_data a
+        JOIN @ts_meta b
+        ON a.value_id = b.value_id AND a.time_label = b.time_label;" |>
+    SqlRender::render(
+      patient_data = buildOptions$patientLevelDataTempTable,
+      ts_meta = buildOptions$tsMetaTempTable
+    ) |>
+    SqlRender::translate(
+      targetDialect = executionSettings$getDbms(),
+      tempEmulationSchema = executionSettings$tempEmulationSchema
+    )
+  return(patTsSql)
+}
+
+.initAggregationTables <- function(executionSettings, buildOptions) {
+
+  initSummaryTableSql <- fs::path_package(
     package = "ClinicalCharacteristics",
-    "sql/aggregate/aggregate_presence.sql"
+    fs::path("sql/aggregate", "initSummaryTables.sql")
   ) |>
-    readr::read_file()
+    readr::read_file() |>
+    SqlRender::render(
+      categorical_table = buildOptions$categoricalSummaryTempTable,
+      continuous_table = buildOptions$continuousSummaryTempTable
+    ) |>
+    SqlRender::translate(
+      targetDialect = executionSettings$getDbms(),
+      tempEmulationSchema = executionSettings$tempEmulationSchema
+    )
+
+  return(initSummaryTableSql)
+
+}
+
+.aggregateSql <- function(tsm) {
+
+
+  aggSqlTb <- tibble::tibble(
+    aggType = c("presence", "continuousDistribuiton", "breaks", "score")
+  )
+
+
+  statTypes <- tsm |>
+    dplyr::select(statisticType) |>
+    dplyr::distinct() |>
+    dplyr::mutate(
+      aggregateSqlPaths = fs::path("sql/aggregate", statisticType, ext = "sql"),
+      aggregateSql = readr::read_file(
+        fs::path_package(
+          package = "ClinicalCharacteristics",
+          aggregateSqlPaths
+        )
+      )
+    )
+
+
+  statTypes$aggregateSql <- fs::path_package(
+    package = "ClinicalCharacteristics",
+    aggregateSqlPaths
+  ) |>
+    purrr::map_chr(~readr::read_file(.x))
+
 
 
 }

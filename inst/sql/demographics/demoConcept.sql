@@ -4,7 +4,7 @@ SELECT
   a.subject_id,
   'Static at Index' AS time_label,
   'person' AS domain_table,
-  'ConceptSetDemographic' AS aggregation_type,
+  'binary' AS patient_line,
   {valueId} AS  value_id,
   1 AS value
 FROM (

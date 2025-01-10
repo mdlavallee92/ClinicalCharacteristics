@@ -84,7 +84,10 @@ defaultTableShellBuildOptions <- function(keepResultsTable = FALSE,
                                           targetCohortTempTable = "#target_cohorts",
                                           tsMetaTempTable = "#ts_meta",
                                           conceptSetOccurrenceTempTable = "#concept_set_occ",
-                                          patientLevelDataTempTable = "#patient_data") {
+                                          patientLevelDataTempTable = "#patient_data",
+                                          categoricalSummaryTempTable = "#categorical_table",
+                                          continuousSummaryTempTable = "#continuous_table"
+                                          ) {
 
   buildOpts <- BuildOptions$new(
     keepResultsTable = keepResultsTable,
@@ -94,7 +97,9 @@ defaultTableShellBuildOptions <- function(keepResultsTable = FALSE,
     tsMetaTempTable = tsMetaTempTable,
     targetCohortTempTable = targetCohortTempTable,
     conceptSetOccurrenceTempTable = conceptSetOccurrenceTempTable,
-    patientLevelDataTempTable = patientLevelDataTempTable
+    patientLevelDataTempTable = patientLevelDataTempTable,
+    categoricalSummaryTempTable = categoricalSummaryTempTable,
+    continuousSummaryTempTable = continuousSummaryTempTable
   )
   return(buildOpts)
 

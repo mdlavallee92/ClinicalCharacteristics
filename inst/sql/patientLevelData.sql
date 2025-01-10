@@ -4,7 +4,7 @@ CREATE TABLE @patient_level_data (
 	subject_id BIGINT NOT NULL,
 	time_label VARCHAR(50) NOT NULL,
 	domain_table VARCHAR(50) NOT NULL,
-	aggregation_type VARCHAR(50) NOT NULL,
+	patient_line VARCHAR(50) NOT NULL,
 	value_id BIGINT NOT NULL,
 	value FLOAT NOT NULL
 	);
