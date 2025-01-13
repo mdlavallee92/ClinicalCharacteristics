@@ -1,3 +1,7 @@
+# ClinicalCharacteristics 0.3.5
+
+* Change datTable to temp
+
 # ClinicalCharacteristics 0.3.4
 
 * Hot fix...count distinct subjects in continuous summary

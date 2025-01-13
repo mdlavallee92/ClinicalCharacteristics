@@ -14,7 +14,7 @@ makeClinChar(
   workDatabaseSchema,
   tempEmulationSchema = workDatabaseSchema,
   cohortTable,
-  datTableName = "dat"
+  datTableName = "datTable"
 )
 }
 \arguments{
