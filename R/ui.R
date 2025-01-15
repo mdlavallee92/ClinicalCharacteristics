@@ -1,5 +1,40 @@
 # function that builds and aggregates ts
+
 generateTableShell <- function(tableShell, executionSettings, buildOptions = NULL) {
+
+  # add default build options if non provided
+  if (is.null(buildOptions)){
+    buildOptions <- defaultTableShellBuildOptions()
+  }
+
+  # Step 1: instantiate Tables
+  tableShell$instantiateTables(
+    executionSettings = executionSettings,
+    buildOptions = buildOptions
+  )
+
+  # Step 2: Build Sql
+  tsSql <- tableShell$buildTableShellSql(
+    executionSettings = executionSettings,
+    buildOptions = buildOptions
+  )
+
+  # Step 3: Execute them on dbms
+  cli::cat_bullet(
+    glue::glue_col("{yellow Executing shell sql}"),
+    bullet = "pointer",
+    bullet_col = "yellow"
+  )
+
+  DatabaseConnector::executeSql(
+    connection = executionSettings$getConnection(),
+    sql = tsSql
+  )
+
+}
+
+
+generateTableShell2 <- function(tableShell, executionSettings, buildOptions = NULL) {
 
   if (is.null(buildOptions)){
     buildOptions <- defaultTableShellBuildOptions()

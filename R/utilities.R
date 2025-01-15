@@ -189,6 +189,11 @@
 
 }
 
+.truncDropTempTables <- function(tempTableName) {
+  sql <- glue::glue("TRUNCATE TABLE {tempTableName}; DROP TABLE {tempTableName};")
+  return(sql)
+}
+
 ## Patient level Sql ---------------------
 
 .buildDemoPatientLevelSql <- function(tsm){
@@ -383,36 +388,80 @@
 
 }
 
-.aggregateSql <- function(tsm) {
+.aggregateSql <- function(tsm, executionSettings, buildOptions) {
 
+  # aggregateSqlPaths <- fs::path_package(
+  #   package = "ClinicalCharacteristics",
+  #   fs::path("sql/aggregate")
+  # )|>
+  #   fs::dir_ls()
 
+  # test
+  aggregateSqlPaths <- here::here("inst") |>
+    fs::path("sql/aggregate")
+
+  # Step 1: Make a table with all the aggregation types
   aggSqlTb <- tibble::tibble(
-    aggType = c("presence", "continuousDistribuiton", "breaks", "score")
-  )
-
-
-  statTypes <- tsm |>
-    dplyr::select(statisticType) |>
-    dplyr::distinct() |>
+    aggName = c("presence", "continuousDistribution", "breaks", "score"),
+    aggType = c("categorical", "continuous", "categorical", "continuous"),
+    aggSqlPath = fs::path(aggregateSqlPaths, aggName, ext = "sql")
+  ) |>
+    dplyr::rowwise() |>
     dplyr::mutate(
-      aggregateSqlPaths = fs::path("sql/aggregate", statisticType, ext = "sql"),
-      aggregateSql = readr::read_file(
-        fs::path_package(
-          package = "ClinicalCharacteristics",
-          aggregateSqlPaths
-        )
-      )
+      aggSql = readr::read_file(aggSqlPath) # read in file
+    )
+  # Step 2: identify the correct temp tables
+  aggSqlTb <- aggSqlTb |>
+    dplyr::left_join(
+      tibble::tibble(
+        aggType = c("categorical", "continuous"),
+        aggTable = c(buildOptions$categoricalSummaryTempTable, buildOptions$continuousSummaryTempTable)
+      ),
+      by = c("aggType")
     )
 
+  # Step 3: Find the distinct stat types from the table shell
+  statTypes <- tsm |>
+    dplyr::select(statisticType) |>
+    dplyr::distinct()
 
-  statTypes$aggregateSql <- fs::path_package(
-    package = "ClinicalCharacteristics",
-    aggregateSqlPaths
-  ) |>
-    purrr::map_chr(~readr::read_file(.x))
+  # Step 4: Reduce the agg Sql to only the stat types
 
+  aggSqlTb2 <- aggSqlTb |>
+    dplyr::inner_join(statTypes, by = c("aggName" = "statisticType"))
 
+  # Step 5:
+  aggSqlBind <- vector('list', length = nrow(aggSqlTb2))
+  for (i in 1:nrow(aggSqlTb2)) {
 
+  # if categorical render with table
+    if (aggSqlTb2$aggType[i] == "categorical") {
+      aggSqlBind[[i]] <- SqlRender::render(
+        sql = aggSqlTb2$aggSql[i],
+        categorical_table = aggSqlTb2$aggTable[i]
+      ) |>
+        SqlRender::translate(
+          targetDialect = executionSettings$getDbms(),
+          tempEmulationSchema = executionSettings$tempEmulationSchema
+        )
+    }
+    # if continuous render with table
+    if (aggSqlTb2$aggType[i] == "continuous") {
+      aggSqlBind[[i]] <- SqlRender::render(
+        sql = aggSqlTb2$aggSql[i],
+        continuous_table = aggSqlTb2$aggTable[i]
+      ) |>
+        SqlRender::translate(
+          targetDialect = executionSettings$getDbms(),
+          tempEmulationSchema = executionSettings$tempEmulationSchema
+        )
+    }
+
+  }
+  aggSqlBind <- do.call('c', aggSqlBind) |>
+    glue::glue_collapse("\n\n")
+
+  return(aggSqlBind)
 }
 
 
@@ -652,10 +701,6 @@
 # }
 #
 #
-# .truncDropTempTables <- function(tempTableName) {
-#   sql <- glue::glue("TRUNCATE TABLE {tempTableName}; DROP TABLE {tempTableName};")
-#   return(sql)
-# }
 #
 # .prepCsTransform <- function(categoryId, tempTableName, sql) {
 #

@@ -78,13 +78,45 @@ TableShell <- R6::R6Class("TableShell",
 
     },
 
+    # function to instantiate tables for queries
+    instantiateTables = function(executionSettings, buildOptions) {
+
+      # ensure R6 object used
+      checkmate::assert_class(executionSettings, classes = "ExecutionSettings", null.ok = FALSE)
+      checkmate::assert_class(buildOptions, classes = "BuildOptions", null.ok = FALSE)
+
+      # insert Ts Meta
+      cli::cat_bullet(
+        glue::glue_col("Insert tsMeta table ---> {cyan {buildOptions$tsMetaTempTable}}"),
+        bullet = "info",
+        bullet_col = "blue"
+      )
+      private$.insertTsMeta(
+        executionSettings = executionSettings,
+        buildOptions = buildOptions
+      )
+
+      # insert time windows
+      cli::cat_bullet(
+        glue::glue("Insert timeWindows table ---> {cyan {buildOptions$timeWindowTempTable}}"),
+        bullet = "info",
+        bullet_col = "blue"
+      )
+      private$.insertTimeWindows(
+        executionSettings = executionSettings,
+        buildOptions = buildOptions
+      )
+
+      invisible(executionSettings)
+
+    },
 
     #key function to generate the table shell
     buildTableShellSql = function(executionSettings, buildOptions) {
 
-      # ensure that executionSettings R6 object used
+      # ensure R6 object used
       checkmate::assert_class(executionSettings, classes = "ExecutionSettings", null.ok = FALSE)
-
+      checkmate::assert_class(buildOptions, classes = "BuildOptions", null.ok = FALSE)
 
       cli::cat_bullet(
         glue::glue_col("{yellow Preparing table shell sql}"),
@@ -95,127 +127,112 @@ TableShell <- R6::R6Class("TableShell",
       # collect all the sql
       fullSql <- c(
 
-        # step 1: dat table ddl
-        private$.makeDatTable(),
+        # step 1: Make target Cohort table
+        private$.makeTargetCohortTable(
+          executionSettings = executionSettings,
+          buildOptions = buildOptions
+        ),
 
         # step 2: create targe cohort table
-        private$.getTargetCohortSql(),
+        private$.buildCodesetQueries(
+          executionSettings = executionSettings,
+          buildOptions = buildOptions
+        ),
 
-        # Step 3: Create line items
+        # Step 3: create concept set query
+        private$.buildConceptSetOccurrenceQuery(
+          executionSettings = executionSettings,
+          buildOptions = buildOptions
+        ),
 
-          # A) Demographics
-        private$.buildDemographicsQuery(),
+        # Step 4: transform to patient line data
+        private$.transformToPatientLineData(
+          executionSettings = executionSettings,
+          buildOptions = buildOptions
+        ),
 
-          # B) Concept Set
-        # create codeset query
-        private$.buildCodesetQueries(buildOptions),
-        # create concept set query
-        private$.buildConceptLineItemQuery(),
-
-          # C) Multi-domain groups
-        # grp_Sql <- private$.buildGroupLineItemQuery()
-
-          # D) Cohorts
-        #cd_sql <- private$.buildCohortLineItemQuery()
-
-        # Step 4: Make table drop sql
-        private$.dropCsTempTables()
+        # Step 5: Aggregate results
+        private$.aggregateResults(
+          executionSettings = executionSettings,
+          buildOptions = buildOptions
+        )
       ) |>
         glue::glue_collapse(sep = "\n")
 
-      # render it with schema info
-      renderedSql <- SqlRender::render(
-        sql = fullSql,
-        cdmDatabaseSchema = executionSettings$cdmDatabaseSchema,
-        vocabularyDatabaseSchema = executionSettings$cdmDatabaseSchema,
-        workDatabaseSchema = executionSettings$workDatabaseSchema,
-        cohortTable = executionSettings$targetCohortTable,
-        dataTable = buildOptions$resultsTempTable,
-        codesetTable = buildOptions$codesetTempTable,
-        targetTable = buildOptions$targetCohortTempTable,
-        timeWindowTable = buildOptions$timeWindowTempTable
-      )
 
-      # translate and prep for execution
-      finalSql <- SqlRender::translate(
-        sql = renderedSql,
-        targetDialect = executionSettings$getDbms(),
-        tempEmulationSchema = executionSettings$tempEmulationSchema
-      )
+      return(fullSql)
 
-      return(finalSql)
-
-    },
+    }#,
 
     # function to aggregate categorical vars into table
-    aggregateTableShell = function(executionSettings, type, buildOptions) {
-
-      #identify which lineItems are continuous or categorical
-      idList <- private$.identifyCategoryIds()
-
-      # get sql for categorical
-      if (type == "categorical") {
-
-        categoricalIds <- idList |>
-          dplyr::filter(distributionType == "categorical") |>
-          dplyr::pull(categoryId) |>
-          paste(collapse = ", ")
-
-
-        sqlFile <- "aggregateCategorical.sql"
-        # get sql from package
-        sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", sqlFile)) |>
-          readr::read_file() |>
-          glue::glue() |>
-          SqlRender::render(
-            workDatabaseSchema = executionSettings$workDatabaseSchema,
-            cohortTable = executionSettings$targetCohortTable,
-            dataTable = buildOptions$resultsTempTable
-          )
-      }
-
-      # get sql for continuous
-      if (type == "continuous") {
-
-        continuousIds <- idList |>
-          dplyr::filter(distributionType == "continuous") |>
-          dplyr::pull(categoryId) |>
-          paste(collapse = ", ")
-
-        sqlFile <- "aggregateContinuous.sql"
-        # get sql from package
-        sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", sqlFile)) |>
-          readr::read_file() |>
-          glue::glue() |>
-          SqlRender::render(
-            dataTable = buildOptions$resultsTempTable
-          )
-      }
-
-      finalSql <- sql |>
-        SqlRender::translate(
-          targetDialect = executionSettings$getDbms(),
-          tempEmulationSchema = executionSettings$tempEmulationSchema
-        )
-
-      # get aggregateTable
-      aggregateTable <- DatabaseConnector::querySql(
-        connection = executionSettings$getConnection(),
-        sql = finalSql
-      ) |>
-        tibble::as_tibble() |>
-        dplyr::rename_with(tolower) |>
-        dplyr::arrange(cohort_id, category_id, time_id, value_id)
-
-      # format results
-      formattedTable <- private$.labelResults(
-        results = aggregateTable,
-        type = type
-      )
-
-      return(formattedTable)
-
-    }
+    # aggregateTableShell = function(executionSettings, type, buildOptions) {
+    #
+    #   #identify which lineItems are continuous or categorical
+    #   idList <- private$.identifyCategoryIds()
+    #
+    #   # get sql for categorical
+    #   if (type == "categorical") {
+    #
+    #     categoricalIds <- idList |>
+    #       dplyr::filter(distributionType == "categorical") |>
+    #       dplyr::pull(categoryId) |>
+    #       paste(collapse = ", ")
+    #
+    #
+    #     sqlFile <- "aggregateCategorical.sql"
+    #     # get sql from package
+    #     sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", sqlFile)) |>
+    #       readr::read_file() |>
+    #       glue::glue() |>
+    #       SqlRender::render(
+    #         workDatabaseSchema = executionSettings$workDatabaseSchema,
+    #         cohortTable = executionSettings$targetCohortTable,
+    #         dataTable = buildOptions$resultsTempTable
+    #       )
+    #   }
+    #
+    #   # get sql for continuous
+    #   if (type == "continuous") {
+    #
+    #     continuousIds <- idList |>
+    #       dplyr::filter(distributionType == "continuous") |>
+    #       dplyr::pull(categoryId) |>
+    #       paste(collapse = ", ")
+    #
+    #     sqlFile <- "aggregateContinuous.sql"
+    #     # get sql from package
+    #     sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", sqlFile)) |>
+    #       readr::read_file() |>
+    #       glue::glue() |>
+    #       SqlRender::render(
+    #         dataTable = buildOptions$resultsTempTable
+    #       )
+    #   }
+    #
+    #   finalSql <- sql |>
+    #     SqlRender::translate(
+    #       targetDialect = executionSettings$getDbms(),
+    #       tempEmulationSchema = executionSettings$tempEmulationSchema
+    #     )
+    #
+    #   # get aggregateTable
+    #   aggregateTable <- DatabaseConnector::querySql(
+    #     connection = executionSettings$getConnection(),
+    #     sql = finalSql
+    #   ) |>
+    #     tibble::as_tibble() |>
+    #     dplyr::rename_with(tolower) |>
+    #     dplyr::arrange(cohort_id, category_id, time_id, value_id)
+    #
+    #   # format results
+    #   formattedTable <- private$.labelResults(
+    #     results = aggregateTable,
+    #     type = type
+    #   )
+    #
+    #   return(formattedTable)
+    #
+    # }
 
 
   ),
@@ -312,15 +329,6 @@ TableShell <- R6::R6Class("TableShell",
       invisible(time_tbl)
     },
 
-    #function to create dat table
-    .makeDatTable = function(){
-      sqlFile <- "datTable.sql"
-      # get sql from package
-      sql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", sqlFile)) |>
-        readr::read_file()
-      return(sql)
-    },
-
     # function to get target cohort sql
     .makeTargetCohortTable = function(executionSettings, buildOptions) {
 
@@ -349,67 +357,6 @@ TableShell <- R6::R6Class("TableShell",
       return(renderedSql)
     },
 
-    # pluck Concept Set Line Items
-    # .pluckLineItems = function(classType) {
-    #   lineItems <- self$getLineItems()
-    #   idsToPluck <- .findLineItemId(lineItems = lineItems, classType = classType)
-    #
-    #   filteredLineItems <- lineItems[idsToPluck]
-    #   return(filteredLineItems)
-    # },
-
-    .identifyCategoryIds = function() {
-      # get line items
-      li <- self$getLineItems()
-
-      #figure if base stat is continuous or categorical
-      categoryIdTbl <- dplyr::bind_rows(
-        .findDemographicCategoryIds(li),
-        .findConceptSetCategoryIds(li)
-      )
-
-      return(categoryIdTbl)
-
-    },
-
-    .grabDemographicsMetaTable = function() {
-      demoLineItems <- private$.pluckLineItems(classType = "DemographicLineItem")
-
-      demoMetaTable <- tibble::tibble(
-        'categoryId' = purrr::map_int(demoLineItems, ~.x$ordinal),
-        'catName' = purrr::map_chr(demoLineItems, ~.x$getName()),
-        'timeId' = -999,
-        'twLabel' = "Static at Index"
-      ) |>
-        dplyr::mutate(
-          categoryLabel = glue::glue("Demographics: {catName}")
-        ) |>
-        dplyr::select(
-          -c(catName)
-        )
-
-      return(demoMetaTable)
-
-    },
-
-    # function to prep demographics sql
-    .buildDemographicsQuery = function() {
-
-      # get concept set line items
-      demoLineItems <- private$.pluckLineItems(classType = "DemographicLineItem")
-      if (length(demoLineItems) >= 1) {
-        demoSql <- purrr::map(
-          demoLineItems,
-          ~.x$getSql()
-        )|>
-          glue::glue_collapse(sep = "\n\n")
-      } else {
-        demoSql <- ""
-      }
-
-      return(demoSql)
-
-    },
 
 
     # function to create sql for codset query
@@ -442,19 +389,6 @@ TableShell <- R6::R6Class("TableShell",
       return(cs_query)
 
     },
-
-    # .grabConceptSetMetaTable = function() {
-    #   csLineItems <- private$.pluckLineItems(classType = "ConceptSetLineItem")
-    #   # only run if CSD in ts
-    #   if (length(csLineItems) >= 1) {
-    #
-    #     # Step 1: Get the concept set meta
-    #     csMeta <- .conceptSetMeta(csLineItems)
-    #   } else {
-    #     csMeta <- NULL
-    #   }
-    #   return(csMeta)
-    # },
 
     # function to extract concept level information
     .buildConceptSetOccurrenceQuery = function(executionSettings, buildOptions) {
@@ -511,7 +445,10 @@ TableShell <- R6::R6Class("TableShell",
     .transformToPatientLineData = function(executionSettings, buildOptions) {
 
       # Step 1: make patient level data table
-      ptDatTbSql <- fs::path_package("ClinicalCharacteristics", fs::path("sql", "patientLevelData.sql")) |>
+      ptDatTbSql <- fs::path_package(
+        "ClinicalCharacteristics",
+        fs::path("sql", "patientLevelData.sql")
+      ) |>
         readr::read_file()
 
       # Step 2: run patient level queries
@@ -554,7 +491,7 @@ TableShell <- R6::R6Class("TableShell",
       initSummaryTableSql <- .initAggregationTables(executionSettings, buildOptions)
 
       # make all the aggregate sql queries
-      aggregateSqlQuery <- .aggregateSql(tsm)
+      aggregateSqlQuery <- .aggregateSql(tsm, executionSettings, buildOptions)
 
       allSql <- c(patTsSql, initSummaryTableSql, aggregateSqlQuery) |>
         glue::glue_collapse(sep = "\n\n")
@@ -565,66 +502,45 @@ TableShell <- R6::R6Class("TableShell",
     },
 
     # function to drop all cs Tables
-    .dropCsTempTables = function() {
+    .dropTempTables = function(executionSettings, buildOptions) {
 
-      csMeta <- private$.grabConceptSetMetaTable()
+      # get temp table slot names
+      tempTableSlots <- names(buildOptions)[grepl("TempTable",names(buildOptions))]
 
-      # only run if CSD in ts
-      if (!is.null(csMeta)) {
+      # get table names
+      tempTableNames <- purrr::map_chr(
+        tempTableSlots,
+        ~buildOptions[[.x]]
+      )
 
-      tempTables <- csMeta  |>
-        dplyr::select(tempTableName) |>
-        dplyr::distinct()
+      tempTables <- tibble::tibble(
+        tempTableSlots = tempTableSlots,
+        tempTableNames = tempTableNames
+      ) |>
+        dplyr::rowwise() |>
+        dplyr::mutate(
+          drop = grepl("\\#", tempTableNames) # check if temp
+        )
 
-      dropTmpTb0 <- purrr::pmap(tempTables, ~.truncDropTempTables(tempTableName = ..1)) |>
-        glue::glue_collapse(sep = "\n\n")
-
-      dropTmpTb <- c(
-        "\n-- Drop CS Temp Tables",
-        .truncDropTempTables(tempTableName = "#Codeset"),
-        dropTmpTb0
-      )|>
-        glue::glue_collapse(sep = "\n\n")
-      } else {
-        dropTmpTb <- ""
+      dropTempTableSql <- vector('list', length = nrow(tempTables))
+      for (i in 1:nrow(tempTables)) {
+        if (tempTables$drop[i]) {
+          dropTempTableSql[[i]] <- .truncDropTempTables(
+            tempTableName = tempTables$tempTableNames[i]
+          )
+        } else {
+          dropTempTableSql[[i]] <- ""
+        }
       }
+      dropTempTableSql <- do.call("c", dropTempTableSql) |>
+        glue::glue_collapse("\n") |>
+        SqlRender::translate(
+          targetDialect = executionSettings$getDbms(),
+          tempEmulationSchema = executionSettings$tempEmulationSchema
+        )
 
-      return(dropTmpTb)
-    },
-
-    .labelResults = function(results, type) {
-
-      #get target Cohort labels
-      targetCohortKey <- .makeTargetCohortLabels(private$targetCohorts)
-
-
-      # label the demographic results
-      resultsDemoLabelled <- .formatDemographics(
-        results = results,
-        type = type,
-        targetCohortKey = targetCohortKey,
-        demoMeta = private$.grabDemographicsMetaTable())
-
-      # get Concept Set Labels
-      resultsCsLabelled <- .formatConceptSets(
-        results = results,
-        type = type,
-        targetCohortKey = targetCohortKey,
-        categoryKey = private$.identifyCategoryIds(),
-        conceptSetMeta = private$.grabConceptSetMetaTable()
-      )
-
-      # Bind for output
-      labelledResults <- dplyr::bind_rows(
-        resultsDemoLabelled,
-        resultsCsLabelled
-        #add others
-      )
-
-      return(labelledResults)
-
+      return(dropTempTableSql)
     }
-
   )
 )
 

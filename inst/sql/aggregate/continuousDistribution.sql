@@ -1,3 +1,4 @@
+INSERT INTO @continuous_table
 SELECT
   m.target_cohort_id,
   m.ordinal_id,
@@ -14,7 +15,6 @@ SELECT
   PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY m.value) as p75,
   PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY m.value) as p90,
   max(m.value) AS max
-INTO @continuous_table
 FROM (
     SELECT d.*
     FROM #pat_ts_tab d

@@ -1,3 +1,4 @@
+INSERT INTO @categorical_table
 SELECT
   j.target_cohort_id,
   j.ordinal_id,
@@ -5,7 +6,6 @@ SELECT
   j.line_item_label,
   j.patient_line,
   COUNT(DISTINCT j.subject_count) AS subject_count
-INTO @categorical_table
 FROM(
   SELECT
     h.*,
