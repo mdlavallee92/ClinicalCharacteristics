@@ -1,19 +1,19 @@
-# ClinicalCharacteristics
+# ClinicalCharacteristicsOldOld
 
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of `ClinicalCharacteristics` is to characterize a patient population using OMOP data. This approach uses
+The goal of `ClinicalCharacteristicsOld` is to characterize a patient population using OMOP data. This approach uses
 a table shell approach where characteristic extraction are limited to what is specified in the build object.
 
 ## Installation
 
-To install `ClinicalCharacteristics`, follow these steps:
+To install `ClinicalCharacteristicsOld`, follow these steps:
 
 1) clone the repository 
-2) Open the `ClinicalCharacteristics.RProj` file in the repository
+2) Open the `ClinicalCharacteristicsOld.RProj` file in the repository
 3) Navigate to the build tab in RStudio and select Install
-4) Exit out of the `ClinicalCharacteristics.RProj` session
+4) Exit out of the `ClinicalCharacteristicsOld.RProj` session
 5) **Recommended** create a new `RProj` to test the package.
 6) Use CohortGenerator to build a cohort def in scratch
 
@@ -22,7 +22,7 @@ To install `ClinicalCharacteristics`, follow these steps:
 To run this example you need to install `Capr`
 
 ``` r
-library(ClinicalCharacteristics)
+library(ClinicalCharacteristicsOld)
 library(Capr)
 
 # make connection details
@@ -87,7 +87,7 @@ clinChar <- makeClinChar(
 
 
 # run the clinical characteristics
-dt <- runClinicalCharacteristics(connection = connection,
+dt <- runClinicalCharacteristicsOld(connection = connection,
                                       clinChar = clinChar,
                                       saveName = "internals_test",
                                       savePath = outputFolder,

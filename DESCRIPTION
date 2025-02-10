@@ -1,4 +1,4 @@
-Package: ClinicalCharacteristics
+Package: ClinicalCharacteristicsOld
 Title: Runs Clinical Characteristics for OHDSI Studies
 Version: 0.3.5
 Authors@R: c(
